@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Raccoons Financial Services — Landing page directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --navy: #25397a;
+    --navy-deep: #1a2a5e;
+    --lime: #d7df21;
+    --ink: #14182b;
+    --muted: #5b6072;
+    --bg: #eceef3;
+    --line: #dcdfe8;
+    --disp: "Space Grotesk", system-ui, sans-serif;
+    --sans: "Manrope", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--sans); background: var(--bg); color: var(--ink); -webkit-font-smoothing: antialiased; line-height: 1.55; }
+  a { color: inherit; text-decoration: none; }
+  img { display: block; max-width: 100%; }
+  .wrap { max-width: 1320px; margin: 0 auto; padding: 0 32px; }
+
+  header.top { padding: 40px 0 8px; }
+  header.top .bar { display: flex; align-items: center; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
+  header.top img { height: 52px; width: auto; }
+  header.top .reg { font-size: 13px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+  header.top .reg b { color: var(--navy); }
+
+  .intro { padding: 30px 0 10px; max-width: 720px; }
+  .intro .kick { font-size: 13px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: var(--navy); }
+  .intro h1 { font-family: var(--disp); font-size: clamp(34px, 4.6vw, 52px); line-height: 1.04; letter-spacing: -0.02em; margin: 14px 0 16px; }
+  .intro p { font-size: 18px; color: var(--muted); }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 26px; padding: 40px 0 60px; }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 18px 40px -28px rgba(20,25,40,.5); transition: transform .15s, box-shadow .15s; }
+  .card:hover { transform: translateY(-5px); box-shadow: 0 30px 60px -28px rgba(20,25,40,.55); }
+
+  .thumb { position: relative; height: 300px; overflow: hidden; border-bottom: 1px solid var(--line); background: var(--navy); }
+  .thumb img.shot { width: 100%; height: auto; display: block; }
+  .thumb a.cover { position: absolute; inset: 0; z-index: 2; }
+  .thumb .tag { position: absolute; top: 14px; left: 14px; z-index: 3; background: rgba(20,24,43,.82); color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 6px 11px; border-radius: 99px; backdrop-filter: blur(4px); }
+
+  .body { padding: 26px 24px 28px; display: flex; flex-direction: column; flex: 1; }
+  .body .nm { font-family: var(--disp); font-size: 23px; font-weight: 600; letter-spacing: -0.01em; }
+  .body .desc { font-size: 15px; color: var(--muted); margin: 10px 0 18px; flex: 1; }
+  .chips { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 22px; }
+  .chip { font-size: 12px; font-weight: 600; color: var(--navy); background: #eef1f8; border: 1px solid #e0e5f1; padding: 5px 11px; border-radius: 99px; }
+  .actions { display: flex; gap: 10px; }
+  .btn { font-family: var(--sans); font-weight: 700; font-size: 14px; padding: 12px 20px; border-radius: 9px; cursor: pointer; border: 1.5px solid transparent; display: inline-flex; align-items: center; justify-content: center; gap: 8px; transition: background .15s, border-color .15s; flex: 1; }
+  .btn-navy { background: var(--navy); color: #fff; }
+  .btn-navy:hover { background: var(--navy-deep); }
+  .btn-out { background: #fff; color: var(--navy); border-color: var(--line); }
+  .btn-out:hover { border-color: var(--navy); }
+
+  .note { padding: 0 0 60px; font-size: 14px; color: var(--muted); max-width: 760px; }
+  .note b { color: var(--ink); }
+
+  @media (max-width: 1080px) { .grid { grid-template-columns: 1fr; max-width: 460px; } }
+</style>
+</head>
+<body>
+  <header class="top">
+    <div class="wrap">
+      <div class="bar">
+        <img src="assets/rfs-lockup.png" alt="Raccoons Financial Services" />
+        <div class="reg"><span>Registered microlender · Regulated by <b>NAMFISA</b></span></div>
+      </div>
+    </div>
+  </header>
+
+  <section class="wrap">
+    <div class="intro">
+      <div class="kick">Landing page · 3 directions</div>
+      <h1>Three ways to bring Raccoons Financial Services online.</h1>
+      <p>Each direction uses your real logo and brand colours — navy and lime — with a working loan calculator and NAMFISA compliance built in. Open any one full-screen, then tell me which to refine.</p>
+    </div>
+  </section>
+
+  <section class="wrap">
+    <div class="grid">
+
+      <!-- Template 1 -->
+      <article class="card">
+        <div class="thumb">
+          <span class="tag">01 · Trust</span>
+          <a class="cover" href="templates/Trust.html" aria-label="Open Trust template"></a>
+          <img class="shot" src="assets/thumb-trust.png" alt="Trust template preview" />
+        </div>
+        <div class="body">
+          <div class="nm">The Trusted Institution</div>
+          <p class="desc">Calm, editorial and bank-like. Serif headlines, generous white space and trust signals front-and-centre — for borrowers who want to feel safe.</p>
+          <div class="chips"><span class="chip">Light &amp; airy</span><span class="chip">Serif headlines</span><span class="chip">Calculator card</span></div>
+          <div class="actions">
+            <a class="btn btn-navy" href="templates/Trust.html">Open full page</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Template 2 -->
+      <article class="card">
+        <div class="thumb">
+          <span class="tag">02 · Bold growth</span>
+          <a class="cover" href="templates/Bold Growth.html" aria-label="Open Bold Growth template"></a>
+          <img class="shot" src="assets/thumb-bold.png" alt="Bold Growth template preview" />
+        </div>
+        <div class="body">
+          <div class="nm">Bold Growth</div>
+          <p class="desc">Confident and on-brand. Heavy condensed type echoing your logo, deep navy blocks and lime energy, with the rising-arrow growth story throughout.</p>
+          <div class="chips"><span class="chip">Big &amp; bold</span><span class="chip">Most on-brand</span><span class="chip">Hero calculator</span></div>
+          <div class="actions">
+            <a class="btn btn-navy" href="templates/Bold Growth.html">Open full page</a>
+          </div>
+        </div>
+      </article>
+
+      <!-- Template 3 -->
+      <article class="card">
+        <div class="thumb">
+          <span class="tag">03 · Fintech</span>
+          <a class="cover" href="templates/Fintech.html" aria-label="Open Fintech template"></a>
+          <img class="shot" src="assets/thumb-fintech.png" alt="Fintech template preview" />
+        </div>
+        <div class="body">
+          <div class="nm">App-First Fintech</div>
+          <p class="desc">Modern and sleek. A dark navy interface with a phone mockup, glassy cards and rounded forms — positioning RFS as a digital-first lender.</p>
+          <div class="chips"><span class="chip">Dark mode</span><span class="chip">Phone mockup</span><span class="chip">App-led</span></div>
+          <div class="actions">
+            <a class="btn btn-navy" href="templates/Fintech.html">Open full page</a>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  <section class="wrap">
+    <p class="note"><b>All three are live, scrollable pages.</b> The loan calculator works in each (illustrative figures), and the NAMFISA registration and responsible-lending disclosures are included. Tell me which direction you like — or mix elements across them — and I'll develop it into the full site.</p>
+  </section>
+</body>
+</html>

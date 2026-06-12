@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Raccoons Financial Services — Credit that moves you forward</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --navy: #25397a;
+    --navy-deep: #1a2a5e;
+    --navy-darker: #11183a;
+    --lime: #d7df21;
+    --lime-deep: #c2c910;
+    --ink: #14182b;
+    --paper: #ffffff;
+    --paper-2: #f4f5fa;
+    --line: #e1e3ee;
+    --muted: #5b6072;
+    --display: "Anton", Impact, sans-serif;
+    --sans: "Archivo", system-ui, sans-serif;
+    --maxw: 1200px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body { font-family: var(--sans); color: var(--ink); background: var(--paper); -webkit-font-smoothing: antialiased; line-height: 1.55; }
+  a { color: inherit; text-decoration: none; }
+  img, svg { display: block; max-width: 100%; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 28px; }
+  .display { font-family: var(--display); font-weight: 400; letter-spacing: 0.005em; line-height: 0.92; text-transform: uppercase; }
+  .eyebrow { font-size: 13px; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 700; color: var(--lime-deep); }
+
+  .btn { font-family: var(--sans); font-weight: 700; font-size: 15px; padding: 14px 26px; border-radius: 6px; cursor: pointer; border: 2px solid transparent; transition: transform .12s, background .15s, color .15s; display: inline-flex; align-items: center; gap: 9px; text-transform: uppercase; letter-spacing: 0.03em; }
+  .btn:active { transform: translateY(1px); }
+  .btn-lime { background: var(--lime); color: var(--navy-deep); }
+  .btn-lime:hover { background: var(--lime-deep); }
+  .btn-navy { background: var(--navy); color: #fff; }
+  .btn-navy:hover { background: var(--navy-deep); }
+  .btn-out-light { background: transparent; color: #fff; border-color: rgba(255,255,255,.35); }
+  .btn-out-light:hover { border-color: var(--lime); color: var(--lime); }
+  .btn-out-navy { background: transparent; color: var(--navy); border-color: var(--navy); }
+  .btn-out-navy:hover { background: var(--navy); color: #fff; }
+
+  /* Nav */
+  header.nav { position: sticky; top: 0; z-index: 50; background: #fff; border-bottom: 1px solid var(--line); }
+  header.nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 78px; }
+  .brand img { height: 44px; width: auto; }
+  .navlinks { display: flex; gap: 32px; font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink); }
+  .navlinks a { padding: 4px 0; border-bottom: 2px solid transparent; }
+  .navlinks a:hover { border-color: var(--lime); }
+  .nav-cta { display: flex; align-items: center; gap: 12px; }
+
+  /* Hero */
+  .hero { background: var(--navy); color: #fff; position: relative; overflow: hidden; }
+  .hero::before { content: ""; position: absolute; inset: 0; background-image:
+      linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+    background-size: 46px 46px; mask-image: radial-gradient(circle at 70% 30%, #000, transparent 75%); }
+  .hero .wrap { position: relative; display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 56px; align-items: center; padding-top: 76px; padding-bottom: 84px; }
+  .hero h1 { font-size: clamp(52px, 7.2vw, 104px); margin: 20px 0 0; }
+  .hero h1 .ln2 { color: var(--lime); display: block; }
+  .hero p.lead { font-size: 19px; color: #c5cce4; max-width: 31em; margin: 26px 0 32px; }
+  .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
+  .hero-stats { display: flex; gap: 40px; margin-top: 46px; flex-wrap: wrap; }
+  .hero-stats .s .n { font-family: var(--display); font-size: 42px; color: #fff; line-height: 1; }
+  .hero-stats .s .n span { color: var(--lime); }
+  .hero-stats .s .l { font-size: 13px; color: #9aa3c4; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.08em; }
+
+  /* hero calculator (feature) */
+  .calc { background: #fff; color: var(--ink); border-radius: 16px; padding: 30px; box-shadow: 0 30px 70px -30px rgba(0,0,0,.5); }
+  .calc .ctitle { font-family: var(--display); text-transform: uppercase; font-size: 26px; color: var(--navy); line-height: 1; }
+  .calc .csub { font-size: 13px; color: var(--muted); margin: 6px 0 22px; }
+  .field { margin-bottom: 22px; }
+  .field .flabel { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); margin-bottom: 10px; }
+  .field .flabel b { font-family: var(--display); font-size: 24px; color: var(--navy); letter-spacing: 0; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 7px; border-radius: 99px; background: var(--paper-2); outline: none; border: 1px solid var(--line); }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; border-radius: 50%; background: var(--lime); cursor: pointer; border: 4px solid #fff; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+  input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border-radius: 50%; background: var(--lime); cursor: pointer; border: 4px solid #fff; }
+  .calc-out { background: var(--navy); color: #fff; border-radius: 12px; padding: 20px 22px; margin: 6px 0 14px; }
+  .calc-out .top { display: flex; justify-content: space-between; align-items: center; }
+  .calc-out .lbl { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #aab2d2; }
+  .calc-out .big { font-family: var(--display); font-size: 44px; color: var(--lime); line-height: 1; }
+  .calc-out .row { display: flex; justify-content: space-between; font-size: 13px; color: #c5cce4; margin-top: 14px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.15); }
+  .calc-note { font-size: 11px; color: var(--muted); margin-top: 14px; line-height: 1.5; }
+
+  /* Trust ticker */
+  .ticker { background: var(--lime); color: var(--navy-deep); padding: 16px 0; overflow: hidden; }
+  .ticker .track { display: flex; gap: 56px; white-space: nowrap; font-family: var(--display); text-transform: uppercase; font-size: 22px; animation: scroll 28s linear infinite; }
+  .ticker .track span { display: inline-flex; align-items: center; gap: 56px; }
+  .ticker .dot { width: 9px; height: 9px; background: var(--navy-deep); border-radius: 50%; }
+  @keyframes scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+  /* section base */
+  section.block { padding: 96px 0; }
+  .sec-head { max-width: 700px; }
+  .sec-head h2 { font-size: clamp(36px, 5vw, 64px); margin: 16px 0 14px; }
+  .sec-head h2 em { color: var(--navy); font-style: normal; -webkit-text-stroke: 0; }
+  .sec-head p { font-size: 18px; color: var(--muted); }
+
+  /* features */
+  .feats { display: grid; grid-template-columns: repeat(3,1fr); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; margin-top: 8px; }
+  .feat { background: #fff; padding: 38px 32px; }
+  .feat .fn { font-family: var(--display); font-size: 40px; color: var(--lime-deep); line-height: 1; }
+  .feat h3 { font-family: var(--display); text-transform: uppercase; font-size: 23px; color: var(--navy); margin: 16px 0 10px; line-height: 1; }
+  .feat p { font-size: 15px; color: var(--muted); }
+
+  /* products */
+  .prods { display: grid; grid-template-columns: repeat(3,1fr); gap: 22px; }
+  .pcard { background: var(--navy); color: #fff; border-radius: 16px; padding: 34px 30px; position: relative; overflow: hidden; transition: transform .15s; }
+  .pcard:hover { transform: translateY(-4px); }
+  .pcard.alt { background: var(--paper-2); color: var(--ink); border: 1px solid var(--line); }
+  .pcard h3 { font-family: var(--display); text-transform: uppercase; font-size: 30px; line-height: 0.95; margin-bottom: 12px; }
+  .pcard.alt h3 { color: var(--navy); }
+  .pcard p { font-size: 15px; opacity: .85; margin-bottom: 24px; min-height: 66px; }
+  .pcard .amt { font-family: var(--display); font-size: 22px; color: var(--lime); }
+  .pcard.alt .amt { color: var(--navy); }
+  .pcard .amt small { display: block; font-family: var(--sans); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; opacity: .6; font-weight: 600; }
+  .pcard .arrow { position: absolute; top: 28px; right: 28px; width: 30px; height: 30px; color: var(--lime); }
+  .pcard.alt .arrow { color: var(--navy); }
+
+  /* how */
+  .how { background: var(--navy-darker); color: #fff; }
+  .how .sec-head h2 { color: #fff; }
+  .how .sec-head p { color: #aab2d2; }
+  .steps { display: grid; grid-template-columns: repeat(4,1fr); gap: 26px; margin-top: 50px; }
+  .stp { border-top: 3px solid var(--lime); padding-top: 22px; }
+  .stp .sn { font-family: var(--display); font-size: 46px; color: var(--lime); line-height: 1; }
+  .stp h3 { font-family: var(--display); text-transform: uppercase; font-size: 20px; margin: 10px 0 8px; }
+  .stp p { font-size: 14px; color: #aab2d2; }
+
+  /* big stats band */
+  .band { background: var(--lime); color: var(--navy-deep); }
+  .band .wrap { display: grid; grid-template-columns: repeat(3,1fr); gap: 30px; padding: 60px 28px; text-align: center; }
+  .band .b .n { font-family: var(--display); font-size: clamp(48px, 6vw, 80px); line-height: 0.9; }
+  .band .b .l { font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 10px; }
+
+  /* testimonials */
+  .quotes { display: grid; grid-template-columns: repeat(3,1fr); gap: 22px; margin-top: 8px; }
+  .q { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 30px; }
+  .q .stars { color: var(--lime-deep); font-size: 18px; letter-spacing: 2px; margin-bottom: 14px; }
+  .q p { font-size: 17px; line-height: 1.5; margin-bottom: 20px; font-weight: 500; }
+  .q .who { display: flex; align-items: center; gap: 12px; }
+  .q .av { width: 42px; height: 42px; border-radius: 50%; background: var(--navy); color: #fff; display: grid; place-items: center; font-weight: 800; }
+  .q .nm { font-weight: 700; font-size: 14px; }
+  .q .rl { font-size: 12px; color: var(--muted); }
+
+  /* faq */
+  .faq { max-width: 840px; margin: 0 auto; }
+  .qa { border-bottom: 2px solid var(--line); }
+  .qa button { width: 100%; background: none; border: none; cursor: pointer; text-align: left; padding: 26px 0; display: flex; justify-content: space-between; gap: 20px; align-items: center; font-family: var(--display); text-transform: uppercase; font-size: 21px; color: var(--navy); }
+  .qa .ans { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+  .qa .ans p { padding-bottom: 26px; color: var(--muted); font-size: 16px; }
+  .qa.open .ans { max-height: 280px; }
+  .qa .tog { flex: none; width: 28px; height: 28px; position: relative; }
+  .qa .tog::before, .qa .tog::after { content: ""; position: absolute; background: var(--lime-deep); border-radius: 2px; }
+  .qa .tog::before { width: 18px; height: 3px; top: 13px; left: 5px; }
+  .qa .tog::after { width: 3px; height: 18px; top: 5px; left: 13px; transition: transform .3s; }
+  .qa.open .tog::after { transform: rotate(90deg); }
+
+  /* CTA */
+  .cta { background: var(--navy); color: #fff; }
+  .cta .wrap { padding: 90px 28px; text-align: center; }
+  .cta h2 { font-family: var(--display); text-transform: uppercase; font-size: clamp(40px, 6vw, 84px); line-height: 0.92; }
+  .cta h2 em { color: var(--lime); font-style: normal; }
+  .cta p { font-size: 18px; color: #c5cce4; max-width: 36em; margin: 18px auto 30px; }
+  .cta .actions { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+
+  /* footer */
+  footer { background: var(--navy-darker); color: #9aa3c4; padding: 64px 0 36px; font-size: 14px; }
+  footer .cols { display: grid; grid-template-columns: 1.7fr 1fr 1fr 1fr; gap: 36px; padding-bottom: 40px; border-bottom: 1px solid rgba(255,255,255,.1); }
+  footer .brand img { height: 48px; margin-bottom: 16px; }
+  footer .about { max-width: 30em; line-height: 1.6; }
+  footer h4 { color: #fff; font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 16px; }
+  footer ul { list-style: none; }
+  footer li { margin-bottom: 10px; }
+  footer a:hover { color: var(--lime); }
+  .disclosure { padding-top: 28px; font-size: 12px; line-height: 1.7; color: #6f78a0; }
+  .disclosure b { color: #aab2d2; }
+  .legal { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 20px; font-size: 12px; color: #6f78a0; }
+
+  @media (max-width: 940px) {
+    .hero .wrap { grid-template-columns: 1fr; }
+    .feats, .prods, .steps, .quotes, .band .wrap { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr 1fr; }
+    .navlinks { display: none; }
+    footer .cols { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#"><img src="../assets/rfs-lockup.png" alt="Raccoons Financial Services" /></a>
+    <nav class="navlinks">
+      <a href="#products">Loans</a>
+      <a href="#how">Process</a>
+      <a href="#calc">Calculator</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-out-navy" href="#">Sign in</a>
+      <a class="btn btn-lime" href="#calc">Apply now</a>
+    </div>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <span class="eyebrow">Regulated by NAMFISA · Since 2014</span>
+      <h1 class="display">Credit that<span class="ln2">moves you forward.</span></h1>
+      <p class="lead">Fast, transparent loans for Namibians — salaried, self-employed and small business. Know your repayment before you commit. No fine print, no surprises.</p>
+      <div class="hero-actions">
+        <a class="btn btn-lime" href="#calc">Calculate my loan</a>
+        <a class="btn btn-out-light" href="#how">How it works</a>
+      </div>
+      <div class="hero-stats">
+        <div class="s"><div class="n">N$<span>1.2</span>bn</div><div class="l">Responsibly lent</div></div>
+        <div class="s"><div class="n">42<span>k</span></div><div class="l">Customers served</div></div>
+        <div class="s"><div class="n">24<span>h</span></div><div class="l">To payout</div></div>
+      </div>
+    </div>
+    <!-- Calculator -->
+    <div class="calc" id="calc">
+      <div class="ctitle">Build your loan</div>
+      <div class="csub">Drag to set your amount and term. Illustrative estimate only.</div>
+      <div class="field">
+        <div class="flabel"><span>I want to borrow</span><b id="amtOut">N$ 20,000</b></div>
+        <input type="range" id="amt" min="500" max="80000" step="500" value="20000" />
+      </div>
+      <div class="field">
+        <div class="flabel"><span>Pay back over</span><b id="termOut">18 months</b></div>
+        <input type="range" id="term" min="1" max="60" step="1" value="18" />
+      </div>
+      <div class="calc-out">
+        <div class="top">
+          <span class="lbl">Per month</span>
+          <span class="big" id="monthly">N$ 1,489</span>
+        </div>
+        <div class="row"><span>Total repayable</span><strong id="total">N$ 26,802</strong></div>
+        <div class="row"><span>Illustrative rate</span><strong>2.4% / month</strong></div>
+      </div>
+      <a class="btn btn-navy" href="#" style="width:100%; justify-content:center;">Apply for this loan</a>
+      <p class="calc-note">Estimates only — not an offer of credit. Final rate, fees and term are confirmed after an affordability assessment in line with NAMFISA requirements.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Ticker -->
+<div class="ticker">
+  <div class="track">
+    <span>Registered Microlender<i class="dot"></i>Regulated by NAMFISA<i class="dot"></i>No Hidden Fees<i class="dot"></i>Same-Day Decisions<i class="dot"></i>Responsible Lending<i class="dot"></i></span>
+    <span>Registered Microlender<i class="dot"></i>Regulated by NAMFISA<i class="dot"></i>No Hidden Fees<i class="dot"></i>Same-Day Decisions<i class="dot"></i>Responsible Lending<i class="dot"></i></span>
+  </div>
+</div>
+
+<!-- Features -->
+<section class="block">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Why Raccoons</span>
+      <h2 class="display">Built to grow <em>with you</em></h2>
+    </div>
+    <div class="feats">
+      <div class="feat"><div class="fn">01</div><h3>Total transparency</h3><p>Every fee, rate and the full amount repayable shown in writing before you sign. Always.</p></div>
+      <div class="feat"><div class="fn">02</div><h3>Fast decisions</h3><p>Apply in minutes and get a decision the same day. Funds in your account within 24 hours.</p></div>
+      <div class="feat"><div class="fn">03</div><h3>Fair by design</h3><p>We assess what you can comfortably afford — we will never lend you into difficulty.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Products -->
+<section class="block" id="products" style="background:var(--paper-2);">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Our loans</span>
+      <h2 class="display">Pick your <em>path forward</em></h2>
+      <p>Three ways to fund what's next — each with repayments shaped around your budget.</p>
+    </div>
+    <div class="prods" style="margin-top:46px;">
+      <div class="pcard">
+        <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg>
+        <h3>Short-term<br/>loans</h3>
+        <p>Bridge an unexpected expense and clear it fast, over one to three months.</p>
+        <div class="amt">N$ 500 – 15,000<small>1–3 month terms</small></div>
+      </div>
+      <div class="pcard alt">
+        <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg>
+        <h3>Term<br/>loans</h3>
+        <p>Larger amounts in fixed monthly instalments that always fit your salary.</p>
+        <div class="amt">Up to N$ 80,000<small>Up to 60 month terms</small></div>
+      </div>
+      <div class="pcard">
+        <svg class="arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg>
+        <h3>Business<br/>loans</h3>
+        <p>Working capital and growth funding for registered Namibian SMEs.</p>
+        <div class="amt">From N$ 10,000<small>3–48 month terms</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How -->
+<section class="block how" id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">The process</span>
+      <h2 class="display">Four steps to funded</h2>
+    </div>
+    <div class="steps">
+      <div class="stp"><div class="sn">01</div><h3>Apply online</h3><p>A few details and how much you need. Five minutes, no queues.</p></div>
+      <div class="stp"><div class="sn">02</div><h3>Affordability check</h3><p>We confirm what you can comfortably repay, as NAMFISA requires.</p></div>
+      <div class="stp"><div class="sn">03</div><h3>See your offer</h3><p>The full cost, in writing. Accept only when it's right for you.</p></div>
+      <div class="stp"><div class="sn">04</div><h3>Get paid</h3><p>Money in your bank account, usually within 24 hours.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats band -->
+<div class="band">
+  <div class="wrap">
+    <div class="b"><div class="n">98%</div><div class="l">Customers who'd recommend us</div></div>
+    <div class="b"><div class="n">24h</div><div class="l">Average time to payout</div></div>
+    <div class="b"><div class="n">12yr</div><div class="l">Lending across Namibia</div></div>
+  </div>
+</div>
+
+<!-- Testimonials -->
+<section class="block">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">From our customers</span>
+      <h2 class="display">Real people, <em>real progress</em></h2>
+    </div>
+    <div class="quotes">
+      <div class="q"><div class="stars">★★★★★</div><p>“The calculator showed me everything upfront. I knew my exact repayment before I applied.”</p><div class="who"><div class="av">TN</div><div><div class="nm">Trofimus N.</div><div class="rl">Teacher · Windhoek</div></div></div></div>
+      <div class="q"><div class="stars">★★★★★</div><p>“Applied in the morning, funded by the afternoon. Honest, quick and respectful.”</p><div class="who"><div class="av">HK</div><div><div class="nm">Helena K.</div><div class="rl">Nurse · Oshakati</div></div></div></div>
+      <div class="q"><div class="stars">★★★★★</div><p>“My business loan instalments matched my cash flow perfectly. They actually listened.”</p><div class="who"><div class="av">SA</div><div><div class="nm">Shateni A.</div><div class="rl">Shop owner · Walvis Bay</div></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="block" id="faq" style="background:var(--paper-2);">
+  <div class="wrap">
+    <div class="sec-head" style="text-align:center; margin:0 auto;">
+      <span class="eyebrow">Questions</span>
+      <h2 class="display">Good to know</h2>
+    </div>
+    <div class="faq" style="margin-top:30px;">
+      <div class="qa"><button>Who can apply?<span class="tog"></span></button><div class="ans"><p>Any Namibian resident aged 18 or older with a regular, verifiable income. We run an affordability assessment for every applicant as required by NAMFISA.</p></div></div>
+      <div class="qa"><button>How fast is payout?<span class="tog"></span></button><div class="ans"><p>Most approved loans are paid out within 24 hours of you accepting the offer, once documents and bank details are verified.</p></div></div>
+      <div class="qa"><button>Are there hidden fees?<span class="tog"></span></button><div class="ans"><p>None. The interest rate, all fees and the total repayable are shown in writing before you sign. What you see is what you pay.</p></div></div>
+      <div class="qa"><button>Are you regulated?<span class="tog"></span></button><div class="ans"><p>Yes — Raccoons Financial Services is a registered microlender supervised by the Namibia Financial Institutions Supervisory Authority (NAMFISA).</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta">
+  <div class="wrap">
+    <h2 class="display">Your next step<br/><em>starts here</em></h2>
+    <p>Estimate your repayment, apply in minutes, and speak to a real person whenever you need. No obligation.</p>
+    <div class="actions">
+      <a class="btn btn-lime" href="#calc">Apply now</a>
+      <a class="btn btn-out-light" href="tel:+264610000000">Call +264 61 000 000</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <div class="brand"><img src="../assets/rfs-lockup-white.png" alt="Raccoons Financial Services" /></div>
+        <p class="about">A registered Namibian microlender helping people and small businesses access fair, transparent credit since 2014.</p>
+      </div>
+      <div><h4>Loans</h4><ul><li><a href="#">Short-term</a></li><li><a href="#">Term loans</a></li><li><a href="#">Business loans</a></li><li><a href="#">Salary advances</a></li></ul></div>
+      <div><h4>Company</h4><ul><li><a href="#">About</a></li><li><a href="#">Branches</a></li><li><a href="#">Responsible lending</a></li><li><a href="#">Contact</a></li></ul></div>
+      <div><h4>Legal</h4><ul><li><a href="#">Terms</a></li><li><a href="#">Privacy</a></li><li><a href="#">Complaints</a></li><li><a href="#">NAMFISA</a></li></ul></div>
+    </div>
+    <div class="disclosure">
+      <p><b>Raccoons Financial Services (Pty) Ltd</b> is a registered microlender in the Republic of Namibia, regulated by the Namibia Financial Institutions Supervisory Authority (NAMFISA). Registration no. ML0000/2014. Lending is subject to status, affordability assessment and our terms and conditions. Interest and fees are levied in accordance with the Microlending Act and NAMFISA determinations. Borrowing more than you can afford can lead to financial difficulty — please borrow responsibly.</p>
+      <div class="legal">
+        <span>© 2026 Raccoons Financial Services (Pty) Ltd. All rights reserved.</span>
+        <span>Design concept · Figures shown are illustrative.</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    var amt = document.getElementById('amt'), term = document.getElementById('term');
+    var amtOut = document.getElementById('amtOut'), termOut = document.getElementById('termOut');
+    var monthly = document.getElementById('monthly'), total = document.getElementById('total');
+    var rate = 0.024;
+    function fmt(n){ return 'N$ ' + Math.round(n).toLocaleString('en-US'); }
+    function calc(){
+      var P=+amt.value, n=+term.value;
+      amtOut.textContent = fmt(P);
+      termOut.textContent = n + (n===1?' month':' months');
+      var m = P*rate/(1-Math.pow(1+rate,-n));
+      monthly.textContent = fmt(m);
+      total.textContent = fmt(m*n);
+    }
+    amt.addEventListener('input', calc); term.addEventListener('input', calc); calc();
+  })();
+  document.querySelectorAll('.qa button').forEach(function(b){
+    b.addEventListener('click', function(){
+      var qa=b.parentElement, open=qa.classList.contains('open');
+      document.querySelectorAll('.qa').forEach(function(x){x.classList.remove('open');});
+      if(!open) qa.classList.add('open');
+    });
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Apply — Raccoons Financial Services</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="reg">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg>
+      <span>Registered microlender · Regulated by NAMFISA · Licence 25/11/1471</span>
+    </div>
+    <div class="contact">
+      <a href="https://wa.me/264817258138">WhatsApp +264 81 725 8138</a>
+      <a href="tel:+264816926592">+264 81 692 6592</a>
+      <a href="contact.html">Windhoek, Namibia</a>
+    </div>
+  </div>
+</div>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="assets/rfs-lockup.png" alt="Raccoons Financial Services" /></a>
+    <nav class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="loans.html">Loans</a>
+      <a href="about.html">About</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="contact.html">Talk to us</a>
+      <a class="btn btn-primary" href="apply.html">Apply now</a>
+    </div>
+  </div>
+</header>
+
+<!-- Page hero -->
+<section class="page-hero">
+  <div class="wrap">
+    <div class="inner">
+      <div class="crumbs"><a href="index.html">Home</a> · Apply</div>
+      <span class="eyebrow">Loan application</span>
+      <h1>Apply in <em>about five minutes</em>.</h1>
+      <p>No paperwork queues. Tell us a little about you and the loan you need — we'll do an affordability check and come back with a transparent offer.</p>
+    </div>
+  </div>
+</section>
+
+<section class="block" style="padding-top:48px;">
+  <div class="wrap" style="max-width:780px;">
+    <div class="form-card">
+
+      <!-- Stepper -->
+      <div class="stepper" id="stepper">
+        <div class="st active"><div class="bar"></div><div class="lbl">Your loan</div></div>
+        <div class="st"><div class="bar"></div><div class="lbl">Personal</div></div>
+        <div class="st"><div class="bar"></div><div class="lbl">Employment &amp; bank</div></div>
+        <div class="st"><div class="bar"></div><div class="lbl">References &amp; docs</div></div>
+      </div>
+
+      <form id="applyForm" novalidate>
+
+        <!-- Step 1 -->
+        <div class="step-panel active" data-step="0">
+          <h2 style="font-size:24px; margin-bottom:6px;">What do you need?</h2>
+          <p style="color:var(--ink-faint); font-size:14px; margin-bottom:22px;">Choose your loan type and how much you'd like to borrow.</p>
+          <div class="fg full">
+            <label>Loan type <span class="req">*</span></label>
+            <div class="choice-grid" id="loanChoices">
+              <label class="choice" data-val="payday">
+                <input type="radio" name="loanType" value="Payday &amp; short-term" required />
+                <div class="ct">Payday &amp; short-term</div>
+                <div class="cd">1–2 months · no collateral</div>
+              </label>
+              <label class="choice" data-val="business">
+                <input type="radio" name="loanType" value="Business &amp; SME" />
+                <div class="ct">Business &amp; SME</div>
+                <div class="cd">Working capital · tailored</div>
+              </label>
+              <label class="choice" data-val="collateral">
+                <input type="radio" name="loanType" value="Collateral-backed" />
+                <div class="ct">Collateral-backed</div>
+                <div class="cd">Larger sums · secured</div>
+              </label>
+            </div>
+          </div>
+          <div class="form-grid" style="margin-top:20px;">
+            <div class="fg">
+              <label for="amount">Amount needed (N$) <span class="req">*</span></label>
+              <input type="number" id="amount" name="amount" min="500" step="500" value="5000" required />
+            </div>
+            <div class="fg">
+              <label for="term">Repayment term <span class="req">*</span></label>
+              <select id="term" name="term" required>
+                <option value="1 month">1 month</option>
+                <option value="2 months">2 months</option>
+                <option value="3 months">3 months</option>
+                <option value="4 months">4 months</option>
+                <option value="5 months">5 months</option>
+                <option value="Other (business / secured)">Other (business / secured)</option>
+              </select>
+            </div>
+            <div class="fg full">
+              <label for="purpose">What's it for? <span class="hint">(optional)</span></label>
+              <input type="text" id="purpose" name="purpose" placeholder="e.g. medical bill, school fees, stock for my shop" />
+            </div>
+          </div>
+          <div class="calc-result" style="margin-top:20px;">
+            <span class="lbl">Estimated total to repay (payday, 30%/mo)</span>
+            <span class="amt" id="estOut" style="font-size:26px;">N$ 6,500</span>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step-panel" data-step="1">
+          <h2 style="font-size:24px; margin-bottom:6px;">Personal details</h2>
+          <p style="color:var(--ink-faint); font-size:14px; margin-bottom:22px;">Exactly as they appear on your Namibian ID or passport.</p>
+          <div class="form-grid">
+            <div class="fg"><label for="fname">First name <span class="req">*</span></label><input type="text" id="fname" name="fname" required /></div>
+            <div class="fg"><label for="lname">Surname <span class="req">*</span></label><input type="text" id="lname" name="lname" required /></div>
+            <div class="fg"><label for="idnum">I.D. / Passport number <span class="req">*</span></label><input type="text" id="idnum" name="idnum" required /></div>
+            <div class="fg"><label for="dob">Date of birth <span class="req">*</span></label><input type="text" id="dob" name="dob" placeholder="DD/MM/YYYY" required /></div>
+            <div class="fg"><label for="marital">Marital status <span class="req">*</span></label>
+              <select id="marital" name="marital" required>
+                <option value="">Select…</option>
+                <option>Single</option>
+                <option>Married</option>
+                <option>Divorced</option>
+                <option>Widowed</option>
+              </select>
+            </div>
+            <div class="fg"><label for="occupation">Occupation <span class="req">*</span></label><input type="text" id="occupation" name="occupation" required /></div>
+            <div class="fg"><label for="mobile">Mobile / telephone <span class="req">*</span></label><input type="tel" id="mobile" name="mobile" placeholder="+264 …" required /></div>
+            <div class="fg"><label for="email2">Email <span class="req">*</span></label><input type="email" id="email2" name="email" required /></div>
+            <div class="fg full"><label for="address">Residential address <span class="req">*</span></label><input type="text" id="address" name="address" placeholder="Street, suburb, town" required /></div>
+            <div class="fg full"><label for="postal">Postal address <span class="hint">(if different)</span></label><input type="text" id="postal" name="postal" placeholder="P.O. Box …" /></div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step-panel" data-step="2">
+          <h2 style="font-size:24px; margin-bottom:6px;">Employment &amp; banking</h2>
+          <p style="color:var(--ink-faint); font-size:14px; margin-bottom:22px;">This helps us check affordability — you'll always keep at least 50% of your gross pay.</p>
+          <div class="form-grid">
+            <div class="fg">
+              <label for="emptype">Employment type <span class="req">*</span></label>
+              <select id="emptype" name="emptype" required>
+                <option value="">Select…</option>
+                <option>Permanently employed</option>
+                <option>Contract / temporary</option>
+                <option>Self-employed / business owner</option>
+                <option>Civil servant</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="fg"><label for="employer">Employer name <span class="req">*</span></label><input type="text" id="employer" name="employer" required /></div>
+            <div class="fg"><label for="employerTel">Employer telephone <span class="req">*</span></label><input type="tel" id="employerTel" name="employerTel" required /></div>
+            <div class="fg"><label for="payslipNo">Payslip / employee no. <span class="hint">(optional)</span></label><input type="text" id="payslipNo" name="payslipNo" /></div>
+            <div class="fg full"><label for="employerAddr">Employer address <span class="req">*</span></label><input type="text" id="employerAddr" name="employerAddr" required /></div>
+            <div class="fg"><label for="income">Net monthly income (N$) <span class="req">*</span></label><input type="number" id="income" name="income" min="0" step="100" required /></div>
+            <div class="fg"><label for="deductions">Existing monthly loan repayments (N$) <span class="hint">(optional)</span></label><input type="number" id="deductions" name="deductions" min="0" step="100" /></div>
+            <div class="fg"><label for="bank">Bank <span class="req">*</span></label>
+              <select id="bank" name="bank" required>
+                <option value="">Select…</option>
+                <option>Bank Windhoek</option>
+                <option>First National Bank (FNB)</option>
+                <option>Standard Bank</option>
+                <option>Nedbank</option>
+                <option>Letshego</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="fg"><label for="branch">Branch <span class="req">*</span></label><input type="text" id="branch" name="branch" required /></div>
+            <div class="fg"><label for="accountNo">Bank account number <span class="req">*</span></label><input type="text" id="accountNo" name="accountNo" required /></div>
+            <div class="fg"><label for="accountType">Type of account <span class="req">*</span></label>
+              <select id="accountType" name="accountType" required>
+                <option value="">Select…</option>
+                <option>Cheque / current</option>
+                <option>Savings</option>
+                <option>Transmission</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 4 -->
+        <div class="step-panel" data-step="3">
+          <h2 style="font-size:24px; margin-bottom:6px;">References &amp; documents</h2>
+          <p style="color:var(--ink-faint); font-size:14px; margin-bottom:22px;">Two contactable references, then your supporting documents.</p>
+          <div class="form-grid" style="margin-bottom:22px;">
+            <div class="fg"><label for="ref1name">Reference 1 — name <span class="req">*</span></label><input type="text" id="ref1name" name="ref1name" required /></div>
+            <div class="fg"><label for="ref1tel">Reference 1 — telephone <span class="req">*</span></label><input type="tel" id="ref1tel" name="ref1tel" required /></div>
+            <div class="fg"><label for="ref2name">Reference 2 — name <span class="req">*</span></label><input type="text" id="ref2name" name="ref2name" required /></div>
+            <div class="fg"><label for="ref2tel">Reference 2 — telephone <span class="req">*</span></label><input type="tel" id="ref2tel" name="ref2tel" required /></div>
+          </div>
+          <div style="display:grid; gap:14px;">
+            <div class="dropzone"><b>Recent payslip</b>Drag &amp; drop or tap to upload (PDF, JPG, PNG)</div>
+            <div class="dropzone"><b>Certified copy of your I.D. / passport</b>Drag &amp; drop or tap to upload</div>
+            <div class="dropzone"><b>Bank statements — last 3 months</b>Drag &amp; drop or tap to upload</div>
+          </div>
+          <label class="consent" style="margin-top:24px;">
+            <input type="checkbox" id="consent" required />
+            <span>I confirm the information provided is accurate and complete. I consent to Raccoons Financial Services performing an affordability assessment and a credit check via a registered credit bureau, in line with the Microlending Act, 2018 and NAMFISA requirements. I understand I have a 3-business-day cooling-off right and may settle early without penalty.</span>
+          </label>
+        </div>
+
+        <!-- Nav -->
+        <div class="form-nav">
+          <button type="button" class="btn btn-ghost" id="backBtn" style="visibility:hidden;">← Back</button>
+          <button type="button" class="btn btn-primary" id="nextBtn">Continue →</button>
+        </div>
+        <p class="hint" id="errMsg" style="color:#c0392b; margin-top:12px; display:none;">Please complete the required fields before continuing.</p>
+      </form>
+
+      <!-- Success -->
+      <div class="success" id="success" style="display:none;">
+        <div class="big-tick"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#1b2a5e" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <h2>Application received</h2>
+        <p>Thank you, <span id="successName">there</span>. We've received your application and a consultant will be in touch shortly — usually the same business day. Keep your phone close.</p>
+        <div style="display:flex; gap:12px; justify-content:center; margin-top:26px; flex-wrap:wrap;">
+          <a class="btn btn-primary" href="index.html">Back to home</a>
+          <a class="btn btn-ghost" href="https://wa.me/264817258138">WhatsApp us</a>
+        </div>
+      </div>
+
+    </div>
+    <p class="hint" style="text-align:center; margin-top:18px;">This is a design concept — submissions are not stored or sent.</p>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <a class="brand" href="index.html"><img src="assets/rfs-lockup-white.png" alt="Raccoons Financial Services" /></a>
+        <p class="about">Established in 2019 and fully operational since 2023, Raccoons Financial Services is a NAMFISA-regulated microlender — by Namibians, for Namibians — offering fair, transparent loans in Windhoek.</p>
+        <div class="fcontact">
+          <a href="https://wa.me/264817258138">WhatsApp · +264 81 725 8138</a>
+          <a href="tel:+264817258138">+264 81 725 8138</a>
+          <a href="tel:+264816926592">+264 81 692 6592</a>
+          <a href="mailto:apply@raccoonsfinance.com">apply@raccoonsfinance.com</a>
+          <span>Erf 863, Otjomuise Lifestyle,<br/>Stockholm Street, Windhoek</span>
+        </div>
+      </div>
+      <div><h4>Loans</h4><ul><li><a href="loans.html#payday">Payday &amp; short-term</a></li><li><a href="loans.html#business">Business &amp; SME loans</a></li><li><a href="loans.html#collateral">Collateral-backed loans</a></li><li><a href="index.html#calc">Loan calculator</a></li></ul></div>
+      <div><h4>Company</h4><ul><li><a href="about.html">About us</a></li><li><a href="about.html#team">Our team</a></li><li><a href="contact.html">Contact</a></li><li><a href="apply.html">Apply</a></li></ul></div>
+      <div><h4>Legal</h4><ul><li><a href="#">Terms &amp; conditions</a></li><li><a href="#">Privacy policy</a></li><li><a href="#">Complaints</a></li><li><a href="#">NAMFISA</a></li></ul></div>
+    </div>
+    <div class="disclosure">
+      <p><b>Raccoons Financial Services</b> is a registered microlender in the Republic of Namibia and is regulated by the Namibia Financial Institutions Supervisory Authority (NAMFISA), NAMFISA licence no. 25/11/1471. Lending is subject to status, affordability assessment and our terms and conditions — after all deductions, clients retain at least 50% of gross pay. Interest rates and fees are levied in accordance with the Microlending Act and NAMFISA determinations. Borrowing more than you can afford to repay can lead to financial difficulty — please borrow responsibly.</p>
+      <div class="legal">
+        <span>© 2026 Raccoons Financial Services. All rights reserved.</span>
+        <span>This is a design concept. Figures shown are illustrative.</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="site.js"></script>
+<script>
+(function () {
+  var form = document.getElementById('applyForm');
+  var panels = Array.prototype.slice.call(document.querySelectorAll('.step-panel'));
+  var steps = Array.prototype.slice.call(document.querySelectorAll('#stepper .st'));
+  var backBtn = document.getElementById('backBtn');
+  var nextBtn = document.getElementById('nextBtn');
+  var errMsg = document.getElementById('errMsg');
+  var cur = 0;
+
+  // Preselect loan type from ?loan=
+  var params = new URLSearchParams(location.search);
+  var pre = params.get('loan');
+  function selectChoice(label) {
+    document.querySelectorAll('#loanChoices .choice').forEach(function (c) { c.classList.remove('sel'); });
+    label.classList.add('sel');
+    label.querySelector('input').checked = true;
+  }
+  document.querySelectorAll('#loanChoices .choice').forEach(function (label) {
+    label.addEventListener('click', function () { selectChoice(label); });
+    if (pre && label.getAttribute('data-val') === pre) selectChoice(label);
+  });
+
+  // Live estimate (payday)
+  var amount = document.getElementById('amount');
+  var term = document.getElementById('term');
+  var estOut = document.getElementById('estOut');
+  function fmt(n) { return 'N$ ' + Math.round(n).toLocaleString('en-US'); }
+  function est() {
+    var P = +amount.value || 0;
+    var m = parseInt(term.value, 10); if (!m || m < 1) m = 1;
+    estOut.textContent = fmt(P * (1 + 0.30 * m));
+  }
+  amount.addEventListener('input', est);
+  term.addEventListener('change', est);
+  est();
+
+  function show(i) {
+    panels.forEach(function (p, idx) { p.classList.toggle('active', idx === i); });
+    steps.forEach(function (s, idx) {
+      s.classList.toggle('active', idx === i);
+      s.classList.toggle('done', idx < i);
+    });
+    backBtn.style.visibility = i === 0 ? 'hidden' : 'visible';
+    nextBtn.textContent = i === panels.length - 1 ? 'Submit application' : 'Continue →';
+    errMsg.style.display = 'none';
+    window.scrollTo({ top: document.querySelector('.form-card').offsetTop - 90, behavior: 'smooth' });
+  }
+
+  function validatePanel(i) {
+    var fields = panels[i].querySelectorAll('input, select, textarea');
+    for (var k = 0; k < fields.length; k++) {
+      var f = fields[k];
+      if (f.type === 'radio') {
+        var group = panels[i].querySelectorAll('input[name="' + f.name + '"]');
+        var any = Array.prototype.some.call(group, function (g) { return g.checked; });
+        if (!any) return false;
+      } else if (f.hasAttribute('required') && !f.checkValidity()) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  nextBtn.addEventListener('click', function () {
+    if (!validatePanel(cur)) { errMsg.style.display = 'block'; return; }
+    if (cur < panels.length - 1) {
+      cur++; show(cur);
+    } else {
+      // submit
+      var fn = document.getElementById('fname').value || 'there';
+      document.getElementById('successName').textContent = fn;
+      form.style.display = 'none';
+      document.getElementById('stepper').style.display = 'none';
+      document.getElementById('success').style.display = 'block';
+      window.scrollTo({ top: document.querySelector('.form-card').offsetTop - 90, behavior: 'smooth' });
+    }
+  });
+  backBtn.addEventListener('click', function () { if (cur > 0) { cur--; show(cur); } });
+})();
+</script>
+</body>
+</html>

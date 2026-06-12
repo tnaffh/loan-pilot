@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Loans — Raccoons Financial Services</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<div class="topbar">
+  <div class="wrap">
+    <div class="reg">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg>
+      <span>Registered microlender · Regulated by NAMFISA · Licence 25/11/1471</span>
+    </div>
+    <div class="contact">
+      <a href="https://wa.me/264817258138">WhatsApp +264 81 725 8138</a>
+      <a href="tel:+264816926592">+264 81 692 6592</a>
+      <a href="contact.html">Windhoek, Namibia</a>
+    </div>
+  </div>
+</div>
+
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="index.html"><img src="assets/rfs-lockup.png" alt="Raccoons Financial Services" /></a>
+    <nav class="navlinks">
+      <a href="index.html">Home</a>
+      <a href="loans.html" class="active">Loans</a>
+      <a href="about.html">About</a>
+      <a href="contact.html">Contact</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="contact.html">Talk to us</a>
+      <a class="btn btn-primary" href="apply.html">Apply now</a>
+    </div>
+  </div>
+</header>
+
+<!-- Page hero -->
+<section class="page-hero">
+  <div class="wrap">
+    <div class="inner">
+      <div class="crumbs"><a href="index.html">Home</a> · Loans</div>
+      <span class="eyebrow">Our loans</span>
+      <h1>Three ways we lend — all <em>assessed responsibly</em>.</h1>
+      <p>Whatever you need, we tailor the loan to what you can comfortably afford. Every applicant keeps at least half of their gross pay after deductions.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Loan details -->
+<section class="block" style="padding-top:30px; padding-bottom:30px;">
+  <div class="wrap">
+
+    <!-- Payday -->
+    <div class="loan-row" id="payday">
+      <div>
+        <div class="lr-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+        <h3>Payday &amp; short-term loans</h3>
+        <p class="lr-lead">A quick, no-collateral loan to bridge an unexpected cost — a medical bill, school fees, or an emergency — repaid over one to two months.</p>
+        <ul class="lr-list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg> No collateral or security required</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg> Flat 30% per month, shown upfront — no hidden fees</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg> Settle early at any time, free of charge</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg> Often paid out the same day</li>
+        </ul>
+        <div class="lr-spec">
+          <div class="s"><div class="k">Amount</div><div class="v">N$ 500 – 15,000</div></div>
+          <div class="s"><div class="k">Term</div><div class="v">1–2 months</div></div>
+          <div class="s"><div class="k">Rate</div><div class="v">30% / month</div></div>
+        </div>
+        <a class="btn btn-primary" href="apply.html?loan=payday" style="margin-top:24px;">Apply for a short-term loan</a>
+      </div>
+      <div class="lr-media">
+        <!-- Calculator -->
+        <div class="calc-card" id="calc">
+          <h3>Estimate your repayment</h3>
+          <p class="sub">A flat 30% per month — illustrative only.</p>
+          <div class="field">
+            <div class="flabel"><span>Loan amount</span><b id="amtOut">N$ 5,000</b></div>
+            <input type="range" id="amt" min="500" max="15000" step="500" value="5000" />
+          </div>
+          <div class="field">
+            <div class="flabel"><span>Repayment term</span><b id="termOut">1 month</b></div>
+            <input type="range" id="term" min="1" max="2" step="1" value="1" />
+          </div>
+          <div class="calc-result">
+            <span class="lbl">Total to repay</span>
+            <span class="amt" id="monthly">N$ 6,500</span>
+          </div>
+          <div class="calc-meta">
+            <span>Per month: <strong id="total">N$ 6,500</strong></span>
+            <span>Rate: <strong>30% / month</strong></span>
+          </div>
+          <a class="btn btn-primary" href="apply.html?loan=payday" style="width:100%; justify-content:center;">Start my application</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Business -->
+    <div class="loan-row flip" id="business">
+      <div>
+        <div class="lr-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-7h6v7"/><path d="M3 21h18"/></svg></div>
+        <h3>Business &amp; SME loans</h3>
+        <p class="lr-lead">Working capital and growth funding for Namibian small businesses, with repayment terms shaped around your cash flow — not a rigid template.</p>
+        <ul class="lr-list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg> Funding for stock, equipment, expansion or cash flow</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg> Terms tailored to your trading cycle</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg> For registered Namibian businesses and sole traders</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg> A real person who understands your business</li>
+        </ul>
+        <div class="lr-spec">
+          <div class="s"><div class="k">Built for</div><div class="v">Namibian SMEs</div></div>
+          <div class="s"><div class="k">Terms</div><div class="v">Tailored</div></div>
+          <div class="s"><div class="k">Rate</div><div class="v">On application</div></div>
+        </div>
+        <a class="btn btn-primary" href="apply.html?loan=business" style="margin-top:24px;">Enquire about a business loan</a>
+      </div>
+      <div class="lr-media">
+        <div class="media-card">
+          <span class="eyebrow">What we fund</span>
+          <ul class="lr-list" style="margin-top:18px; margin-bottom:0;">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 2h9l5 5v15H6z"/><path d="M9 12h6M9 16h6"/></svg> Stock &amp; inventory purchases</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16v12H4z"/><path d="M9 7V4h6v3"/></svg> Equipment &amp; tools</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 17l6-6 4 4 7-7"/></svg> Bridging &amp; cash-flow gaps</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2l2.5 7H22l-6 4.5L18.5 21 12 16.7 5.5 21 8 13.5 2 9h7.5z"/></svg> Growth &amp; expansion projects</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Collateral -->
+    <div class="loan-row" id="collateral">
+      <div>
+        <div class="lr-ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <h3>Collateral-backed loans</h3>
+        <p class="lr-lead">Need to borrow a larger amount? Secure your loan against a qualifying asset for higher limits and more favourable terms.</p>
+        <ul class="lr-list">
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg> Larger loan amounts than unsecured lending</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg> Preferential terms when secured against an asset</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg> Transparent valuation and clear terms</li>
+          <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6L9 17l-5-5"/></svg> Assessed responsibly around your affordability</li>
+        </ul>
+        <div class="lr-spec">
+          <div class="s"><div class="k">Amounts</div><div class="v">Larger sums</div></div>
+          <div class="s"><div class="k">Security</div><div class="v">Qualifying asset</div></div>
+          <div class="s"><div class="k">Terms</div><div class="v">On application</div></div>
+        </div>
+        <a class="btn btn-primary" href="apply.html?loan=collateral" style="margin-top:24px;">Enquire about a secured loan</a>
+      </div>
+      <div class="lr-media">
+        <div class="media-card">
+          <span class="eyebrow">Assets we may accept</span>
+          <ul class="lr-list" style="margin-top:18px; margin-bottom:0;">
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 16l1.5-5h11L19 16"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/></svg> Vehicles</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/></svg> Property</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16v12H4z"/><path d="M9 7V4h6v3"/></svg> Equipment &amp; machinery</li>
+            <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M9 12h6"/></svg> Other qualifying assets — ask us</li>
+          </ul>
+          <p style="font-size:12px; color:var(--ink-faint); margin-top:16px;">Acceptable security is confirmed on assessment. Your asset may be at risk if you do not keep up repayments.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="block how">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Simple by design</span>
+      <h2>How borrowing works</h2>
+    </div>
+    <div class="steps four">
+      <div class="step"><div class="num">1</div><h3>Choose &amp; apply</h3><p>Pick your loan type and apply online in about five minutes.</p></div>
+      <div class="step"><div class="num">2</div><h3>Affordability check</h3><p>We confirm it fits your budget — you keep at least 50% of gross pay.</p></div>
+      <div class="step"><div class="num">3</div><h3>Transparent offer</h3><p>See the full cost in writing. Accept only if it's right for you.</p></div>
+      <div class="step"><div class="num">4</div><h3>Get funded</h3><p>Money paid to your bank account, often the same day.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="block" id="faq">
+  <div class="wrap">
+    <div class="sec-head center">
+      <span class="eyebrow">Good to know</span>
+      <h2>Loan questions</h2>
+    </div>
+    <div class="faq">
+      <div class="qa"><button>Which loan is right for me?<span class="tog"></span></button><div class="ans"><p>For a small, quick need, choose a payday or short-term loan. For your business, a business &amp; SME loan. To borrow a larger amount on better terms, a collateral-backed loan. Not sure? Talk to us and we'll guide you.</p></div></div>
+      <div class="qa"><button>Do I need collateral?<span class="tog"></span></button><div class="ans"><p>Only for collateral-backed loans. Payday, short-term and most business loans require no security — we assess your affordability instead.</p></div></div>
+      <div class="qa"><button>Can I settle my loan early?<span class="tog"></span></button><div class="ans"><p>Yes. You can settle any loan ahead of schedule, free of charge.</p></div></div>
+      <div class="qa"><button>How much can I borrow?<span class="tog"></span></button><div class="ans"><p>It depends on your income, the loan type and — for secured loans — your collateral. By law and by principle, after all deductions you always keep at least 50% of your gross pay.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="block" style="padding-top:0;">
+  <div class="wrap">
+    <div class="cta-band">
+      <h2>Find the right loan for you</h2>
+      <p>Apply online in minutes, or talk it through with a real person first. No obligation.</p>
+      <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+        <a class="btn btn-light btn-lg" href="apply.html">Apply now</a>
+        <a class="btn btn-ghost btn-lg" href="contact.html" style="color:#fff; border-color:rgba(255,255,255,.4);">Talk to us</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <a class="brand" href="index.html"><img src="assets/rfs-lockup-white.png" alt="Raccoons Financial Services" /></a>
+        <p class="about">Established in 2019 and fully operational since 2023, Raccoons Financial Services is a NAMFISA-regulated microlender — by Namibians, for Namibians — offering fair, transparent loans in Windhoek.</p>
+        <div class="fcontact">
+          <a href="https://wa.me/264817258138">WhatsApp · +264 81 725 8138</a>
+          <a href="tel:+264817258138">+264 81 725 8138</a>
+          <a href="tel:+264816926592">+264 81 692 6592</a>
+          <a href="mailto:apply@raccoonsfinance.com">apply@raccoonsfinance.com</a>
+          <span>Erf 863, Otjomuise Lifestyle,<br/>Stockholm Street, Windhoek</span>
+        </div>
+      </div>
+      <div><h4>Loans</h4><ul><li><a href="loans.html#payday">Payday &amp; short-term</a></li><li><a href="loans.html#business">Business &amp; SME loans</a></li><li><a href="loans.html#collateral">Collateral-backed loans</a></li><li><a href="index.html#calc">Loan calculator</a></li></ul></div>
+      <div><h4>Company</h4><ul><li><a href="about.html">About us</a></li><li><a href="about.html#team">Our team</a></li><li><a href="contact.html">Contact</a></li><li><a href="apply.html">Apply</a></li></ul></div>
+      <div><h4>Legal</h4><ul><li><a href="#">Terms &amp; conditions</a></li><li><a href="#">Privacy policy</a></li><li><a href="#">Complaints</a></li><li><a href="#">NAMFISA</a></li></ul></div>
+    </div>
+    <div class="disclosure">
+      <p><b>Raccoons Financial Services</b> is a registered microlender in the Republic of Namibia and is regulated by the Namibia Financial Institutions Supervisory Authority (NAMFISA), NAMFISA licence no. 25/11/1471. Lending is subject to status, affordability assessment and our terms and conditions — after all deductions, clients retain at least 50% of gross pay. Interest rates and fees are levied in accordance with the Microlending Act and NAMFISA determinations. Borrowing more than you can afford to repay can lead to financial difficulty — please borrow responsibly.</p>
+      <div class="legal">
+        <span>© 2026 Raccoons Financial Services. All rights reserved.</span>
+        <span>This is a design concept. Figures shown are illustrative.</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="site.js"></script>
+</body>
+</html>

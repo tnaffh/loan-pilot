@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LoanPilot — Lending software for Namibian microlenders</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="theme.css" />
+<style>
+  .lp-wrap { max-width: 1140px; margin: 0 auto; padding: 0 26px; }
+  .lp-nav { position: sticky; top: 0; z-index: 50; background: rgba(246,247,249,.85); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  .lp-nav .row { display: flex; align-items: center; justify-content: space-between; height: 70px; }
+  .lp-nav .links { display: flex; gap: 28px; font-size: 14.5px; font-weight: 500; color: var(--ink-soft); white-space: nowrap; }
+  .lp-nav .links a:hover { color: var(--ink); }
+  .lp-nav .cta { display: flex; gap: 12px; align-items: center; }
+  .logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 19px; letter-spacing: -0.03em; }
+  .logo .mk { width: 34px; height: 34px; border-radius: 10px; background: var(--lp); display: grid; place-items: center; }
+  .logo .mk svg { width: 19px; height: 19px; color: #fff; }
+  .logo b span { color: var(--lp); }
+
+  .hero { text-align: center; padding: 84px 0 70px; position: relative; overflow: hidden; }
+  .hero .pill { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--lp-deep); background: var(--accent-soft); border-radius: 99px; padding: 7px 15px; margin-bottom: 24px; }
+  .hero h1 { font-size: clamp(38px, 6vw, 68px); letter-spacing: -0.04em; max-width: 16em; margin: 0 auto 22px; }
+  .hero h1 span { color: var(--lp); }
+  .hero p { font-size: 20px; color: var(--ink-soft); max-width: 34em; margin: 0 auto 32px; }
+  .hero .actions { display: flex; gap: 13px; justify-content: center; flex-wrap: wrap; }
+  .hero .micro { margin-top: 20px; font-size: 13px; color: var(--ink-faint); }
+
+  .preview { max-width: 1000px; margin: 56px auto 0; border-radius: var(--r-xl); overflow: hidden; box-shadow: var(--sh-lg); border: 1px solid var(--line); background: var(--card); }
+  .preview .bar { height: 40px; background: var(--card); border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 7px; padding: 0 16px; }
+  .preview .bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--line); }
+  .preview .shot { display: grid; grid-template-columns: 200px 1fr; min-height: 420px; }
+  .preview .sb { background: var(--bg); border-right: 1px solid var(--line); padding: 18px 14px; }
+  .preview .sb .ws { display: flex; gap: 9px; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: 11px; padding: 9px; margin-bottom: 16px; }
+  .preview .sb .ws .lg { width: 28px; height: 28px; border-radius: 7px; background: var(--lp); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 12px; }
+  .preview .sb .ws .nm { font-size: 11.5px; font-weight: 700; line-height: 1.1; }
+  .preview .sb .ws .pl { font-size: 10px; color: var(--ink-faint); }
+  .preview .sb .ni { display: flex; align-items: center; gap: 9px; padding: 9px 10px; border-radius: 8px; font-size: 13px; color: var(--ink-soft); font-weight: 500; margin-bottom: 3px; }
+  .preview .sb .ni.on { background: var(--accent-soft); color: var(--lp-deep); font-weight: 600; }
+  .preview .sb .ni .d { width: 15px; height: 15px; border-radius: 4px; background: currentColor; opacity: .55; }
+  .preview .sb .ni.on .d { opacity: 1; }
+  .preview .body { padding: 22px; }
+  .preview .body .kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px; }
+  .preview .body .kpi { background: var(--bg); border-radius: 12px; padding: 14px; }
+  .preview .body .kpi .l { font-size: 11px; color: var(--ink-faint); }
+  .preview .body .kpi .v { font-size: 20px; font-weight: 700; margin-top: 7px; letter-spacing: -0.02em; }
+  .preview .body .rows { background: var(--bg); border-radius: 12px; padding: 8px 14px; }
+  .preview .body .rw { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; }
+  .preview .body .rw:last-child { border-bottom: 0; }
+  .preview .body .rw .av { width: 26px; height: 26px; border-radius: 50%; background: var(--accent-soft); color: var(--lp-deep); display: grid; place-items: center; font-weight: 700; font-size: 10px; }
+  .preview .body .rw .sp { margin-left: auto; }
+
+  section.band { padding: 80px 0; }
+  .kick { font-size: 13px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--lp); text-align: center; }
+  .band h2 { font-size: clamp(30px, 4vw, 44px); text-align: center; max-width: 18em; margin: 12px auto 14px; letter-spacing: -0.03em; }
+  .band .lead { text-align: center; font-size: 18px; color: var(--ink-soft); max-width: 34em; margin: 0 auto 50px; }
+
+  .feat-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+  .feat { background: var(--card); border-radius: var(--r-lg); padding: 28px; box-shadow: var(--sh-sm); }
+  .feat .ic { width: 46px; height: 46px; border-radius: 12px; background: var(--accent-soft); color: var(--lp-deep); display: grid; place-items: center; margin-bottom: 18px; }
+  .feat h3 { font-size: 18px; margin-bottom: 9px; }
+  .feat p { font-size: 14.5px; color: var(--ink-soft); }
+
+  .wl { background: var(--card); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .wl .inner { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+  .wl h2 { text-align: left; margin: 12px 0 16px; }
+  .wl p { font-size: 17px; color: var(--ink-soft); margin-bottom: 18px; }
+  .wl .chips { display: flex; gap: 10px; flex-wrap: wrap; }
+  .wl .swatch { display: flex; align-items: center; gap: 9px; background: var(--bg); border-radius: 99px; padding: 8px 14px 8px 9px; font-size: 13px; font-weight: 600; }
+  .wl .swatch .dot { width: 22px; height: 22px; border-radius: 50%; }
+  .wl .stack { display: grid; gap: 14px; }
+  .wl .tcard { display: flex; align-items: center; gap: 14px; background: var(--bg); border-radius: var(--r-lg); padding: 18px; }
+  .wl .tcard .lg { width: 44px; height: 44px; border-radius: 11px; display: grid; place-items: center; color: #fff; font-weight: 800; }
+  .wl .tcard .nm { font-weight: 700; font-size: 15px; }
+  .wl .tcard .mt { font-size: 12.5px; color: var(--ink-faint); }
+  .wl .tcard .pill { margin-left: auto; font-size: 12px; font-weight: 600; padding: 4px 11px; border-radius: 99px; }
+
+  .pricing { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; align-items: start; }
+  .price { background: var(--card); border-radius: var(--r-xl); padding: 30px; box-shadow: var(--sh-sm); position: relative; border: 1px solid var(--line); }
+  .price.pop { box-shadow: var(--sh-lg); border-color: var(--lp); }
+  .price .tag { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); background: var(--lp); color: #fff; font-size: 12px; font-weight: 700; padding: 4px 14px; border-radius: 99px; }
+  .price .pn { font-size: 15px; font-weight: 700; }
+  .price .pt { font-size: 13px; color: var(--ink-faint); margin-bottom: 18px; }
+  .price .amt { font-size: 42px; font-weight: 800; letter-spacing: -0.04em; }
+  .price .amt small { font-size: 15px; font-weight: 600; color: var(--ink-faint); letter-spacing: 0; }
+  .price .ph { font-size: 13px; color: var(--ink-soft); margin: 4px 0 20px; }
+  .price ul { list-style: none; display: grid; gap: 11px; margin-bottom: 24px; }
+  .price li { display: flex; gap: 10px; font-size: 14px; color: var(--ink-soft); align-items: flex-start; }
+  .price li svg { flex: none; width: 18px; height: 18px; color: var(--ok); margin-top: 1px; }
+
+  .cta-final { text-align: center; }
+  .cta-card { background: var(--lp); color: #fff; border-radius: var(--r-xl); padding: 64px 40px; position: relative; overflow: hidden; }
+  .cta-card h2 { color: #fff; margin: 0 auto 14px; }
+  .cta-card p { color: rgba(255,255,255,.85); font-size: 18px; max-width: 32em; margin: 0 auto 28px; }
+  .cta-card .gridbg { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.07) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.07) 1px, transparent 1px); background-size: 40px 40px; mask-image: radial-gradient(circle at 50% 0, #000, transparent 75%); }
+  .btn-white { background: #fff; color: var(--lp-deep); }
+  .btn-white:hover { background: #f0f0fb; }
+  .btn-bordered { background: transparent; color: #fff; border-color: rgba(255,255,255,.4); }
+  .btn-bordered:hover { border-color: #fff; }
+
+  footer.lp-foot { padding: 50px 0 40px; border-top: 1px solid var(--line); margin-top: 80px; }
+  footer.lp-foot .row { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: center; }
+  footer.lp-foot .row p { font-size: 13px; color: var(--ink-faint); }
+  footer.lp-foot .links { display: flex; gap: 22px; font-size: 14px; color: var(--ink-soft); }
+
+  @media (max-width: 900px) {
+    .lp-nav .links { display: none; }
+    .feat-grid, .pricing { grid-template-columns: 1fr; }
+    .wl .inner { grid-template-columns: 1fr; gap: 32px; }
+    .preview .shot { grid-template-columns: 1fr; }
+    .preview .sb { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="lp-nav">
+  <div class="lp-wrap row">
+    <a class="logo" href="index.html"><span class="mk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></span><b>Loan<span>Pilot</span></b></a>
+    <nav class="links">
+      <a href="#features">Features</a>
+      <a href="#whitelabel">White-label</a>
+      <a href="#pricing">Pricing</a>
+      <a href="app.html">Sign in</a>
+    </nav>
+    <div class="cta">
+      <a class="btn btn-ghost btn-sm" href="app.html">Sign in</a>
+      <a class="btn btn-accent btn-sm" href="#pricing" style="background:var(--lp);">Start free trial</a>
+    </div>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="lp-wrap">
+    <span class="pill">● Built for Namibian microlenders</span>
+    <h1>The operating system for <span>modern lending</span>.</h1>
+    <p>LoanPilot guides every loan from application to repayment — applications, affordability, disbursements, collections and a branded borrower portal. One platform, fully NAMFISA-aware.</p>
+    <div class="actions">
+      <a class="btn btn-lg btn-accent" href="#pricing" style="background:var(--lp);">Start 30-day free trial</a>
+      <a class="btn btn-lg btn-ghost" href="app.html">View live demo</a>
+    </div>
+    <div class="micro">No card required · Set up in a day · Your brand, your data</div>
+
+    <!-- Product preview -->
+    <div class="preview">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <div class="shot">
+        <div class="sb">
+          <div class="ws"><div class="lg">RFS</div><div><div class="nm">Raccoons Financial</div><div class="pl">Growth plan</div></div></div>
+          <div class="ni on"><span class="d"></span>Overview</div>
+          <div class="ni"><span class="d"></span>Applications</div>
+          <div class="ni"><span class="d"></span>Loans</div>
+          <div class="ni"><span class="d"></span>Borrowers</div>
+          <div class="ni"><span class="d"></span>Repayments</div>
+          <div class="ni"><span class="d"></span>Billing</div>
+        </div>
+        <div class="body">
+          <div class="kpis">
+            <div class="kpi"><div class="l">Active book</div><div class="v">N$ 8.94m</div></div>
+            <div class="kpi"><div class="l">Active loans</div><div class="v">613</div></div>
+            <div class="kpi"><div class="l">In arrears</div><div class="v" style="color:var(--bad);">N$ 47k</div></div>
+          </div>
+          <div class="rows">
+            <div class="rw"><span class="av">HK</span> Helena Kapenda <span class="sp"></span> <span class="badge active noindot" style="font-size:11px;">Active</span></div>
+            <div class="rw"><span class="av">SA</span> Shateni Amukwa <span class="sp"></span> <span class="badge arrears noindot" style="font-size:11px;">Arrears</span></div>
+            <div class="rw"><span class="av">PH</span> Petrus Haufiku <span class="sp"></span> <span class="badge active noindot" style="font-size:11px;">Active</span></div>
+            <div class="rw"><span class="av">JG</span> Johannes Gowaseb <span class="sp"></span> <span class="badge active noindot" style="font-size:11px;">Active</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="band" id="features">
+  <div class="lp-wrap">
+    <div class="kick">Everything in one place</div>
+    <h2>Run your entire loan book from one dashboard</h2>
+    <p class="lead">Replace spreadsheets and paper files with a system built specifically for short-term and SME lending in Namibia.</p>
+    <div class="feat-grid">
+      <div class="feat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14l2 7v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-6z"/></svg></div><h3>Applications &amp; approvals</h3><p>Capture applications online, auto-run affordability, and approve or decline in a click — with a full audit trail.</p></div>
+      <div class="feat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/></svg></div><h3>Loan &amp; book management</h3><p>Track every loan, balance and instalment across payday, business and collateral-backed products.</p></div>
+      <div class="feat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7h15a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 7V5a2 2 0 0 1 2-2h11"/></svg></div><h3>Repayments &amp; collections</h3><p>Monitor due, paid and failed debits, flag arrears early, and keep collections on track.</p></div>
+      <div class="feat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg></div><h3>NAMFISA-aware</h3><p>Affordability rules like the 50% take-home check are built in, so responsible lending is the default.</p></div>
+      <div class="feat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="2" width="14" height="20" rx="3"/><path d="M11 18h2"/></svg></div><h3>Branded borrower portal</h3><p>Your clients track balances, see schedules, pay and settle early — under your own brand.</p></div>
+      <div class="feat"><div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg></div><h3>Reports &amp; insight</h3><p>See your book size, arrears and disbursements at a glance, and export whenever you need.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- White-label -->
+<section class="wl band" id="whitelabel">
+  <div class="lp-wrap inner">
+    <div>
+      <div class="kick" style="text-align:left;">Your brand, front and centre</div>
+      <h2>White-label, end to end</h2>
+      <p>LoanPilot adapts to each lender. Your logo, your colour, your borrower portal — your customers never see ours. Every workspace is fully isolated and secure.</p>
+      <div class="chips">
+        <span class="swatch"><span class="dot" style="background:#25397a;"></span>Raccoons</span>
+        <span class="swatch"><span class="dot" style="background:#b4441f;"></span>Kalahari Cash</span>
+        <span class="swatch"><span class="dot" style="background:#0f766e;"></span>Etango</span>
+        <span class="swatch"><span class="dot" style="background:#a16207;"></span>Namib</span>
+      </div>
+    </div>
+    <div class="stack">
+      <div class="tcard"><div class="lg" style="background:#25397a;">RFS</div><div><div class="nm">Raccoons Financial Services</div><div class="mt">Windhoek · Growth plan</div></div><span class="pill" style="background:var(--ok-soft); color:var(--ok);">Active</span></div>
+      <div class="tcard"><div class="lg" style="background:#b4441f;">KC</div><div><div class="nm">Kalahari Cash</div><div class="mt">Rundu · Pro plan</div></div><span class="pill" style="background:var(--ok-soft); color:var(--ok);">Active</span></div>
+      <div class="tcard"><div class="lg" style="background:#0f766e;">EF</div><div><div class="nm">Etango Finance</div><div class="mt">Oshakati · Growth plan</div></div><span class="pill" style="background:var(--ok-soft); color:var(--ok);">Active</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- Pricing -->
+<section class="band" id="pricing">
+  <div class="lp-wrap">
+    <div class="kick">Simple, transparent pricing</div>
+    <h2>Plans that grow with your book</h2>
+    <p class="lead">Priced in Namibian dollars, billed monthly. Start with a 30-day free trial on any plan — no card required.</p>
+    <div class="pricing" id="priceGrid"></div>
+    <p style="text-align:center; color:var(--ink-faint); font-size:13px; margin-top:24px;">All plans include hosting, security updates and NAMFISA-aware affordability rules. Prices exclude VAT.</p>
+  </div>
+</section>
+
+<!-- Final CTA -->
+<section class="band cta-final">
+  <div class="lp-wrap">
+    <div class="cta-card">
+      <div class="gridbg"></div>
+      <h2>Ready to put your lending on autopilot?</h2>
+      <p>Join the Namibian microlenders running a cleaner, faster, more compliant book on LoanPilot.</p>
+      <div style="display:flex; gap:13px; justify-content:center; flex-wrap:wrap; position:relative;">
+        <a class="btn btn-lg btn-white" href="app.html">Start free trial</a>
+        <a class="btn btn-lg btn-bordered" href="app.html">Book a demo</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="lp-foot">
+  <div class="lp-wrap row">
+    <a class="logo" href="index.html" style="font-size:17px;"><span class="mk" style="width:30px;height:30px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg></span><b>Loan<span>Pilot</span></b></a>
+    <div class="links"><a href="#features">Features</a><a href="#pricing">Pricing</a><a href="app.html">Sign in</a><a href="../site/index.html">Built by Raccoons</a></div>
+    <p>© 2026 LoanPilot · Windhoek, Namibia</p>
+  </div>
+</footer>
+
+<script src="data.js"></script>
+<script>
+  (function () {
+    var order = ['starter', 'growth', 'pro'];
+    var grid = document.getElementById('priceGrid');
+    grid.innerHTML = order.map(function (id) {
+      var p = LP.plans[id];
+      var tick = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M20 6L9 17l-5-5"/></svg>';
+      return '<div class="price' + (p.popular ? ' pop' : '') + '">' +
+        (p.popular ? '<div class="tag">Most popular</div>' : '') +
+        '<div class="pn">' + p.name + '</div>' +
+        '<div class="pt">' + p.tagline + '</div>' +
+        '<div class="amt">' + LP.n$(p.price).replace('N$ ', 'N$') + '<small>/mo</small></div>' +
+        '<div class="ph">' + p.borrowers + ' · ' + p.seats + '</div>' +
+        '<ul>' + p.features.map(function (f) { return '<li>' + tick + f + '</li>'; }).join('') + '</ul>' +
+        '<a class="btn btn-block ' + (p.popular ? 'btn-accent' : 'btn-ghost') + '" href="app.html"' + (p.popular ? ' style="background:var(--lp);"' : '') + '>Start free trial</a>' +
+        '</div>';
+    }).join('');
+  })();
+</script>
+</body>
+</html>

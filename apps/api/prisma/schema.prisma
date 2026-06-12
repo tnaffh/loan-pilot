@@ -1,0 +1,260 @@
+// LoanPilot — multi-tenant micro-lending schema.
+// Every tenant-scoped row carries tenantId; isolate queries on it in services.
+// All monetary fields are integer Namibian Dollar (N$) cents.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum PlanId {
+  starter
+  growth
+  pro
+}
+
+enum TenantStatus {
+  active
+  trial
+  suspended
+}
+
+enum UserRole {
+  platform
+  lender_admin
+  lender_staff
+  borrower
+}
+
+enum LoanType {
+  payday
+  business
+  collateral
+}
+
+enum LoanStatus {
+  active
+  arrears
+  settled
+  closed
+}
+
+enum ApplicationStatus {
+  pending
+  review
+  approved
+  declined
+}
+
+enum AffordabilityResult {
+  pass
+  review
+  fail
+}
+
+enum RepaymentStatus {
+  paid
+  due
+  overdue
+}
+
+enum InvoiceStatus {
+  paid
+  overdue
+  pending
+}
+
+enum EmploymentType {
+  permanently_employed
+  civil_servant
+  self_employed
+  contract
+  pensioner
+}
+
+model Tenant {
+  id        String       @id @default(cuid())
+  slug      String       @unique
+  name      String
+  short     String
+  accent    String       @default("#25397a")
+  plan      PlanId       @default(starter)
+  status    TenantStatus @default(trial)
+  town      String?
+  logoUrl   String?
+  joinedAt  DateTime     @default(now())
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  users        User[]
+  borrowers    Borrower[]
+  loans        Loan[]
+  applications LoanApplication[]
+  invoices     Invoice[]
+}
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  role         UserRole  @default(lender_staff)
+  // platform-operator users are not tied to a tenant
+  tenantId     String?
+  tenant       Tenant?   @relation(fields: [tenantId], references: [id])
+  // when role = borrower, link to the borrower profile
+  borrowerId   String?   @unique
+  borrower     Borrower? @relation(fields: [borrowerId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([tenantId])
+}
+
+model Borrower {
+  id             String         @id @default(cuid())
+  tenantId       String
+  tenant         Tenant         @relation(fields: [tenantId], references: [id])
+  firstName      String
+  lastName       String
+  idNumber       String
+  phone          String
+  email          String
+  address        String
+  employer       String
+  occupation     String
+  monthlyIncome  Int
+  employmentType EmploymentType
+  bank           String
+  accountType    String
+  status         String         @default("active")
+  since          DateTime       @default(now())
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  loans Loan[]
+  user  User?
+
+  @@unique([tenantId, idNumber])
+  @@index([tenantId])
+}
+
+model Loan {
+  id               String     @id @default(cuid())
+  tenantId         String
+  tenant           Tenant     @relation(fields: [tenantId], references: [id])
+  borrowerId       String
+  borrower         Borrower   @relation(fields: [borrowerId], references: [id])
+  type             LoanType
+  principal        Int
+  financeCharge    Int
+  total            Int
+  termMonths       Int
+  instalment       Int
+  instalmentsPaid  Int        @default(0)
+  instalmentsTotal Int
+  balance          Int
+  status           LoanStatus @default(active)
+  collateral       String?
+  daysLate         Int        @default(0)
+  disbursedAt      DateTime?
+  nextDueAt        DateTime?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  schedule RepaymentScheduleItem[]
+
+  @@index([tenantId])
+  @@index([borrowerId])
+}
+
+model RepaymentScheduleItem {
+  id     String          @id @default(cuid())
+  loanId String
+  loan   Loan            @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  number Int
+  dueAt  DateTime
+  amount Int
+  status RepaymentStatus @default(due)
+  paidAt DateTime?
+
+  @@unique([loanId, number])
+  @@index([loanId])
+}
+
+model LoanApplication {
+  id             String              @id @default(cuid())
+  tenantId       String
+  tenant         Tenant              @relation(fields: [tenantId], references: [id])
+  firstName      String
+  lastName       String
+  idNumber       String
+  dateOfBirth    String
+  phone          String
+  email          String
+  address        String
+  maritalStatus  String?
+  type           LoanType
+  amount         Int
+  termMonths     Int
+  purpose        String?
+  declaredIncome Int
+  employmentType EmploymentType
+  employer       String
+  occupation     String
+  bank           String
+  accountType    String
+  // server-computed quote + assessment
+  quotedTotal       Int
+  quotedInstalment  Int
+  affordabilityRatio Float
+  status         ApplicationStatus   @default(pending)
+  affordability  AffordabilityResult @default(review)
+  submittedAt    DateTime            @default(now())
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  references ApplicationReference[]
+  documents  Document[]
+
+  @@index([tenantId])
+  @@index([status])
+}
+
+model ApplicationReference {
+  id            String          @id @default(cuid())
+  applicationId String
+  application   LoanApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  name          String
+  phone         String
+
+  @@index([applicationId])
+}
+
+model Document {
+  id            String           @id @default(cuid())
+  applicationId String?
+  application   LoanApplication? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  kind          String
+  url           String
+  uploadedAt    DateTime         @default(now())
+
+  @@index([applicationId])
+}
+
+model Invoice {
+  id          String        @id @default(cuid())
+  tenantId    String
+  tenant      Tenant        @relation(fields: [tenantId], references: [id])
+  description String
+  plan        PlanId?
+  amount      Int
+  status      InvoiceStatus @default(pending)
+  issuedAt    DateTime      @default(now())
+
+  @@index([tenantId])
+}

@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Raccoons Finance — Trustworthy lending, regulated by NAMFISA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --ink: #16191c;
+    --ink-soft: #41474d;
+    --ink-faint: #6b7178;
+    --paper: #f7f6f3;
+    --paper-2: #ffffff;
+    --line: #e3e0d9;
+    --blue: #25397a;
+    --blue-deep: #1b2a5e;
+    --blue-tint: #eef1f8;
+    --lime: #d7df21;
+    --lime-deep: #aeb50f;
+    --serif: "Spectral", Georgia, serif;
+    --sans: "IBM Plex Sans", system-ui, sans-serif;
+    --maxw: 1180px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--paper);
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.55;
+  }
+  h1,h2,h3 { font-family: var(--serif); font-weight: 600; line-height: 1.08; letter-spacing: -0.01em; }
+  a { color: inherit; text-decoration: none; }
+  img, svg { display: block; max-width: 100%; }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 28px; }
+  .eyebrow { font-size: 12px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--blue); font-weight: 600; }
+
+  /* ---------- Top bar ---------- */
+  .topbar { background: var(--ink); color: #cfd3d7; font-size: 13px; }
+  .topbar .wrap { display: flex; justify-content: space-between; align-items: center; height: 40px; gap: 16px; }
+  .topbar .reg { display: flex; align-items: center; gap: 8px; }
+  .topbar .reg svg { width: 14px; height: 14px; }
+  .topbar .contact { display: flex; gap: 20px; }
+  .topbar a:hover { color: #fff; }
+
+  /* ---------- Nav ---------- */
+  header.nav { position: sticky; top: 0; z-index: 50; background: rgba(247,246,243,0.88); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+  header.nav .wrap { display: flex; align-items: center; justify-content: space-between; height: 74px; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand img { height: 42px; width: auto; }
+  .navlinks { display: flex; gap: 30px; font-size: 15px; font-weight: 500; color: var(--ink-soft); }
+  .navlinks a:hover { color: var(--ink); }
+  .nav-cta { display: flex; align-items: center; gap: 14px; }
+  .btn { font-family: var(--sans); font-weight: 600; font-size: 15px; padding: 12px 22px; border-radius: 8px; cursor: pointer; border: 1px solid transparent; transition: transform .12s ease, background .15s ease; display: inline-flex; align-items: center; gap: 8px; }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: var(--blue); color: #fff; }
+  .btn-primary:hover { background: var(--blue-deep); }
+  .btn-ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  .btn-ghost:hover { border-color: var(--ink); }
+  .btn-light { background: #fff; color: var(--ink); border-color: var(--line); }
+  .menu-toggle { display: none; }
+
+  /* ---------- Hero ---------- */
+  .hero { padding: 72px 0 64px; }
+  .hero .wrap { display: grid; grid-template-columns: 1.05fr 0.95fr; gap: 56px; align-items: center; }
+  .hero h1 { font-size: clamp(40px, 5vw, 62px); margin: 18px 0 22px; }
+  .hero h1 em { font-style: italic; color: var(--blue); position: relative; }
+  .hero h1 em::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0.06em; height: 0.16em; background: var(--lime); z-index: -1; }
+  .hero p.lead { font-size: 19px; color: var(--ink-soft); max-width: 30em; margin-bottom: 30px; }
+  .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+  .trust-row { display: flex; gap: 26px; margin-top: 34px; padding-top: 26px; border-top: 1px solid var(--line); flex-wrap: wrap; }
+  .trust-row .item .n { font-family: var(--serif); font-size: 30px; font-weight: 600; }
+  .trust-row .item .l { font-size: 13px; color: var(--ink-faint); }
+
+  /* hero card / calculator */
+  .calc-card { background: var(--paper-2); border: 1px solid var(--line); border-radius: 18px; padding: 28px; box-shadow: 0 24px 60px -32px rgba(20,25,28,0.35); }
+  .calc-card h3 { font-size: 21px; margin-bottom: 4px; }
+  .calc-card .sub { font-size: 13px; color: var(--ink-faint); margin-bottom: 20px; }
+  .field { margin-bottom: 22px; }
+  .field .flabel { display: flex; justify-content: space-between; align-items: baseline; font-size: 14px; font-weight: 500; color: var(--ink-soft); margin-bottom: 10px; }
+  .field .flabel b { font-family: var(--serif); font-size: 20px; color: var(--ink); font-weight: 600; }
+  input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 99px; background: var(--blue-tint); outline: none; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; border-radius: 50%; background: var(--blue); cursor: pointer; border: 4px solid #fff; box-shadow: 0 2px 8px rgba(20,25,28,.25); }
+  input[type=range]::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: var(--blue); cursor: pointer; border: 4px solid #fff; }
+  .calc-result { background: var(--blue-tint); border-radius: 12px; padding: 18px 20px; display: flex; justify-content: space-between; align-items: center; margin: 4px 0 16px; }
+  .calc-result .lbl { font-size: 13px; color: var(--blue-deep); }
+  .calc-result .amt { font-family: var(--serif); font-size: 32px; font-weight: 700; color: var(--blue-deep); }
+  .calc-meta { display: flex; justify-content: space-between; font-size: 13px; color: var(--ink-faint); margin-bottom: 18px; }
+  .calc-note { font-size: 11px; color: var(--ink-faint); margin-top: 14px; line-height: 1.5; }
+
+  /* ---------- Logos / regulated strip ---------- */
+  .strip { background: var(--ink); color: #d6dade; padding: 26px 0; }
+  .strip .wrap { display: flex; align-items: center; justify-content: space-between; gap: 30px; flex-wrap: wrap; }
+  .strip .lead { font-family: var(--serif); font-style: italic; font-size: 17px; color: #f3f4f5; }
+  .strip .badges { display: flex; gap: 34px; align-items: center; font-size: 13px; color: #aab0b6; flex-wrap: wrap; }
+  .strip .badges b { color: #fff; font-weight: 600; }
+
+  /* ---------- Section base ---------- */
+  section.block { padding: 86px 0; }
+  .sec-head { max-width: 640px; margin-bottom: 50px; }
+  .sec-head h2 { font-size: clamp(30px, 3.6vw, 44px); margin: 14px 0 16px; }
+  .sec-head p { font-size: 17px; color: var(--ink-soft); }
+
+  /* products */
+  .prod-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 22px; }
+  .prod { background: var(--paper-2); border: 1px solid var(--line); border-radius: 16px; padding: 30px 28px; transition: border-color .15s, transform .15s; }
+  .prod:hover { border-color: var(--blue); transform: translateY(-3px); }
+  .prod .ic { width: 46px; height: 46px; border-radius: 11px; background: var(--blue-tint); color: var(--blue-deep); display: grid; place-items: center; margin-bottom: 20px; }
+  .prod h3 { font-size: 22px; margin-bottom: 10px; }
+  .prod p { font-size: 15px; color: var(--ink-soft); margin-bottom: 18px; }
+  .prod .meta { display: flex; gap: 18px; font-size: 13px; color: var(--ink-faint); border-top: 1px solid var(--line); padding-top: 16px; }
+  .prod .meta b { display: block; color: var(--ink); font-family: var(--serif); font-size: 17px; }
+
+  /* how it works */
+  .how { background: var(--paper-2); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  .steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 40px; }
+  .step .num { font-family: var(--serif); font-size: 15px; color: var(--blue); font-weight: 600; border: 1px solid var(--blue); width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; margin-bottom: 20px; }
+  .step h3 { font-size: 21px; margin-bottom: 10px; }
+  .step p { font-size: 15px; color: var(--ink-soft); }
+
+  /* requirements split */
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; }
+  .req-list { list-style: none; }
+  .req-list li { display: flex; gap: 14px; padding: 15px 0; border-bottom: 1px solid var(--line); font-size: 16px; color: var(--ink-soft); }
+  .req-list li svg { flex: none; width: 22px; height: 22px; color: var(--blue); margin-top: 1px; }
+  .ph { border-radius: 16px; background:
+      repeating-linear-gradient(135deg, #ece9e2 0 14px, #f3f1ec 14px 28px);
+    border: 1px solid var(--line); display: grid; place-items: center; min-height: 420px; color: var(--ink-faint); font-family: ui-monospace, monospace; font-size: 12px; text-align: center; padding: 20px; }
+
+  /* testimonials */
+  .quotes { display: grid; grid-template-columns: repeat(3,1fr); gap: 22px; }
+  .quote { background: var(--paper-2); border: 1px solid var(--line); border-radius: 16px; padding: 28px; }
+  .quote p { font-family: var(--serif); font-size: 18px; line-height: 1.45; margin-bottom: 20px; }
+  .quote .who { display: flex; align-items: center; gap: 12px; }
+  .quote .av { width: 40px; height: 40px; border-radius: 50%; background: var(--blue-tint); color: var(--blue-deep); display: grid; place-items: center; font-weight: 700; font-size: 15px; }
+  .quote .who .nm { font-size: 14px; font-weight: 600; }
+  .quote .who .rl { font-size: 12px; color: var(--ink-faint); }
+
+  /* faq */
+  .faq { max-width: 820px; margin: 0 auto; }
+  .qa { border-bottom: 1px solid var(--line); }
+  .qa button { width: 100%; background: none; border: none; cursor: pointer; text-align: left; padding: 24px 0; display: flex; justify-content: space-between; gap: 20px; align-items: center; font-family: var(--serif); font-size: 20px; color: var(--ink); }
+  .qa .ans { max-height: 0; overflow: hidden; transition: max-height .3s ease; }
+  .qa .ans p { padding-bottom: 24px; color: var(--ink-soft); font-size: 16px; }
+  .qa.open .ans { max-height: 260px; }
+  .qa .tog { flex: none; width: 26px; height: 26px; position: relative; }
+  .qa .tog::before, .qa .tog::after { content: ""; position: absolute; background: var(--blue); border-radius: 2px; }
+  .qa .tog::before { width: 16px; height: 2px; top: 12px; left: 5px; }
+  .qa .tog::after { width: 2px; height: 16px; top: 5px; left: 12px; transition: transform .3s; }
+  .qa.open .tog::after { transform: rotate(90deg); }
+
+  /* CTA band */
+  .cta-band { background: var(--blue-deep); color: #fff; border-radius: 24px; padding: 64px; text-align: center; }
+  .cta-band h2 { font-size: clamp(30px, 4vw, 46px); margin-bottom: 16px; color: #fff; }
+  .cta-band p { font-size: 18px; color: #d4ddf0; max-width: 36em; margin: 0 auto 30px; }
+  .cta-band .btn-light:hover { background: #f2f4f8; }
+
+  /* footer */
+  footer { background: var(--ink); color: #aeb4ba; padding: 64px 0 36px; font-size: 14px; }
+  footer .cols { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr; gap: 36px; padding-bottom: 40px; border-bottom: 1px solid #2b3035; }
+  footer .brand { margin-bottom: 16px; }
+  footer .brand img { height: 46px; }
+  footer h4 { color: #fff; font-family: var(--sans); font-size: 14px; margin-bottom: 16px; font-weight: 600; }
+  footer ul { list-style: none; }
+  footer li { margin-bottom: 10px; }
+  footer a:hover { color: #fff; }
+  footer .about { max-width: 30em; line-height: 1.6; }
+  .disclosure { padding-top: 28px; font-size: 12px; line-height: 1.7; color: #80868c; }
+  .disclosure b { color: #c6cbd0; }
+  .legal { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 22px; color: #80868c; font-size: 12px; }
+
+  /* App phone mockup */
+  .appshot { display: grid; place-items: center; }
+  .phone { width: 300px; height: 600px; background: #0b1130; border-radius: 42px; padding: 11px; box-shadow: 0 40px 80px -34px rgba(20,25,40,.55), inset 0 0 0 2px rgba(255,255,255,.06); position: relative; }
+  .phone .notch { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 112px; height: 24px; background: #0b1130; border-radius: 0 0 15px 15px; z-index: 3; }
+  .screen { width: 100%; height: 100%; border-radius: 32px; overflow: hidden; background: linear-gradient(180deg, var(--blue) 0%, var(--blue-deep) 42%, #0c1230 100%); color: #fff; padding: 40px 16px 16px; }
+  .sc-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+  .sc-top .hi { font-family: var(--serif); font-size: 16px; white-space: nowrap; }
+  .sc-top .small { font-size: 11px; color: #aab2d2; white-space: nowrap; }
+  .sc-top .av { width: 32px; height: 32px; border-radius: 50%; background: var(--lime); color: var(--blue-deep); display: grid; place-items: center; font-weight: 700; font-size: 12px; }
+  .sc-card { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: 16px; padding: 16px; margin-bottom: 12px; }
+  .sc-card .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #aab2d2; }
+  .sc-card .bal { font-family: var(--serif); font-size: 30px; margin: 3px 0 2px; }
+  .sc-card .sub { font-size: 11px; color: #aab2d2; }
+  .sc-prog { height: 6px; border-radius: 99px; background: rgba(255,255,255,.14); margin: 13px 0 7px; overflow: hidden; }
+  .sc-prog i { display: block; height: 100%; width: 50%; background: var(--lime); border-radius: 99px; }
+  .sc-prog-row { display: flex; justify-content: space-between; font-size: 10px; color: #aab2d2; }
+  .sc-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; margin-bottom: 12px; }
+  .sc-btns button { font-family: var(--sans); font-weight: 600; font-size: 12px; padding: 11px; border-radius: 11px; border: none; cursor: pointer; }
+  .sc-btns .pri { background: var(--lime); color: var(--blue-deep); }
+  .sc-btns .sec { background: rgba(255,255,255,.12); color: #fff; }
+  .sc-li { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.08); font-size: 12px; }
+  .sc-li .nm { display: flex; align-items: center; gap: 9px; }
+  .sc-li .dot { width: 26px; height: 26px; border-radius: 8px; background: rgba(255,255,255,.08); display: grid; place-items: center; }
+  .sc-li .amt { font-family: var(--serif); }
+  .sc-li .amt.up { color: var(--lime); }
+
+  /* Branded visual (replaces branch photo) */
+  .visual { position: relative; border-radius: 16px; overflow: hidden; min-height: 460px; background: linear-gradient(150deg, var(--blue) 0%, var(--blue-deep) 100%); border: 1px solid var(--line); }
+  .visual .gridbg { position: absolute; inset: 0; background-image: linear-gradient(rgba(255,255,255,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.06) 1px, transparent 1px); background-size: 38px 38px; }
+  .visual .arrow { position: absolute; right: 8%; top: 14%; width: 62%; opacity: .95; }
+  .visual .tagline { position: absolute; top: 30px; left: 30px; right: 30px; font-family: var(--serif); font-size: 26px; line-height: 1.15; color: #fff; }
+  .visual .tagline b { color: var(--lime); font-weight: 600; }
+  .visual .approve { position: absolute; left: 30px; bottom: 30px; right: 30px; background: #fff; border-radius: 16px; padding: 18px 20px; box-shadow: 0 22px 44px -22px rgba(0,0,0,.55); display: flex; align-items: center; gap: 14px; }
+  .visual .approve .tick { width: 44px; height: 44px; border-radius: 50%; background: var(--lime); display: grid; place-items: center; flex: none; }
+  .visual .approve .t1 { font-family: var(--serif); font-size: 18px; color: var(--ink); }
+  .visual .approve .t2 { font-size: 13px; color: var(--ink-faint); }
+  .visual .approve .amt { margin-left: auto; font-family: var(--serif); font-size: 22px; color: var(--blue); font-weight: 600; }
+
+  @media (max-width: 920px) {
+    .hero .wrap, .split { grid-template-columns: 1fr; gap: 40px; }
+    .prod-grid, .steps, .quotes { grid-template-columns: 1fr; }
+    .navlinks, .topbar .contact { display: none; }
+    footer .cols { grid-template-columns: 1fr 1fr; }
+    .cta-band { padding: 44px 26px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="topbar">
+  <div class="wrap">
+    <div class="reg">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/></svg>
+      <span>Registered microlender · Regulated by NAMFISA</span>
+    </div>
+    <div class="contact">
+      <a href="https://wa.me/264817258138">WhatsApp +264 81 725 8138</a>
+      <a href="tel:+264816926592">+264 81 692 6592</a>
+      <a href="#">Windhoek, Namibia</a>
+    </div>
+  </div>
+</div>
+
+<!-- Nav -->
+<header class="nav">
+  <div class="wrap">
+    <a class="brand" href="#"><img src="../assets/rfs-lockup.png" alt="Raccoons Financial Services" /></a>
+    <nav class="navlinks">
+      <a href="#products">Loans</a>
+      <a href="#how">How it works</a>
+      <a href="#calc">Calculator</a>
+      <a href="#app">App</a>
+      <a href="#faq">FAQ</a>
+    </nav>
+    <div class="nav-cta">
+      <a class="btn btn-ghost" href="#">Sign in</a>
+      <a class="btn btn-primary" href="#calc">Apply now</a>
+    </div>
+  </div>
+</header>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="wrap">
+    <div>
+      <span class="eyebrow">By Namibians, for Namibians</span>
+      <h1>Borrow with <em>clarity</em>, repay with confidence.</h1>
+      <p class="lead">Fair, transparent loans for Namibians — from quick short-term cash to business finance and asset-backed lending. Every cost shown before you sign, and approvals you can count on.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary" href="#calc">Check what you qualify for</a>
+        <a class="btn btn-ghost" href="#how">See how it works</a>
+      </div>
+      <div class="trust-row">
+        <div class="item"><div class="n">2019</div><div class="l">Proudly Namibian, established</div></div>
+        <div class="item"><div class="n">3</div><div class="l">Loan types to choose from</div></div>
+        <div class="item"><div class="n">50%+</div><div class="l">Take-home pay always protected</div></div>
+      </div>
+    </div>
+    <!-- Calculator (secondary in this template) -->
+    <div class="calc-card" id="calc">
+      <h3>Payday loan calculator</h3>
+      <p class="sub">Borrow now, repay on payday. A flat 30% per month — shown upfront.</p>
+      <div class="field">
+        <div class="flabel"><span>Loan amount</span><b id="amtOut">N$ 5,000</b></div>
+        <input type="range" id="amt" min="500" max="15000" step="500" value="5000" />
+      </div>
+      <div class="field">
+        <div class="flabel"><span>Repayment term</span><b id="termOut">1 month</b></div>
+        <input type="range" id="term" min="1" max="2" step="1" value="1" />
+      </div>
+      <div class="calc-result">
+        <span class="lbl">Total to repay</span>
+        <span class="amt" id="monthly">N$ 6,500</span>
+      </div>
+      <div class="calc-meta">
+        <span>Per month: <strong id="total">N$ 6,500</strong></span>
+        <span>Interest rate: <strong>30% / month</strong></span>
+      </div>
+      <a class="btn btn-primary" href="#calc" style="width:100%; justify-content:center;">Start my application</a>
+      <p class="calc-note">Figures are estimates for illustration only and do not constitute an offer of credit. Actual amounts, fees and terms are confirmed after an affordability assessment, in line with NAMFISA requirements.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Regulated strip -->
+<div class="strip">
+  <div class="wrap">
+    <div class="lead">“We will never lend you more than you can comfortably repay.”</div>
+    <div class="badges">
+      <span>Registered with <b>NAMFISA</b></span>
+      <span><b>Fixed, transparent</b> pricing</span>
+      <span><b>Responsible lending</b> certified</span>
+    </div>
+  </div>
+</div>
+
+<!-- Products -->
+<section class="block" id="products">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Our loans</span>
+      <h2>A loan for every need</h2>
+      <p>From quick short-term cash to business growth and asset-backed finance — each one assessed responsibly around what you can comfortably afford.</p>
+    </div>
+    <div class="prod-grid">
+      <div class="prod">
+        <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg></div>
+        <h3>Payday &amp; short-term</h3>
+        <p>Bridge an unexpected cost — medical, school fees or an emergency — repaid over one to two months, no collateral needed.</p>
+        <div class="meta"><div>Repay in<b>1–2 months</b></div><div>Collateral<b>None</b></div></div>
+      </div>
+      <div class="prod">
+        <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-7h6v7"/><path d="M3 21h18"/></svg></div>
+        <h3>Business &amp; SME loans</h3>
+        <p>Working capital and growth funding for Namibian small businesses, with terms shaped around your cash flow.</p>
+        <div class="meta"><div>Built for<b>Namibian SMEs</b></div><div>Terms<b>Tailored</b></div></div>
+      </div>
+      <div class="prod">
+        <div class="ic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/><path d="M9 12l2 2 4-4"/></svg></div>
+        <h3>Collateral-backed loans</h3>
+        <p>Borrow larger amounts on preferential terms by securing your loan against a qualifying asset.</p>
+        <div class="meta"><div>Borrow<b>Larger sums</b></div><div>Secured<b>Against assets</b></div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How it works -->
+<section class="block how" id="how">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Simple by design</span>
+      <h2>From application to payout in three steps</h2>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><h3>Apply online</h3><p>Tell us how much you need and share a few details. Takes about five minutes — no paperwork queues.</p></div>
+      <div class="step"><div class="num">2</div><h3>Affordability check</h3><p>We confirm the loan fits your salary — you always keep at least 50% of your gross pay — as responsible lending requires.</p></div>
+      <div class="step"><div class="num">3</div><h3>Get your funds</h3><p>Accept your transparent offer and receive payment to your bank account, often the same day.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- Requirements -->
+<section class="block">
+  <div class="wrap split">
+    <div>
+      <span class="eyebrow">What you'll need</span>
+      <h2 style="font-size:clamp(28px,3.4vw,40px); margin:14px 0 24px;">Straightforward requirements</h2>
+      <ul class="req-list">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> A recent payslip showing consistent income</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> A certified copy of your Namibian ID</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Bank statements from the last 3 months</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Stable employment or a regular income</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg> Be 18 years or older</li>
+      </ul>
+    </div>
+    <div class="visual">
+      <div class="gridbg"></div>
+      <div class="tagline">Approved by people who get it.<br/><b>By Namibians, for Namibians.</b></div>
+      <svg class="arrow" viewBox="0 0 220 170" fill="none" stroke="#d7df21" stroke-width="13" stroke-linecap="round" stroke-linejoin="round"><polyline points="16,150 72,104 116,128 198,46"/><polyline points="158,48 200,44 196,88"/></svg>
+      <div class="approve">
+        <div class="tick"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1b2a5e" stroke-width="3"><path d="M20 6L9 17l-5-5"/></svg></div>
+        <div><div class="t1">Loan approved</div><div class="t2">Paid out the same day</div></div>
+        <div class="amt">N$ 8,000</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Testimonials -->
+<section class="block how">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="eyebrow">Trusted locally</span>
+      <h2>What our customers say</h2>
+    </div>
+    <div class="quotes">
+      <div class="quote"><p>“They showed me the full cost upfront. No hidden fees, no pressure. I knew exactly what I was repaying.”</p><div class="who"><div class="av">TN</div><div><div class="nm">Trofimus N.</div><div class="rl">Teacher, Windhoek</div></div></div></div>
+      <div class="quote"><p>“Approved the next morning. The team explained everything in Oshiwambo and English. Felt respected.”</p><div class="who"><div class="av">HK</div><div><div class="nm">Helena K.</div><div class="rl">Nurse, Windhoek</div></div></div></div>
+      <div class="quote"><p>“As a small business owner, the instalments matched my cash flow. That made all the difference.”</p><div class="who"><div class="av">SA</div><div><div class="nm">Shateni A.</div><div class="rl">Shop owner, Katutura</div></div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- App coming soon -->
+<section class="block" id="app">
+  <div class="wrap split">
+    <div>
+      <span class="eyebrow" style="display:inline-flex; align-items:center; gap:10px;">In development
+        <span style="background:var(--lime); color:var(--blue-deep); font-weight:700; font-size:11px; letter-spacing:.06em; padding:3px 10px; border-radius:99px;">COMING SOON</span>
+      </span>
+      <h2 style="font-size:clamp(28px,3.4vw,42px); margin:14px 0 16px;">Raccoons in your pocket</h2>
+      <p style="font-size:17px; color:var(--ink-soft); max-width:30em;">We're building a mobile app so you can apply, track your repayments and manage your loan anytime, anywhere. Leave your email and we'll tell you the moment it lands.</p>
+      <form onsubmit="this.querySelector('.formnote').style.display='block'; this.reset(); return false;" style="display:flex; gap:10px; flex-wrap:wrap; margin:24px 0 14px; max-width:440px;">
+        <input type="email" required placeholder="you@email.com" style="flex:1; min-width:200px; padding:13px 16px; border:1px solid var(--line); border-radius:8px; font:inherit; color:var(--ink); background:#fff;" />
+        <button class="btn btn-primary" type="submit">Notify me</button>
+        <span class="formnote" style="display:none; width:100%; font-size:13px; color:var(--blue);">Thanks — we'll be in touch when the app launches.</span>
+      </form>
+      <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:18px;">
+        <span style="display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:10px; padding:11px 16px; font-size:13px; color:var(--ink-faint); background:#fff;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M16.4 12.8c0-2 1.6-3 1.7-3-1-1.4-2.4-1.6-2.9-1.6-1.2-.1-2.4.7-3 .7-.6 0-1.6-.7-2.6-.7-1.3 0-2.6.8-3.3 2-1.4 2.4-.4 6 1 8 .7 1 1.4 2.1 2.5 2 1-.04 1.3-.6 2.5-.6s1.5.6 2.6.6 1.7-1 2.4-2c.7-1.1 1-2.2 1-2.2s-1.9-.7-1.9-2.9zM14.5 6.3c.5-.7.9-1.6.8-2.5-.8 0-1.7.5-2.3 1.2-.5.6-.9 1.5-.8 2.4.9.05 1.8-.4 2.3-1.1z"/></svg>
+          App Store · <b style="color:var(--ink-soft);">soon</b>
+        </span>
+        <span style="display:inline-flex; align-items:center; gap:8px; border:1px solid var(--line); border-radius:10px; padding:11px 16px; font-size:13px; color:var(--ink-faint); background:#fff;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3.6 2.3c-.2.2-.3.5-.3.9v17.6c0 .4.1.7.3.9l.1.1 9.9-9.9v-.2L3.6 2.3zm13.2 13.2l-2.6-2.6 2.6-2.6 3.2 1.8c.9.5.9 1.4 0 1.9l-3.2 1.5zm-1-1.1L5.4 24.6l8.4-7.6 2-2zm0-7.8l-2-2L5.4-.6l10.4 7.2z"/></svg>
+          Google Play · <b style="color:var(--ink-soft);">soon</b>
+        </span>
+      </div>
+    </div>
+    <div class="appshot">
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="screen">
+          <div class="sc-top">
+            <div><div class="small">Good morning</div><div class="hi">Helena K.</div></div>
+            <div class="av">HK</div>
+          </div>
+          <div class="sc-card">
+            <div class="lbl">Balance remaining</div>
+            <div class="bal">N$ 4,000</div>
+            <div class="sub">of N$ 8,000 · on track</div>
+            <div class="sc-prog"><i></i></div>
+            <div class="sc-prog-row"><span>1 of 2 paid</span><span>50%</span></div>
+          </div>
+          <div class="sc-btns">
+            <button class="pri">Repay now</button>
+            <button class="sec">Settle early</button>
+          </div>
+          <div class="sc-li"><div class="nm"><span class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#d7df21" stroke-width="2.2"><path d="M12 5v14M5 12l7 7 7-7"/></svg></span>Loan disbursed</div><div class="amt up">+8,000</div></div>
+          <div class="sc-li"><div class="nm"><span class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aab2d2" stroke-width="2.2"><path d="M12 19V5M5 12l7-7 7 7"/></svg></span>June repayment</div><div class="amt">−4,000</div></div>
+          <div class="sc-li"><div class="nm"><span class="dot"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#aab2d2" stroke-width="2.2"><path d="M12 6v6l4 2"/><circle cx="12" cy="12" r="9"/></svg></span>Next due 25 Jul</div><div class="amt">4,000</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="block" id="faq">
+  <div class="wrap">
+    <div class="sec-head" style="text-align:center; margin-left:auto; margin-right:auto;">
+      <span class="eyebrow">Good to know</span>
+      <h2>Frequently asked questions</h2>
+    </div>
+    <div class="faq">
+      <div class="qa"><button>Who can apply for a loan?<span class="tog"></span></button><div class="ans"><p>Any Namibian resident aged 18 or older with a regular, verifiable income may apply. We assess affordability for every applicant as required by NAMFISA.</p></div></div>
+      <div class="qa"><button>How quickly will I receive my money?<span class="tog"></span></button><div class="ans"><p>Most approved applications are paid out within 24 hours of accepting the offer, provided your documents are complete and your bank details are verified.</p></div></div>
+      <div class="qa"><button>Are there any hidden fees?<span class="tog"></span></button><div class="ans"><p>No. Every fee, the interest rate and the total amount repayable are shown to you in writing before you sign. What you see is what you pay.</p></div></div>
+      <div class="qa"><button>Do I need collateral or security?<span class="tog"></span></button><div class="ans"><p>It depends on the loan. Our payday and short-term loans need no collateral — we trust our clients. For larger amounts we also offer collateral-backed loans, secured against a qualifying asset. You can settle any loan early, free of charge.</p></div></div>
+      <div class="qa"><button>What if I can't repay on time?<span class="tog"></span></button><div class="ans"><p>Contact us early. We would rather restructure your plan than see you fall into difficulty — responsible lending works both ways.</p></div></div>
+      <div class="qa"><button>Is Raccoons Financial Services regulated?<span class="tog"></span></button><div class="ans"><p>Yes. We are a registered microlender supervised by the Namibia Financial Institutions Supervisory Authority (NAMFISA) and operate strictly within its rules.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="block">
+  <div class="wrap">
+    <div class="cta-band">
+      <h2>Ready when you are</h2>
+      <p>Check your repayment, apply in minutes, and talk to a real person if you have questions. No obligation.</p>
+      <div style="display:flex; gap:14px; justify-content:center; flex-wrap:wrap;">
+        <a class="btn btn-light" href="#calc">Apply now</a>
+        <a class="btn btn-ghost" href="https://wa.me/264817258138" style="color:#fff; border-color:rgba(255,255,255,.4);">WhatsApp: +264 81 725 8138</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer>
+  <div class="wrap">
+    <div class="cols">
+      <div>
+        <a class="brand" href="#"><img src="../assets/rfs-lockup-white.png" alt="Raccoons Financial Services" /></a>
+        <p class="about">Established in 2019 and fully operational since 2023, Raccoons Financial Services is a NAMFISA-regulated microlender — by Namibians, for Namibians — offering fair, transparent short-term loans in Windhoek.</p>
+        <div style="margin-top:18px; display:grid; gap:8px; font-size:14px;">
+          <a href="https://wa.me/264817258138">WhatsApp · +264 81 725 8138</a>
+          <a href="tel:+264817258138">+264 81 725 8138</a>
+          <a href="tel:+264816926592">+264 81 692 6592</a>
+          <a href="mailto:apply@raccoonsfinance.com">apply@raccoonsfinance.com</a>
+          <span style="color:#80868c;">Windhoek, Namibia</span>
+        </div>
+      </div>
+      <div><h4>Loans</h4><ul><li><a href="#products">Payday &amp; short-term</a></li><li><a href="#products">Business &amp; SME loans</a></li><li><a href="#products">Collateral-backed loans</a></li><li><a href="#calc">Loan calculator</a></li></ul></div>
+      <div><h4>Company</h4><ul><li><a href="#">About us</a></li><li><a href="#">Branches</a></li><li><a href="#">Responsible lending</a></li><li><a href="#">Contact</a></li></ul></div>
+      <div><h4>Legal</h4><ul><li><a href="#">Terms &amp; conditions</a></li><li><a href="#">Privacy policy</a></li><li><a href="#">Complaints</a></li><li><a href="#">NAMFISA</a></li></ul></div>
+    </div>
+    <div class="disclosure">
+      <p><b>Raccoons Financial Services</b> is a registered microlender in the Republic of Namibia and is regulated by the Namibia Financial Institutions Supervisory Authority (NAMFISA), NAMFISA licence no. 25/11/1471. Lending is subject to status, affordability assessment and our terms and conditions — after all deductions, clients retain at least 50% of gross pay. Interest rates and fees are levied in accordance with the Microlending Act and NAMFISA determinations. Borrowing more than you can afford to repay can lead to financial difficulty — please borrow responsibly.</p>
+      <div class="legal">
+        <span>© 2026 Raccoons Financial Services. All rights reserved.</span>
+        <span>This is a design concept. Figures shown are illustrative.</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Loan calculator
+  (function () {
+    var amt = document.getElementById('amt');
+    var term = document.getElementById('term');
+    var amtOut = document.getElementById('amtOut');
+    var termOut = document.getElementById('termOut');
+    var monthly = document.getElementById('monthly');
+    var total = document.getElementById('total');
+    var rate = 0.30; // 30% per month, flat, for payday loans
+    function fmt(n) { return 'N$ ' + Math.round(n).toLocaleString('en-US'); }
+    function calc() {
+      var P = +amt.value, n = +term.value;
+      amtOut.textContent = fmt(P);
+      termOut.textContent = n + (n === 1 ? ' month' : ' months');
+      var totalRepay = P * (1 + rate * n);
+      monthly.textContent = fmt(totalRepay);
+      total.textContent = fmt(totalRepay / n);
+    }
+    amt.addEventListener('input', calc);
+    term.addEventListener('input', calc);
+    calc();
+  })();
+  // FAQ accordion
+  document.querySelectorAll('.qa button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var qa = b.parentElement;
+      var open = qa.classList.contains('open');
+      document.querySelectorAll('.qa').forEach(function (x) { x.classList.remove('open'); });
+      if (!open) qa.classList.add('open');
+    });
+  });
+</script>
+</body>
+</html>
