@@ -3,7 +3,11 @@ import { IBM_Plex_Sans, IBM_Plex_Mono, Spectral } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { AuthProvider } from '@/lib/auth-context';
+import { TenantThemeProvider } from '@/lib/tenant-theme';
 import { Toaster } from '@/components/ui/sonner';
+
+// Applies the persisted tenant accent before first paint to avoid a colour flash.
+const ACCENT_BOOTSTRAP = `(function(){try{var a=localStorage.getItem('lp_accent');if(a&&/^#[0-9a-fA-F]{6}$/.test(a)){document.documentElement.style.setProperty('--brand',a);document.documentElement.setAttribute('data-tenant','');}}catch(e){}})();`;
 
 const sans = IBM_Plex_Sans({
   subsets: ['latin'],
@@ -37,8 +41,13 @@ const RootLayout = ({ children }: Readonly<{ children: React.ReactNode }>) => {
       lang="en"
       className={cn('h-full antialiased', sans.variable, heading.variable, mono.variable)}
     >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: ACCENT_BOOTSTRAP }} />
+      </head>
       <body className="min-h-full font-sans">
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <TenantThemeProvider>{children}</TenantThemeProvider>
+        </AuthProvider>
         <Toaster richColors position="top-center" />
       </body>
     </html>

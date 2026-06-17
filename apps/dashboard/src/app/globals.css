@@ -43,6 +43,14 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-bad: var(--bad);
+  --color-bad-soft: var(--bad-soft);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-deep: var(--brand-deep);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -53,43 +61,71 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  /* Single brand accent (Raccoons navy ~#25397a); everything else stays shadcn neutral. */
-  --primary: oklch(0.38 0.11 268);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.38 0.11 268);
-  --brand: oklch(0.38 0.11 268);
-  --brand-foreground: oklch(0.985 0 0);
-  --success: oklch(0.62 0.15 150);
-  --warning: oklch(0.7 0.16 70);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Brand accent: LoanPilot indigo by default; the theme provider overrides
+     --brand per tenant (e.g. Raccoons navy #25397a). Shades derive via color-mix
+     so a single property drives the whole palette (mirrors the design prototypes). */
+  --brand: #4f46e5;
+  --brand-deep: color-mix(in srgb, var(--brand) 82%, black);
+  --brand-soft: color-mix(in srgb, var(--brand) 10%, white);
+  --brand-foreground: #ffffff;
+
+  --background: #f6f7f9;
+  --foreground: #15181f;
+  --card: #ffffff;
+  --card-foreground: #15181f;
+  --popover: #ffffff;
+  --popover-foreground: #15181f;
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: #f3f4f7;
+  --secondary-foreground: #15181f;
+  --muted: #f3f4f7;
+  --muted-foreground: #545a68;
+  --accent: var(--brand-soft);
+  --accent-foreground: var(--brand-deep);
+  --destructive: #c83b2c;
+  --border: #edeef2;
+  --input: #edeef2;
+  --ring: var(--brand);
+
+  /* Semantic palette with soft backgrounds (from design/loanpilot/theme.css). */
+  --ok: #15915b;
+  --ok-soft: #e6f5ee;
+  --warn: #b06f08;
+  --warn-soft: #fbf1dd;
+  --bad: #c83b2c;
+  --bad-soft: #fbeae7;
+  --success: var(--ok);
+  --warning: var(--warn);
+
+  --chart-1: var(--brand);
+  --chart-2: color-mix(in srgb, var(--brand) 60%, white);
+  --chart-3: #545a68;
+  --chart-4: #8b91a1;
+  --chart-5: #c2c6cf;
+  --radius: 0.8125rem;
+
+  /* White sidebar (platform operators). Tenant users get the dark block below. */
+  --sidebar: #ffffff;
+  --sidebar-foreground: #15181f;
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--brand-foreground);
+  --sidebar-accent: var(--brand-soft);
+  --sidebar-accent-foreground: var(--brand-deep);
+  --sidebar-border: #edeef2;
+  --sidebar-ring: var(--brand);
+}
+
+/* Tenant users (lender/borrower): dark accent sidebar derived from the brand. */
+html[data-tenant] {
+  --sidebar: color-mix(in srgb, var(--brand) 80%, black);
+  --sidebar-foreground: color-mix(in srgb, var(--brand) 22%, white);
+  --sidebar-primary: #ffffff;
+  --sidebar-primary-foreground: var(--brand-deep);
+  --sidebar-accent: var(--brand);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: color-mix(in srgb, var(--brand) 65%, black);
+  --sidebar-ring: var(--brand-soft);
 }
 
 .dark {

@@ -9,6 +9,7 @@ import {
   RepaymentStatus,
   TenantStatus,
   UserRole,
+  addMonths,
   assessAffordability,
   quote,
   toCents,
@@ -18,12 +19,6 @@ const prisma = new PrismaClient();
 
 // Dev seed login password for every seeded user: "password123".
 const DEV_PASSWORD_HASH = hashSync('password123', 10);
-
-const addMonths = (date: Date, months: number): Date => {
-  const next = new Date(date);
-  next.setMonth(next.getMonth() + months);
-  return next;
-};
 
 interface LoanSeed {
   type: LoanType;
@@ -211,7 +206,14 @@ const main = async (): Promise<void> => {
 
   const borrowers = await Promise.all(
     borrowerSeeds.map((data) =>
-      prisma.borrower.create({ data: { ...data, tenant: { connect: { id: rfs.id } } } }),
+      prisma.borrower.create({
+        data: {
+          ...data,
+          // Seed incomes above are in major N$; the column stores cents.
+          monthlyIncome: toCents(data.monthlyIncome),
+          tenant: { connect: { id: rfs.id } },
+        },
+      }),
     ),
   );
 

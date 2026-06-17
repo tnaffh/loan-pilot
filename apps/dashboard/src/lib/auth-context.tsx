@@ -16,15 +16,19 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const readStoredToken = (): string | null =>
+  typeof window === 'undefined' ? null : window.localStorage.getItem(TOKEN_STORAGE_KEY);
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<SessionUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
-  const [status, setStatus] = useState<AuthStatus>('loading');
+  const [status, setStatus] = useState<AuthStatus>(() =>
+    readStoredToken() ? 'loading' : 'unauthenticated',
+  );
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(TOKEN_STORAGE_KEY);
+    const stored = readStoredToken();
     if (!stored) {
-      setStatus('unauthenticated');
       return;
     }
     fetchMe(stored)

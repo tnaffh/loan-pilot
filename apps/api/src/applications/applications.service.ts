@@ -1,20 +1,31 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { LoanApplication, Prisma } from '@prisma/client';
 import {
+  ApplicationStatus,
   assessAffordability,
   quote,
   toCents,
   type CreateApplicationInput,
+  type UpdateApplicationStatusInput,
 } from '@loan-pilot/domain';
 import { PrismaService } from '../prisma/prisma.service';
+import { LoansService } from '../loans/loans.service';
 
 export type ApplicationWithReferences = Prisma.LoanApplicationGetPayload<{
   include: { references: true };
 }>;
 
+export interface ApplicationDecision {
+  application: LoanApplication;
+  loanId: string | null;
+}
+
 @Injectable()
 export class ApplicationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly loans: LoansService,
+  ) {}
 
   /**
    * Price the requested loan and assess affordability, then persist the
@@ -75,6 +86,41 @@ export class ApplicationsService {
       where: { tenantId },
       include: { references: true },
       orderBy: { submittedAt: 'desc' },
+    });
+  }
+
+  /**
+   * Decide a pending application. Approval creates the borrower (if new) and
+   * disburses the quoted loan atomically with the status change.
+   */
+  updateStatus(
+    tenantId: string,
+    id: string,
+    input: UpdateApplicationStatusInput,
+  ): Promise<ApplicationDecision> {
+    return this.prisma.$transaction(async (tx) => {
+      const application = await tx.loanApplication.findFirst({ where: { id, tenantId } });
+      if (!application) {
+        throw new NotFoundException('Application not found');
+      }
+      if (
+        application.status === ApplicationStatus.Approved ||
+        application.status === ApplicationStatus.Declined
+      ) {
+        throw new ConflictException('This application has already been decided');
+      }
+
+      const loan =
+        input.status === ApplicationStatus.Approved
+          ? await this.loans.createForApplication(tx, application)
+          : null;
+
+      const updated = await tx.loanApplication.update({
+        where: { id },
+        data: { status: input.status },
+      });
+
+      return { application: updated, loanId: loan?.id ?? null };
     });
   }
 }

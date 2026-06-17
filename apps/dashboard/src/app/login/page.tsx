@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, ShieldCheck } from 'lucide-react';
+import { Loader2, Send } from 'lucide-react';
 import { type LoginInput, loginSchema } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,10 +46,12 @@ const LoginPage = () => {
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-sm">
         <CardHeader className="space-y-2 text-center">
-          <div className="mx-auto flex size-11 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <ShieldCheck className="size-5" />
+          <div className="mx-auto flex size-11 items-center justify-center rounded-lg bg-[#4f46e5] text-white">
+            <Send className="size-5" />
           </div>
-          <CardTitle className="text-2xl">LoanPilot</CardTitle>
+          <CardTitle className="font-heading text-2xl">
+            Loan<span className="text-primary">Pilot</span>
+          </CardTitle>
           <p className="text-sm text-muted-foreground">Sign in to your management dashboard</p>
         </CardHeader>
         <CardContent>

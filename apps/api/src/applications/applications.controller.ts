@@ -1,12 +1,36 @@
-import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Post } from '@nestjs/common';
 import {
+  Body,
+  Controller,
+  Get,
+  Headers,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  UserRole,
   createApplicationSchema,
   fromCents,
+  updateApplicationStatusSchema,
   type CreateApplicationInput,
+  type SessionUser,
+  type UpdateApplicationStatusInput,
 } from '@loan-pilot/domain';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
+import { requireTenantId } from '../common/tenant';
 import { TenantsService } from '../tenants/tenants.service';
-import { ApplicationsService, type ApplicationWithReferences } from './applications.service';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
+import { CurrentUser } from '../auth/current-user.decorator';
+import {
+  ApplicationsService,
+  type ApplicationDecision,
+  type ApplicationWithReferences,
+} from './applications.service';
 
 interface ApplicationResultDto {
   id: string;
@@ -25,6 +49,7 @@ export class ApplicationsController {
     private readonly tenants: TenantsService,
   ) {}
 
+  /** Public apply endpoint — the tenant comes from the x-tenant header. */
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async create(
@@ -46,8 +71,20 @@ export class ApplicationsController {
   }
 
   @Get()
-  async list(@Headers('x-tenant') tenantSlug?: string): Promise<ApplicationWithReferences[]> {
-    const tenant = await this.tenants.resolveForPublicRequest(tenantSlug);
-    return this.applications.findAllForTenant(tenant.id);
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  list(@CurrentUser() user: SessionUser): Promise<ApplicationWithReferences[]> {
+    return this.applications.findAllForTenant(requireTenantId(user));
+  }
+
+  @Patch(':id/status')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  updateStatus(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(updateApplicationStatusSchema)) body: UpdateApplicationStatusInput,
+  ): Promise<ApplicationDecision> {
+    return this.applications.updateStatus(requireTenantId(user), id, body);
   }
 }

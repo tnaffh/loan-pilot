@@ -1,6 +1,11 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { Tenant } from '@prisma/client';
+import {
+  tenantBrandingSchema,
+  type SessionUser,
+  type TenantBranding,
+} from '@loan-pilot/domain';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -12,6 +17,18 @@ export class TenantsService {
 
   findBySlug(slug: string): Promise<Tenant | null> {
     return this.prisma.tenant.findUnique({ where: { slug } });
+  }
+
+  /** White-label branding for the authenticated user's tenant; null for platform operators. */
+  async brandingForUser(user: SessionUser): Promise<TenantBranding | null> {
+    if (!user.tenantId) {
+      return null;
+    }
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: user.tenantId },
+      select: { slug: true, name: true, short: true, accent: true, plan: true },
+    });
+    return tenant ? tenantBrandingSchema.parse(tenant) : null;
   }
 
   /**

@@ -1,21 +1,54 @@
 import { Test } from '@nestjs/testing';
-import { EmploymentType, LoanType, type CreateApplicationInput } from '@loan-pilot/domain';
+import { ConflictException } from '@nestjs/common';
+import {
+  ApplicationStatus,
+  EmploymentType,
+  LoanType,
+  type CreateApplicationInput,
+} from '@loan-pilot/domain';
 import { ApplicationsService } from './applications.service';
+import { LoansService } from '../loans/loans.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 describe('ApplicationsService', () => {
   const create = jest.fn();
-  const prismaMock = { loanApplication: { create, findMany: jest.fn() } };
+  const applicationFindFirst = jest.fn();
+  const applicationUpdate = jest.fn();
+  const borrowerUpsert = jest.fn();
+  const loanCreate = jest.fn();
+
+  const txMock = {
+    loanApplication: { findFirst: applicationFindFirst, update: applicationUpdate },
+    borrower: { upsert: borrowerUpsert },
+    loan: { create: loanCreate },
+  };
+
+  const prismaMock = {
+    loanApplication: { create, findMany: jest.fn() },
+    $transaction: jest.fn(async (fn: (tx: typeof txMock) => Promise<unknown>) => fn(txMock)),
+  };
+
   let service: ApplicationsService;
 
   beforeEach(async () => {
-    create.mockReset();
+    jest.clearAllMocks();
     create.mockImplementation((args: { data: Record<string, unknown> }) =>
       Promise.resolve({ id: 'app_1', ...args.data }),
     );
+    applicationUpdate.mockImplementation((args: { data: Record<string, unknown> }) =>
+      Promise.resolve({ id: 'app_1', ...args.data }),
+    );
+    borrowerUpsert.mockResolvedValue({ id: 'bor_new' });
+    loanCreate.mockImplementation((args: { data: Record<string, unknown> }) =>
+      Promise.resolve({ id: 'loan_new', ...args.data }),
+    );
 
     const moduleRef = await Test.createTestingModule({
-      providers: [ApplicationsService, { provide: PrismaService, useValue: prismaMock }],
+      providers: [
+        ApplicationsService,
+        LoansService,
+        { provide: PrismaService, useValue: prismaMock },
+      ],
     }).compile();
 
     service = moduleRef.get(ApplicationsService);
@@ -63,5 +96,73 @@ describe('ApplicationsService', () => {
 
     const data = create.mock.calls[0][0].data;
     expect(data.affordability).toBe('fail');
+  });
+
+  const pendingApplication = {
+    id: 'app_1',
+    tenantId: 'tenant_1',
+    status: ApplicationStatus.Pending,
+    firstName: 'Selma',
+    lastName: 'Nghidinwa',
+    idNumber: '98031500412',
+    phone: '+264811112222',
+    email: 'selma@example.na',
+    address: '12 Acacia St, Windhoek',
+    employer: 'Ministry of Health',
+    occupation: 'Nurse',
+    declaredIncome: 1400000,
+    employmentType: EmploymentType.PermanentlyEmployed,
+    bank: 'Bank Windhoek',
+    accountType: 'Savings',
+    type: LoanType.Payday,
+    amount: 600000, // N$ 6,000 in cents
+    termMonths: 2,
+  };
+
+  it('approving creates the borrower and a quoted loan, then flips the status', async () => {
+    applicationFindFirst.mockResolvedValue(pendingApplication);
+
+    const result = await service.updateStatus('tenant_1', 'app_1', {
+      status: ApplicationStatus.Approved,
+    });
+
+    expect(borrowerUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { tenantId_idNumber: { tenantId: 'tenant_1', idNumber: '98031500412' } },
+      }),
+    );
+    const loanData = loanCreate.mock.calls[0][0].data;
+    expect(loanData.borrower.connect.id).toBe('bor_new');
+    expect(loanData.total).toBe(780000); // N$ 7,800 (30% charge on N$ 6,000)
+    expect(loanData.instalment).toBe(390000);
+    expect(loanData.schedule.create).toHaveLength(2);
+    expect(applicationUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { status: ApplicationStatus.Approved } }),
+    );
+    expect(result.loanId).toBe('loan_new');
+  });
+
+  it('declining flips the status without creating a loan', async () => {
+    applicationFindFirst.mockResolvedValue(pendingApplication);
+
+    const result = await service.updateStatus('tenant_1', 'app_1', {
+      status: ApplicationStatus.Declined,
+    });
+
+    expect(borrowerUpsert).not.toHaveBeenCalled();
+    expect(loanCreate).not.toHaveBeenCalled();
+    expect(result.loanId).toBeNull();
+  });
+
+  it('rejects deciding an application twice', async () => {
+    applicationFindFirst.mockResolvedValue({
+      ...pendingApplication,
+      status: ApplicationStatus.Approved,
+    });
+
+    await expect(
+      service.updateStatus('tenant_1', 'app_1', { status: ApplicationStatus.Declined }),
+    ).rejects.toThrow(ConflictException);
+    expect(applicationUpdate).not.toHaveBeenCalled();
   });
 });

@@ -1,6 +1,6 @@
 # LoanPilot — Implementation Status & Handoff
 
-_Last updated: 12 June 2026. Use this as the working brief when continuing in Claude Code or another Cursor window._
+_Last updated: 12 June 2026 (Phases 2–3 complete). Use this as the working brief when continuing in Claude Code or another Cursor window._
 
 ---
 
@@ -34,9 +34,14 @@ All modules generated via the official **Nest CLI**. Fully typechecked, built, 2
 | Module | Endpoints |
 |---|---|
 | `HealthModule` | `GET /api/health` — DB connectivity check |
-| `ApplicationsModule` | `POST /api/applications` — submit a loan application (Zod-validated, runs affordability, persists with references); `GET /api/applications` — tenant-scoped list |
+| `ApplicationsModule` | `POST /api/applications` (public, x-tenant header) — submit application; `GET /api/applications` (JWT, lender roles) — tenant-scoped list; `PATCH /api/applications/:id/status` (JWT, lender roles) — approve/decline; approve upserts the borrower (on `tenantId+idNumber`) and disburses the quoted loan in one transaction, returns `{ application, loanId }` |
+| `BorrowersModule` | `GET/POST /api/borrowers`, `GET/PATCH /api/borrowers/:id` — tenant-scoped, lender roles; duplicate ID number → 409 |
+| `LoansModule` | `POST /api/loans/quote` (preview, no write); `POST /api/loans` (disburse to existing borrower); `GET /api/loans`, `GET /api/loans/:id` (lender roles + borrower, borrower sees only own); `POST /api/loans/:id/repayments` — transactional: marks next instalment paid, updates balance/status/nextDueAt/daysLate, settles at zero; `GET /api/loans/:id/statement` — NAMFISA statement with running balance + penalty accrual |
+| `StatsModule` | `GET /api/stats/overview` — role-branched KPIs (`kind: lender \| platform \| borrower`), all money in cents |
 | `AuthModule` | `POST /api/auth/login` → `{ accessToken, user: SessionUser }`; `GET /api/auth/me` (requires Bearer JWT) |
-| `TenantsModule` | `TenantsService.resolveForPublicRequest(slug?)` — used internally for tenant resolution |
+| `TenantsModule` | `TenantsService.resolveForPublicRequest(slug?)` — internal tenant resolution; `GET /api/tenants/me` (JWT) → `TenantBranding` (slug/name/short/accent/plan) or `null` for platform users, used for white-label dashboard theming |
+
+New shared helper: `src/common/tenant.ts` `requireTenantId(user)` — throws 403 for platform users on tenant-bound routes.
 
 **Prisma schema** is complete: `Tenant`, `User`, `Borrower`, `Loan`, `RepaymentScheduleItem`, `LoanApplication`, `ApplicationReference`, `Document`, `Invoice`. First migration (`20260612092800_init`) is applied.
 
@@ -70,67 +75,69 @@ Public marketing + apply site for Raccoons Financial Services.
 
 ### `apps/dashboard` — `@loan-pilot/dashboard` (Next.js 16, port 3001)
 
-Authenticated management dashboard — **shell is in place, interior pages are the next step.**
+Authenticated management dashboard — shell **and lender operations pages** are built,
+**restyled to match the `design/` prototypes** (15 June 2026).
+
+**White-label theming.** `src/lib/tenant-theme.tsx` fetches `GET /api/tenants/me` and sets
+`--brand` (+ a `data-tenant` attribute) on `<html>`; shades derive via CSS `color-mix()` in
+`globals.css`. A pre-paint script in `src/app/layout.tsx` applies the persisted accent before
+hydration to avoid a colour flash. Lender/borrower users get their tenant accent (Raccoons
+navy) with a **dark accent sidebar** (`html[data-tenant]` block) and Spectral serif headings;
+platform users get the LoanPilot indigo theme with a **white sidebar**. Design tokens
+(`--ok/--warn/--bad` + `-soft` variants, `--brand-soft/-deep`) and matching utilities
+(`bg-ok-soft`, `bg-brand-soft text-brand-deep`, …) live in `globals.css`.
+
+**Shell.** shadcn `sidebar` (`src/components/app-sidebar.tsx`: brand row, tenant workspace
+card, grouped nav with a pending-applications badge, user footer) + `src/components/app-topbar.tsx`
+(blurred sticky bar, serif page title, search, bell, logout). Borrower role uses a topbar-only
+`src/components/borrower/portal-shell.tsx` instead (no sidebar). The shell branches in
+`src/app/(app)/layout.tsx`.
+
+**Shared UI.** `stat-card.tsx` (KPI card w/ icon chip), `status-badge.tsx` (dot pill),
+`type-chip.tsx`, `filter-segments.tsx`, `initials-avatar.tsx`, `kv.tsx`. Added shadcn
+components: `sidebar avatar tabs progress separator tooltip` (+ generated `sheet`,
+`hooks/use-mobile`). The borrower home (`src/components/borrower/home.tsx`) has a gradient
+hero balance card, quick actions, and Overview/Schedule tabs.
 
 | File | What it does |
 |---|---|
 | `src/app/layout.tsx` | Root layout: IBM Plex + Spectral fonts, wraps `AuthProvider`, `Toaster` |
 | `src/app/login/page.tsx` | Login form (react-hook-form + `loginSchema`), redirects to `/` on success |
 | `src/app/(app)/layout.tsx` | Auth guard (redirects to `/login` if unauthenticated), role-aware sidebar + topbar |
+| `src/app/(app)/page.tsx` | Overview: role-aware KPI cards (lender: active loans, book value, pending applications, arrears; platform & borrower variants) from `/stats/overview` |
+| `src/app/(app)/applications/page.tsx` | Applications table with affordability/status badges; approve/decline confirm dialogs (approve disburses the loan) |
+| `src/app/(app)/borrowers/page.tsx` | Borrowers table + "New borrower" dialog form (`createBorrowerSchema`) |
+| `src/app/(app)/borrowers/[id]/page.tsx` | Borrower profile: personal details, loan history, active-loan schedule |
+| `src/app/(app)/loans/page.tsx` | Loan book table (also serves borrower role — API scopes it) |
+| `src/app/(app)/loans/[id]/page.tsx` | Loan detail: stat cards, schedule grid, capture-repayment dialog (lender only) |
 | `src/lib/auth-context.tsx` | `AuthProvider` + `useAuth()` — token stored in `localStorage`, auto-validated on mount |
 | `src/lib/api.ts` | `apiFetch` helper, `login()`, `fetchMe()` |
+| `src/lib/use-api.ts` | `useApi<T>(path)` — token-aware fetch hook with `refresh()` |
+| `src/lib/types.ts` | Response interfaces for authenticated endpoints (all money in cents) |
+| `src/lib/format.ts` | `formatDate()` |
 | `src/lib/nav.ts` | `navForRole(role)` — returns the correct nav items for platform / lender / borrower |
+| `src/components/status-badge.tsx` | `<StatusBadge value>` — tone-mapped badge for loan/application/affordability/repayment statuses |
+| `src/components/page-header.tsx` | Page title + action slot |
 
 **Sidebar nav items by role:**
 - Platform: Overview, Tenants, Billing
 - Lender (admin/staff): Overview, Applications, Borrowers, Loans
 - Borrower: Overview, My loans, Statements
 
-**No interior dashboard pages yet** — the `(app)` group layout is the shell; individual route pages are the next step (Phase 3–5).
+shadcn/ui components now also include `table`, `badge`, `dialog`, `skeleton`.
 
 ---
 
 ## What is NOT yet built
 
-### Phase 2 — Dashboard interior pages (in progress)
-
-The shell exists. Still needed:
-
-1. **`apps/dashboard/src/app/(app)/page.tsx`** — Overview/home page (KPI cards: active loans, book value, applications pending, arrears; differs per role)
-2. Route group pages for each role — all under `src/app/(app)/`
-
-### Phase 3 — Lender operations (API + dashboard pages)
-
-**API (`apps/api/src/`)**
-
-Generate with Nest CLI then implement:
-```bash
-nest g module borrowers
-nest g service borrowers --no-spec
-nest g controller borrowers --no-spec
-nest g module loans
-nest g service loans --no-spec
-nest g controller loans --no-spec
-```
-
-- `BorrowersModule`: `GET /api/borrowers`, `POST /api/borrowers`, `GET /api/borrowers/:id`, `PATCH /api/borrowers/:id` — all tenant-scoped, JWT-guarded
-- `LoansModule`:
-  - `POST /api/loans/quote` — preview a loan quote (uses `@loan-pilot/domain` `quote()`)
-  - `POST /api/loans` — create/disburse a loan from an approved application
-  - `GET /api/loans`, `GET /api/loans/:id`
-  - `POST /api/loans/:id/repayments` — record a repayment, mark schedule item paid, update balance
-  - `GET /api/loans/:id/statement` — NAMFISA-compliant statement (all charges, payments, balance)
-- `ApplicationsModule` additions:
-  - `PATCH /api/applications/:id/status` — approve or decline (role: lender_admin / lender_staff); approve auto-creates a loan record
-  - Applications are currently only accessible via the public (unauthenticated) route. The lender dashboard needs an authenticated version that resolves tenantId from `@CurrentUser()`.
-
-**Dashboard pages**
-
-- `/applications` — table: id, name, type, amount, date, affordability badge, status actions (approve/decline)
-- `/borrowers` — table + new borrower form
-- `/borrowers/[id]` — profile: personal details, loan history, active loan schedule
-- `/loans` — table: borrower, type, principal, balance, instalment, next due, status badge
-- `/loans/[id]` — loan detail: schedule grid, repayment capture button
+> Phases 2 and 3 (dashboard overview + lender operations) were completed on
+> 12 June 2026: Borrowers/Loans/Stats API modules, application approve/decline
+> with transactional loan disbursement, and all lender dashboard pages. All
+> verified end-to-end against the seed data (approve → borrower upsert + loan
+> with correct quote math; repayments through to settlement; statements
+> reconcile; role scoping incl. borrower-only loan visibility; 401/403/409
+> cases). Note: `GET /api/applications` is now JWT-guarded (lender roles) —
+> the public route is only `POST /api/applications`.
 
 ### Phase 4 — Platform admin
 
@@ -246,10 +253,14 @@ loan-pilot/
 │   ├── main.ts              — global prefix /api, CORS, port 4000
 │   ├── app.module.ts        — root module
 │   ├── prisma/              — PrismaService (global)
-│   ├── common/zod-validation.pipe.ts
+│   ├── common/              — zod-validation.pipe.ts, tenant.ts (requireTenantId)
 │   ├── health/              — GET /api/health
 │   ├── tenants/             — TenantsService.resolveForPublicRequest()
-│   ├── applications/        — POST/GET /api/applications
+│   ├── applications/        — POST (public) / GET (lender) /api/applications,
+│   │                          PATCH /api/applications/:id/status (approve → loan)
+│   ├── borrowers/           — CRUD /api/borrowers (lender roles, tenant-scoped)
+│   ├── loans/               — quote/create/list/detail/repayments/statement
+│   ├── stats/               — GET /api/stats/overview (role-branched KPIs)
 │   └── auth/                — POST /api/auth/login, GET /api/auth/me
 │                              JwtAuthGuard, RolesGuard, @CurrentUser, @Roles
 │
@@ -262,8 +273,15 @@ loan-pilot/
 └── apps/dashboard/src/
     ├── app/layout.tsx        — root (AuthProvider, fonts)
     ├── app/login/page.tsx    — /login
-    ├── app/(app)/layout.tsx  — auth guard + sidebar shell  ← NEXT: add pages here
+    ├── app/(app)/layout.tsx  — auth guard + sidebar shell
+    ├── app/(app)/page.tsx    — overview (role-aware KPI cards)
+    ├── app/(app)/applications/page.tsx  — review + approve/decline
+    ├── app/(app)/borrowers/{page,[id]/page}.tsx — table + form, profile
+    ├── app/(app)/loans/{page,[id]/page}.tsx     — book, detail + repayments
+    ├── components/{status-badge,page-header}.tsx
     ├── lib/api.ts            — apiFetch, login(), fetchMe()
+    ├── lib/use-api.ts        — useApi<T>() fetch hook
+    ├── lib/types.ts          — authenticated API response shapes (cents)
     ├── lib/auth-context.tsx  — AuthProvider, useAuth()
     └── lib/nav.ts            — navForRole(role)
 ```

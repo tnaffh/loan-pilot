@@ -1,4 +1,4 @@
-import { UserRole } from './enums';
+import { PlanId, UserRole } from './enums';
 
 /** The authenticated user shape returned by the API and stored client-side. */
 export interface SessionUser {
@@ -8,6 +8,15 @@ export interface SessionUser {
   role: UserRole;
   tenantId: string | null;
   tenantSlug: string | null;
+}
+
+/** White-label branding for the authenticated user's tenant (null for platform). */
+export interface TenantBranding {
+  slug: string;
+  name: string;
+  short: string;
+  accent: string;
+  plan: PlanId;
 }
 
 export const LENDER_ROLES: readonly UserRole[] = [UserRole.LenderAdmin, UserRole.LenderStaff];

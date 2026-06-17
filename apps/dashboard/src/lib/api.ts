@@ -1,8 +1,9 @@
-import type { LoginInput, SessionUser } from '@loan-pilot/domain';
+import type { LoginInput, SessionUser, TenantBranding } from '@loan-pilot/domain';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
 
 export const TOKEN_STORAGE_KEY = 'lp_token';
+export const ACCENT_STORAGE_KEY = 'lp_accent';
 
 interface ValidationIssue {
   path: string;
@@ -60,3 +61,6 @@ export const login = (input: LoginInput): Promise<LoginResponse> =>
 
 export const fetchMe = (token: string): Promise<SessionUser> =>
   apiFetch<SessionUser>('/auth/me', { token });
+
+export const fetchTenantBranding = (token: string): Promise<TenantBranding | null> =>
+  apiFetch<TenantBranding | null>('/tenants/me', { token });
