@@ -39,8 +39,25 @@ enum LoanType {
 enum LoanStatus {
   active
   arrears
+  partly_paid
   settled
+  written_off
   closed
+}
+
+enum PaymentMethod {
+  eft
+  cash
+  debit_order
+  deposit
+  ewallet
+  payroll
+  revolved
+}
+
+enum ExpenseKind {
+  expense
+  refund
 }
 
 enum ApplicationStatus {
@@ -95,6 +112,8 @@ model Tenant {
   loans        Loan[]
   applications LoanApplication[]
   invoices     Invoice[]
+  payments     Payment[]
+  expenses     Expense[]
 }
 
 model User {
@@ -131,6 +150,9 @@ model Borrower {
   employmentType EmploymentType
   bank           String
   accountType    String
+  gender         String?
+  // Salary pay day; kept as the raw sheet value (e.g. "25" or "25/10/23").
+  payDay         String?
   status         String         @default("active")
   since          DateTime       @default(now())
   createdAt      DateTime       @default(now())
@@ -152,6 +174,13 @@ model Loan {
   type             LoanType
   principal        Int
   financeCharge    Int
+  // Per-loan regulatory / transaction fees (cents). Defaulted to 0 for loans
+  // priced before these were tracked.
+  bankCharges      Int        @default(0)
+  namfisaLevy      Int        @default(0)
+  stampDuty        Int        @default(0)
+  // Flat finance-charge rate applied to the principal (e.g. 0.3 = 30%).
+  interestRate     Float      @default(0.3)
   total            Int
   termMonths       Int
   instalment       Int
@@ -161,13 +190,21 @@ model Loan {
   status           LoanStatus @default(active)
   collateral       String?
   daysLate         Int        @default(0)
+  // Reporting bucket from the source register, e.g. "October 2023".
+  originMonth      String?
+  // Stable key from the source register ("October 2023#1"); enables idempotent import.
+  externalRef      String?
+  // Free-text provenance/admin note (e.g. marks reconstructed historical loans).
+  note             String?
   disbursedAt      DateTime?
   nextDueAt        DateTime?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
   schedule RepaymentScheduleItem[]
+  payments Payment[]
 
+  @@unique([tenantId, externalRef])
   @@index([tenantId])
   @@index([borrowerId])
 }
@@ -256,5 +293,47 @@ model Invoice {
   status      InvoiceStatus @default(pending)
   issuedAt    DateTime      @default(now())
 
+  @@index([tenantId])
+}
+
+// An actual payment received against a loan (distinct from the scheduled
+// RepaymentScheduleItem). Amounts are integer N$ cents.
+model Payment {
+  id          String        @id @default(cuid())
+  tenantId    String
+  tenant      Tenant        @relation(fields: [tenantId], references: [id])
+  loanId      String
+  loan        Loan          @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  paidAt      DateTime
+  amount      Int
+  method      PaymentMethod @default(cash)
+  badDebt     Boolean       @default(false)
+  // Stable key from the source register; enables idempotent import.
+  externalRef String?
+  note        String?
+  createdAt   DateTime      @default(now())
+
+  @@unique([tenantId, externalRef])
+  @@index([tenantId])
+  @@index([loanId])
+}
+
+// An operating expense or refund for the lender. Amounts are integer N$ cents.
+model Expense {
+  id          String      @id @default(cuid())
+  tenantId    String
+  tenant      Tenant      @relation(fields: [tenantId], references: [id])
+  kind        ExpenseKind @default(expense)
+  category    String
+  // Raw month label from the source register, e.g. "Dec 2023" or "August".
+  period      String?
+  incurredAt  DateTime?
+  amount      Int
+  // Stable key from the source register; enables idempotent import.
+  externalRef String?
+  note        String?
+  createdAt   DateTime    @default(now())
+
+  @@unique([tenantId, externalRef])
   @@index([tenantId])
 }

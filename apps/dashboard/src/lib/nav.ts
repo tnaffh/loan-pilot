@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Receipt,
   Users,
+  Wallet,
   type LucideIcon,
 } from 'lucide-react';
 import { UserRole, isPlatform } from '@loan-pilot/domain';
@@ -42,6 +43,7 @@ const LENDER_NAV: NavGroup[] = [
       { href: '/applications', label: 'Applications', icon: FileText, withBadge: true },
       { href: '/loans', label: 'Loans', icon: Banknote },
       { href: '/borrowers', label: 'Borrowers', icon: Users },
+      { href: '/expenses', label: 'Expenses', icon: Wallet },
     ],
   },
 ];
@@ -71,6 +73,7 @@ const TITLES: { prefix: string; title: string }[] = [
   { prefix: '/applications', title: 'Applications' },
   { prefix: '/borrowers', title: 'Borrowers' },
   { prefix: '/loans', title: 'Loans' },
+  { prefix: '/expenses', title: 'Expenses' },
   { prefix: '/tenants', title: 'Tenants' },
   { prefix: '/billing', title: 'Billing' },
   { prefix: '/statements', title: 'Statements' },

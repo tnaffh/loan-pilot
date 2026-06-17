@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ApplicationStatus, EmploymentType, LoanType, PlanId } from './enums';
+import { ApplicationStatus, EmploymentType, ExpenseKind, LoanType, PaymentMethod, PlanId } from './enums';
 import { MAX_TERM_MONTHS } from './loan-math';
 
 /** A personal reference, as required by the loan agreement (minimum two). */
@@ -96,6 +96,34 @@ export const recordRepaymentSchema = z.object({
   paidAt: z.string().datetime().optional(),
 });
 export type RecordRepaymentInput = z.infer<typeof recordRepaymentSchema>;
+
+/**
+ * Record an actual payment against a loan. `amount` is submitted in major
+ * Namibian Dollar units and converted to cents server-side.
+ */
+export const createPaymentSchema = z.object({
+  loanId: z.string().min(1, 'A loan is required'),
+  amount: z.coerce.number().min(1, 'A payment amount is required'),
+  method: z.nativeEnum(PaymentMethod).default(PaymentMethod.Cash),
+  paidAt: z.string().min(4, 'A payment date is required'),
+  badDebt: z.coerce.boolean().optional(),
+  note: z.string().max(280).optional().or(z.literal('')),
+});
+export type CreatePaymentInput = z.infer<typeof createPaymentSchema>;
+
+/**
+ * Record an operating expense or refund for the lender. `amount` is submitted
+ * in major Namibian Dollar units and converted to cents server-side.
+ */
+export const createExpenseSchema = z.object({
+  kind: z.nativeEnum(ExpenseKind).default(ExpenseKind.Expense),
+  category: z.string().min(1, 'A category is required'),
+  amount: z.coerce.number().min(0.01, 'An amount is required'),
+  period: z.string().max(40).optional().or(z.literal('')),
+  incurredAt: z.string().optional().or(z.literal('')),
+  note: z.string().max(280).optional().or(z.literal('')),
+});
+export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
 
 /** Approve or decline a pending loan application. */
 export const updateApplicationStatusSchema = z.object({

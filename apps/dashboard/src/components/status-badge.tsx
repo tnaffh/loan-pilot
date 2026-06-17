@@ -7,7 +7,9 @@ const TONES: Record<string, BadgeTone> = {
   // LoanStatus
   active: 'positive',
   arrears: 'negative',
+  partly_paid: 'caution',
   settled: 'neutral',
+  written_off: 'negative',
   closed: 'neutral',
   // ApplicationStatus
   pending: 'caution',
@@ -33,7 +35,9 @@ const TONE_CLASSES: Record<BadgeTone, string> = {
 const LABELS: Record<string, string> = {
   active: 'Active',
   arrears: 'In arrears',
+  partly_paid: 'Partly paid',
   settled: 'Settled',
+  written_off: 'Written off',
   closed: 'Closed',
   pending: 'Pending',
   review: 'Review',

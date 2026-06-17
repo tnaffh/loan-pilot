@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import {
   ApplicationStatus,
+  ExpenseKind,
   LoanStatus,
   TenantStatus,
   isBorrower,
@@ -18,6 +19,13 @@ export interface LenderOverview {
   arrearsValue: number;
   pendingApplications: number;
   borrowers: number;
+  // Lifetime cash flows (cents): disbursed principal, collected payments,
+  // operating expenses, refunds, and the resulting net.
+  disbursed: number;
+  collected: number;
+  expenses: number;
+  refunds: number;
+  netProfit: number;
 }
 
 export interface PlatformOverview {
@@ -53,25 +61,39 @@ export class StatsService {
   }
 
   private async lenderOverview(tenantId: string): Promise<LenderOverview> {
-    const [book, arrears, pendingApplications, borrowers] = await Promise.all([
-      this.prisma.loan.aggregate({
-        where: { tenantId, status: { in: [LoanStatus.Active, LoanStatus.Arrears] } },
-        _sum: { balance: true },
-        _count: true,
-      }),
-      this.prisma.loan.aggregate({
-        where: { tenantId, status: LoanStatus.Arrears },
-        _sum: { balance: true },
-        _count: true,
-      }),
-      this.prisma.loanApplication.count({
-        where: {
-          tenantId,
-          status: { in: [ApplicationStatus.Pending, ApplicationStatus.Review] },
-        },
-      }),
-      this.prisma.borrower.count({ where: { tenantId } }),
-    ]);
+    const [book, arrears, pendingApplications, borrowers, disbursed, collected, expenseSums] =
+      await Promise.all([
+        this.prisma.loan.aggregate({
+          where: { tenantId, status: { in: [LoanStatus.Active, LoanStatus.Arrears] } },
+          _sum: { balance: true },
+          _count: true,
+        }),
+        this.prisma.loan.aggregate({
+          where: { tenantId, status: LoanStatus.Arrears },
+          _sum: { balance: true },
+          _count: true,
+        }),
+        this.prisma.loanApplication.count({
+          where: {
+            tenantId,
+            status: { in: [ApplicationStatus.Pending, ApplicationStatus.Review] },
+          },
+        }),
+        this.prisma.borrower.count({ where: { tenantId } }),
+        this.prisma.loan.aggregate({ where: { tenantId }, _sum: { principal: true } }),
+        this.prisma.payment.aggregate({ where: { tenantId }, _sum: { amount: true } }),
+        this.prisma.expense.groupBy({
+          by: ['kind'],
+          where: { tenantId },
+          _sum: { amount: true },
+        }),
+      ]);
+
+    const expenses =
+      expenseSums.find((row) => row.kind === ExpenseKind.Expense)?._sum.amount ?? 0;
+    const refunds = expenseSums.find((row) => row.kind === ExpenseKind.Refund)?._sum.amount ?? 0;
+    const collectedTotal = collected._sum.amount ?? 0;
+    const disbursedTotal = disbursed._sum.principal ?? 0;
 
     return {
       kind: 'lender',
@@ -81,6 +103,12 @@ export class StatsService {
       arrearsValue: arrears._sum.balance ?? 0,
       pendingApplications,
       borrowers,
+      disbursed: disbursedTotal,
+      collected: collectedTotal,
+      expenses,
+      refunds,
+      // Net = interest earned (collected − disbursed principal) − expenses + refunds.
+      netProfit: collectedTotal - disbursedTotal - expenses + refunds,
     };
   }
 

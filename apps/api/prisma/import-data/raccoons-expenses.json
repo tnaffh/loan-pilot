@@ -1,0 +1,1434 @@
+[
+  {
+    "seq": 1,
+    "kind": "expense",
+    "period": "Dec 2023",
+    "incurredAt": "2023-12-01",
+    "category": "Electricity/Water",
+    "amount": 20000
+  },
+  {
+    "seq": 2,
+    "kind": "expense",
+    "period": "Jan 2025",
+    "incurredAt": "2025-01-01",
+    "category": "Electricity/Water",
+    "amount": 20000
+  },
+  {
+    "seq": 3,
+    "kind": "expense",
+    "period": "Feb 2025",
+    "incurredAt": "2025-02-01",
+    "category": "Electricity/Water",
+    "amount": 20000
+  },
+  {
+    "seq": 4,
+    "kind": "expense",
+    "period": "Mar 2025",
+    "incurredAt": "2025-03-01",
+    "category": "Electricity/Water",
+    "amount": 20000
+  },
+  {
+    "seq": 5,
+    "kind": "expense",
+    "period": "Jun 2026",
+    "incurredAt": "2026-06-01",
+    "category": "Electricity/Water",
+    "amount": 200000
+  },
+  {
+    "seq": 6,
+    "kind": "expense",
+    "period": "Dec 2023",
+    "incurredAt": "2023-12-01",
+    "category": "Air Time",
+    "amount": 5000
+  },
+  {
+    "seq": 7,
+    "kind": "expense",
+    "period": "Feb 2024",
+    "incurredAt": "2024-02-01",
+    "category": "Air Time",
+    "amount": 6500
+  },
+  {
+    "seq": 8,
+    "kind": "expense",
+    "period": "Nov 2024",
+    "incurredAt": "2024-11-01",
+    "category": "Air Time",
+    "amount": 5699
+  },
+  {
+    "seq": 9,
+    "kind": "expense",
+    "period": "Dec 2024",
+    "incurredAt": "2024-12-01",
+    "category": "Air Time",
+    "amount": 6500
+  },
+  {
+    "seq": 10,
+    "kind": "expense",
+    "period": "Mar 2026",
+    "incurredAt": "2026-03-01",
+    "category": "Air Time",
+    "amount": 30000
+  },
+  {
+    "seq": 11,
+    "kind": "expense",
+    "period": "Apr 2026",
+    "incurredAt": "2026-04-01",
+    "category": "Air Time",
+    "amount": 30000
+  },
+  {
+    "seq": 12,
+    "kind": "expense",
+    "period": "May 2026",
+    "incurredAt": "2026-05-01",
+    "category": "Air Time",
+    "amount": 30000
+  },
+  {
+    "seq": 13,
+    "kind": "expense",
+    "period": "Jun 2026",
+    "incurredAt": "2026-06-01",
+    "category": "Air Time",
+    "amount": 35000
+  },
+  {
+    "seq": 14,
+    "kind": "expense",
+    "period": "Dec 2023",
+    "incurredAt": "2023-12-01",
+    "category": "Fitnes Certificate service",
+    "amount": 130000
+  },
+  {
+    "seq": 15,
+    "kind": "expense",
+    "period": "Dec 2023",
+    "incurredAt": "2023-12-01",
+    "category": "collerateral FNB",
+    "amount": 100000
+  },
+  {
+    "seq": 16,
+    "kind": "expense",
+    "period": "August",
+    "incurredAt": null,
+    "category": "collerateral FNB",
+    "amount": 300000
+  },
+  {
+    "seq": 17,
+    "kind": "expense",
+    "period": "Oct 2023",
+    "incurredAt": "2023-10-01",
+    "category": "bank charges",
+    "amount": 10670
+  },
+  {
+    "seq": 18,
+    "kind": "expense",
+    "period": "Nov 2023",
+    "incurredAt": "2023-11-01",
+    "category": "bank charges",
+    "amount": 45580
+  },
+  {
+    "seq": 19,
+    "kind": "expense",
+    "period": "Dec 2023",
+    "incurredAt": "2023-12-01",
+    "category": "bank charges",
+    "amount": 17885
+  },
+  {
+    "seq": 20,
+    "kind": "expense",
+    "period": "Jan 2024",
+    "incurredAt": "2024-01-01",
+    "category": "bank charges",
+    "amount": 25800
+  },
+  {
+    "seq": 21,
+    "kind": "expense",
+    "period": "Feb 2024",
+    "incurredAt": "2024-02-01",
+    "category": "bank charges",
+    "amount": 18940
+  },
+  {
+    "seq": 22,
+    "kind": "expense",
+    "period": "Mar 2024",
+    "incurredAt": "2024-03-01",
+    "category": "bank charges",
+    "amount": 28840
+  },
+  {
+    "seq": 23,
+    "kind": "expense",
+    "period": "Apr 2024",
+    "incurredAt": "2024-04-01",
+    "category": "bank charges",
+    "amount": 25946
+  },
+  {
+    "seq": 24,
+    "kind": "expense",
+    "period": "May 2024",
+    "incurredAt": "2024-05-01",
+    "category": "bank charges",
+    "amount": 59060
+  },
+  {
+    "seq": 25,
+    "kind": "expense",
+    "period": "Jun 2024",
+    "incurredAt": "2024-06-01",
+    "category": "bank charges",
+    "amount": 59228
+  },
+  {
+    "seq": 26,
+    "kind": "expense",
+    "period": "Jul 2024",
+    "incurredAt": "2024-07-01",
+    "category": "bank charges",
+    "amount": 48448
+  },
+  {
+    "seq": 27,
+    "kind": "expense",
+    "period": "Aug 2024",
+    "incurredAt": "2024-08-01",
+    "category": "bank charges",
+    "amount": 55136
+  },
+  {
+    "seq": 28,
+    "kind": "expense",
+    "period": "Sep 2024",
+    "incurredAt": "2024-09-01",
+    "category": "bank charges",
+    "amount": 62000
+  },
+  {
+    "seq": 29,
+    "kind": "expense",
+    "period": "Oct 2024",
+    "incurredAt": "2024-10-01",
+    "category": "bank charges",
+    "amount": 49200
+  },
+  {
+    "seq": 30,
+    "kind": "expense",
+    "period": "Dec 2024",
+    "incurredAt": "2024-12-01",
+    "category": "bank charges",
+    "amount": 39774
+  },
+  {
+    "seq": 31,
+    "kind": "expense",
+    "period": "Jan 2025",
+    "incurredAt": "2025-01-01",
+    "category": "bank charges",
+    "amount": 45577
+  },
+  {
+    "seq": 32,
+    "kind": "expense",
+    "period": "Feb 2025",
+    "incurredAt": "2025-02-01",
+    "category": "bank charges",
+    "amount": 30560
+  },
+  {
+    "seq": 33,
+    "kind": "expense",
+    "period": "Mar 2025",
+    "incurredAt": "2025-03-01",
+    "category": "bank charges",
+    "amount": 36467
+  },
+  {
+    "seq": 34,
+    "kind": "expense",
+    "period": "Apr 2025",
+    "incurredAt": "2025-04-01",
+    "category": "bank charges",
+    "amount": 35082
+  },
+  {
+    "seq": 35,
+    "kind": "expense",
+    "period": "May 2025",
+    "incurredAt": "2025-05-01",
+    "category": "bank charges",
+    "amount": 24026
+  },
+  {
+    "seq": 36,
+    "kind": "expense",
+    "period": "Jun 2025",
+    "incurredAt": "2025-06-01",
+    "category": "bank charges",
+    "amount": 34200
+  },
+  {
+    "seq": 37,
+    "kind": "expense",
+    "period": "July",
+    "incurredAt": null,
+    "category": "bank charges",
+    "amount": 34700
+  },
+  {
+    "seq": 38,
+    "kind": "expense",
+    "period": "August",
+    "incurredAt": null,
+    "category": "bank charges",
+    "amount": 36700
+  },
+  {
+    "seq": 39,
+    "kind": "expense",
+    "period": "September",
+    "incurredAt": null,
+    "category": "bank charges",
+    "amount": 37800
+  },
+  {
+    "seq": 40,
+    "kind": "expense",
+    "period": "0Ctober",
+    "incurredAt": null,
+    "category": "bank charges",
+    "amount": 39460
+  },
+  {
+    "seq": 41,
+    "kind": "expense",
+    "period": "November",
+    "incurredAt": null,
+    "category": "bank charges",
+    "amount": 38665
+  },
+  {
+    "seq": 42,
+    "kind": "expense",
+    "period": "Dec 2025",
+    "incurredAt": "2025-12-01",
+    "category": "bank charges",
+    "amount": 34765
+  },
+  {
+    "seq": 43,
+    "kind": "expense",
+    "period": "Jan 2026",
+    "incurredAt": "2026-01-01",
+    "category": "bank charges",
+    "amount": 35525
+  },
+  {
+    "seq": 44,
+    "kind": "expense",
+    "period": "Feb 2026",
+    "incurredAt": "2026-02-01",
+    "category": "bank charges",
+    "amount": 48245
+  },
+  {
+    "seq": 45,
+    "kind": "expense",
+    "period": "Mar 2026",
+    "incurredAt": "2026-03-01",
+    "category": "bank charges",
+    "amount": 38100
+  },
+  {
+    "seq": 46,
+    "kind": "expense",
+    "period": "Apr 2026",
+    "incurredAt": "2026-04-01",
+    "category": "bank charges",
+    "amount": 47300
+  },
+  {
+    "seq": 47,
+    "kind": "expense",
+    "period": "May 2026",
+    "incurredAt": "2026-05-01",
+    "category": "bank charges",
+    "amount": 48200
+  },
+  {
+    "seq": 48,
+    "kind": "expense",
+    "period": "Dec 2023",
+    "incurredAt": "2023-12-01",
+    "category": "collexia Fees",
+    "amount": 106000
+  },
+  {
+    "seq": 49,
+    "kind": "expense",
+    "period": "Jan 2024",
+    "incurredAt": "2024-01-01",
+    "category": "collexia Fees",
+    "amount": 58004
+  },
+  {
+    "seq": 50,
+    "kind": "expense",
+    "period": "Feb 2024",
+    "incurredAt": "2024-02-01",
+    "category": "collexia Fees",
+    "amount": 72896
+  },
+  {
+    "seq": 51,
+    "kind": "expense",
+    "period": "Mar 2024",
+    "incurredAt": "2024-03-01",
+    "category": "collexia Fees",
+    "amount": 83047
+  },
+  {
+    "seq": 52,
+    "kind": "expense",
+    "period": "Apr 2024",
+    "incurredAt": "2024-04-01",
+    "category": "collexia Fees",
+    "amount": 85273
+  },
+  {
+    "seq": 53,
+    "kind": "expense",
+    "period": "May 2024",
+    "incurredAt": "2024-05-01",
+    "category": "collexia Fees",
+    "amount": 96129
+  },
+  {
+    "seq": 54,
+    "kind": "expense",
+    "period": "Jun 2024",
+    "incurredAt": "2024-06-01",
+    "category": "collexia Fees",
+    "amount": 86305
+  },
+  {
+    "seq": 55,
+    "kind": "expense",
+    "period": "Jul 2024",
+    "incurredAt": "2024-07-01",
+    "category": "collexia Fees",
+    "amount": 97290
+  },
+  {
+    "seq": 56,
+    "kind": "expense",
+    "period": "Aug 2024",
+    "incurredAt": "2024-08-01",
+    "category": "collexia Fees",
+    "amount": 111501
+  },
+  {
+    "seq": 57,
+    "kind": "expense",
+    "period": "Sep 2024",
+    "incurredAt": "2024-09-01",
+    "category": "collexia Fees",
+    "amount": 105678
+  },
+  {
+    "seq": 58,
+    "kind": "expense",
+    "period": "Oct 2024",
+    "incurredAt": "2024-10-01",
+    "category": "collexia Fees",
+    "amount": 111243
+  },
+  {
+    "seq": 59,
+    "kind": "expense",
+    "period": "Nov 2024",
+    "incurredAt": "2024-11-01",
+    "category": "collexia Fees",
+    "amount": 107494
+  },
+  {
+    "seq": 60,
+    "kind": "expense",
+    "period": "Dec 2024",
+    "incurredAt": "2024-12-01",
+    "category": "collexia Fees",
+    "amount": 162429
+  },
+  {
+    "seq": 61,
+    "kind": "expense",
+    "period": "Jan 2025",
+    "incurredAt": "2025-01-01",
+    "category": "collexia Fees",
+    "amount": 102204
+  },
+  {
+    "seq": 62,
+    "kind": "expense",
+    "period": "Feb 2025",
+    "incurredAt": "2025-02-01",
+    "category": "collexia Fees",
+    "amount": 113015
+  },
+  {
+    "seq": 63,
+    "kind": "expense",
+    "period": "Mar 2025",
+    "incurredAt": "2025-03-01",
+    "category": "collexia Fees",
+    "amount": 123229
+  },
+  {
+    "seq": 64,
+    "kind": "expense",
+    "period": "Apr 2025",
+    "incurredAt": "2025-04-01",
+    "category": "collexia Fees",
+    "amount": 131459
+  },
+  {
+    "seq": 65,
+    "kind": "expense",
+    "period": "May 2025",
+    "incurredAt": "2025-05-01",
+    "category": "collexia Fees",
+    "amount": 124796
+  },
+  {
+    "seq": 66,
+    "kind": "expense",
+    "period": "Jun 2025",
+    "incurredAt": "2025-06-01",
+    "category": "collexia Fees",
+    "amount": 112240
+  },
+  {
+    "seq": 67,
+    "kind": "expense",
+    "period": "July",
+    "incurredAt": null,
+    "category": "collexia Fees",
+    "amount": 129175
+  },
+  {
+    "seq": 68,
+    "kind": "expense",
+    "period": "August",
+    "incurredAt": null,
+    "category": "collexia Fees",
+    "amount": 129175
+  },
+  {
+    "seq": 69,
+    "kind": "expense",
+    "period": "September",
+    "incurredAt": null,
+    "category": "collexia Fees",
+    "amount": 104678
+  },
+  {
+    "seq": 70,
+    "kind": "expense",
+    "period": "0Ctober",
+    "incurredAt": null,
+    "category": "collexia Fees",
+    "amount": 151504
+  },
+  {
+    "seq": 71,
+    "kind": "expense",
+    "period": "November",
+    "incurredAt": null,
+    "category": "collexia Fees",
+    "amount": 151694
+  },
+  {
+    "seq": 72,
+    "kind": "expense",
+    "period": "Dec 2025",
+    "incurredAt": "2025-12-01",
+    "category": "collexia Fees",
+    "amount": 146152
+  },
+  {
+    "seq": 73,
+    "kind": "expense",
+    "period": "Jan 2026",
+    "incurredAt": "2026-01-01",
+    "category": "collexia Fees",
+    "amount": 161152
+  },
+  {
+    "seq": 74,
+    "kind": "expense",
+    "period": "Feb 2026",
+    "incurredAt": "2026-02-01",
+    "category": "collexia Fees",
+    "amount": 148931
+  },
+  {
+    "seq": 75,
+    "kind": "expense",
+    "period": "Mar 2026",
+    "incurredAt": "2026-03-01",
+    "category": "collexia Fees",
+    "amount": 146860
+  },
+  {
+    "seq": 76,
+    "kind": "expense",
+    "period": "Apr 2026",
+    "incurredAt": "2026-04-01",
+    "category": "collexia Fees",
+    "amount": 160152
+  },
+  {
+    "seq": 77,
+    "kind": "expense",
+    "period": "May 2026",
+    "incurredAt": "2026-05-01",
+    "category": "collexia Fees",
+    "amount": 181590
+  },
+  {
+    "seq": 78,
+    "kind": "expense",
+    "period": "Jun 2026",
+    "incurredAt": "2026-06-01",
+    "category": "collexia Fees",
+    "amount": 193819
+  },
+  {
+    "seq": 79,
+    "kind": "expense",
+    "period": "Oct 2023",
+    "incurredAt": "2023-10-01",
+    "category": "Salaries",
+    "amount": 130000
+  },
+  {
+    "seq": 80,
+    "kind": "expense",
+    "period": "Nov 2023",
+    "incurredAt": "2023-11-01",
+    "category": "Salaries",
+    "amount": 130000
+  },
+  {
+    "seq": 81,
+    "kind": "expense",
+    "period": "Dec 2023",
+    "incurredAt": "2023-12-01",
+    "category": "Salaries",
+    "amount": 70000
+  },
+  {
+    "seq": 82,
+    "kind": "expense",
+    "period": "Jan 2024",
+    "incurredAt": "2024-01-01",
+    "category": "Salaries",
+    "amount": 130000
+  },
+  {
+    "seq": 83,
+    "kind": "expense",
+    "period": "Feb 2024",
+    "incurredAt": "2024-02-01",
+    "category": "Salaries",
+    "amount": 130000
+  },
+  {
+    "seq": 84,
+    "kind": "expense",
+    "period": "Mar 2024",
+    "incurredAt": "2024-03-01",
+    "category": "Salaries",
+    "amount": 142455
+  },
+  {
+    "seq": 85,
+    "kind": "expense",
+    "period": "Apr 2024",
+    "incurredAt": "2024-04-01",
+    "category": "Salaries",
+    "amount": 250000
+  },
+  {
+    "seq": 86,
+    "kind": "expense",
+    "period": "May 2024",
+    "incurredAt": "2024-05-01",
+    "category": "Salaries",
+    "amount": 250000
+  },
+  {
+    "seq": 87,
+    "kind": "expense",
+    "period": "Jun 2024",
+    "incurredAt": "2024-06-01",
+    "category": "Salaries",
+    "amount": 250000
+  },
+  {
+    "seq": 88,
+    "kind": "expense",
+    "period": "Jul 2024",
+    "incurredAt": "2024-07-01",
+    "category": "Salaries",
+    "amount": 250000
+  },
+  {
+    "seq": 89,
+    "kind": "expense",
+    "period": "Aug 2024",
+    "incurredAt": "2024-08-01",
+    "category": "Salaries",
+    "amount": 250000
+  },
+  {
+    "seq": 90,
+    "kind": "expense",
+    "period": "Sep 2024",
+    "incurredAt": "2024-09-01",
+    "category": "Salaries",
+    "amount": 250000
+  },
+  {
+    "seq": 91,
+    "kind": "expense",
+    "period": "Oct 2024",
+    "incurredAt": "2024-10-01",
+    "category": "Salaries",
+    "amount": 250000
+  },
+  {
+    "seq": 92,
+    "kind": "expense",
+    "period": "Nov 2024",
+    "incurredAt": "2024-11-01",
+    "category": "Salaries",
+    "amount": 250000
+  },
+  {
+    "seq": 93,
+    "kind": "expense",
+    "period": "Dec 2024",
+    "incurredAt": "2024-12-01",
+    "category": "Salaries",
+    "amount": 50000
+  },
+  {
+    "seq": 94,
+    "kind": "expense",
+    "period": "Mar 2025",
+    "incurredAt": "2025-03-01",
+    "category": "Salaries",
+    "amount": 120000
+  },
+  {
+    "seq": 95,
+    "kind": "expense",
+    "period": "May 2025",
+    "incurredAt": "2025-05-01",
+    "category": "Salaries",
+    "amount": 150000
+  },
+  {
+    "seq": 96,
+    "kind": "expense",
+    "period": "August",
+    "incurredAt": null,
+    "category": "Salaries",
+    "amount": 400000
+  },
+  {
+    "seq": 97,
+    "kind": "expense",
+    "period": "September",
+    "incurredAt": null,
+    "category": "Salaries",
+    "amount": 500000
+  },
+  {
+    "seq": 98,
+    "kind": "expense",
+    "period": "0Ctober",
+    "incurredAt": null,
+    "category": "Salaries",
+    "amount": 250000
+  },
+  {
+    "seq": 99,
+    "kind": "expense",
+    "period": "November",
+    "incurredAt": null,
+    "category": "Salaries",
+    "amount": 250000
+  },
+  {
+    "seq": 100,
+    "kind": "expense",
+    "period": "Dec 2025",
+    "incurredAt": "2025-12-01",
+    "category": "Salaries",
+    "amount": 179582
+  },
+  {
+    "seq": 101,
+    "kind": "expense",
+    "period": "Mar 2026",
+    "incurredAt": "2026-03-01",
+    "category": "Salaries",
+    "amount": 250000
+  },
+  {
+    "seq": 102,
+    "kind": "expense",
+    "period": "Apr 2026",
+    "incurredAt": "2026-04-01",
+    "category": "Salaries",
+    "amount": 250000
+  },
+  {
+    "seq": 103,
+    "kind": "expense",
+    "period": "May 2026",
+    "incurredAt": "2026-05-01",
+    "category": "Salaries",
+    "amount": 250000
+  },
+  {
+    "seq": 104,
+    "kind": "expense",
+    "period": "Oct 2023",
+    "incurredAt": "2023-10-01",
+    "category": "Computer/ printer",
+    "amount": 115000
+  },
+  {
+    "seq": 105,
+    "kind": "expense",
+    "period": "Dec 2024",
+    "incurredAt": "2024-12-01",
+    "category": "Computer/ printer",
+    "amount": 450000
+  },
+  {
+    "seq": 106,
+    "kind": "expense",
+    "period": "May 2026",
+    "incurredAt": "2026-05-01",
+    "category": "Computer/ printer",
+    "amount": 110000
+  },
+  {
+    "seq": 107,
+    "kind": "expense",
+    "period": "Mar 2024",
+    "incurredAt": "2024-03-01",
+    "category": "Staff medical",
+    "amount": 76585
+  },
+  {
+    "seq": 108,
+    "kind": "expense",
+    "period": "Sep 2024",
+    "incurredAt": "2024-09-01",
+    "category": "Staff medical",
+    "amount": 100000
+  },
+  {
+    "seq": 109,
+    "kind": "expense",
+    "period": "Oct 2024",
+    "incurredAt": "2024-10-01",
+    "category": "Staff medical",
+    "amount": 306200
+  },
+  {
+    "seq": 110,
+    "kind": "expense",
+    "period": "Mar 2024",
+    "incurredAt": "2024-03-01",
+    "category": "Petrol/car fix",
+    "amount": 157890
+  },
+  {
+    "seq": 111,
+    "kind": "expense",
+    "period": "Nov 2024",
+    "incurredAt": "2024-11-01",
+    "category": "Petrol/car fix",
+    "amount": 34552
+  },
+  {
+    "seq": 112,
+    "kind": "expense",
+    "period": "May 2026",
+    "incurredAt": "2026-05-01",
+    "category": "Petrol/car fix",
+    "amount": 140000
+  },
+  {
+    "seq": 113,
+    "kind": "expense",
+    "period": "Jan 2024",
+    "incurredAt": "2024-01-01",
+    "category": "Namfisa",
+    "amount": 12026
+  },
+  {
+    "seq": 114,
+    "kind": "expense",
+    "period": "Mar 2024",
+    "incurredAt": "2024-03-01",
+    "category": "Namfisa",
+    "amount": 26000
+  },
+  {
+    "seq": 115,
+    "kind": "expense",
+    "period": "Jul 2024",
+    "incurredAt": "2024-07-01",
+    "category": "Namfisa",
+    "amount": 24142
+  },
+  {
+    "seq": 116,
+    "kind": "expense",
+    "period": "Sep 2024",
+    "incurredAt": "2024-09-01",
+    "category": "Namfisa",
+    "amount": 198858
+  },
+  {
+    "seq": 117,
+    "kind": "expense",
+    "period": "Mar 2025",
+    "incurredAt": "2025-03-01",
+    "category": "Namfisa",
+    "amount": 166600
+  },
+  {
+    "seq": 118,
+    "kind": "expense",
+    "period": "July",
+    "incurredAt": null,
+    "category": "Namfisa",
+    "amount": 153900
+  },
+  {
+    "seq": 119,
+    "kind": "expense",
+    "period": "September",
+    "incurredAt": null,
+    "category": "Namfisa",
+    "amount": 176000
+  },
+  {
+    "seq": 120,
+    "kind": "expense",
+    "period": "Aug 2024",
+    "incurredAt": "2024-08-01",
+    "category": "Investment Cash-out",
+    "amount": 1130000
+  },
+  {
+    "seq": 121,
+    "kind": "expense",
+    "period": "Jan 2025",
+    "incurredAt": "2025-01-01",
+    "category": "Investment Cash-out",
+    "amount": 1000000
+  },
+  {
+    "seq": 122,
+    "kind": "expense",
+    "period": "Apr 2025",
+    "incurredAt": "2025-04-01",
+    "category": "Investment Cash-out",
+    "amount": 500000
+  },
+  {
+    "seq": 123,
+    "kind": "expense",
+    "period": "August",
+    "incurredAt": null,
+    "category": "Investment Cash-out",
+    "amount": 150000
+  },
+  {
+    "seq": 124,
+    "kind": "expense",
+    "period": "September",
+    "incurredAt": null,
+    "category": "Investment Cash-out",
+    "amount": 300000
+  },
+  {
+    "seq": 125,
+    "kind": "expense",
+    "period": "November",
+    "incurredAt": null,
+    "category": "Investment Cash-out",
+    "amount": 5000000
+  },
+  {
+    "seq": 126,
+    "kind": "expense",
+    "period": "Apr 2026",
+    "incurredAt": "2026-04-01",
+    "category": "Investment Cash-out",
+    "amount": 1100000
+  },
+  {
+    "seq": 127,
+    "kind": "expense",
+    "period": "May 2026",
+    "incurredAt": "2026-05-01",
+    "category": "Investment Cash-out",
+    "amount": 350000
+  },
+  {
+    "seq": 128,
+    "kind": "expense",
+    "period": "Jun 2026",
+    "incurredAt": "2026-06-01",
+    "category": "Investment Cash-out",
+    "amount": 1000000
+  },
+  {
+    "seq": 129,
+    "kind": "expense",
+    "period": "Mar 2024",
+    "incurredAt": "2024-03-01",
+    "category": "google",
+    "amount": 3639
+  },
+  {
+    "seq": 130,
+    "kind": "expense",
+    "period": "Apr 2024",
+    "incurredAt": "2024-04-01",
+    "category": "google",
+    "amount": 3639
+  },
+  {
+    "seq": 131,
+    "kind": "expense",
+    "period": "May 2024",
+    "incurredAt": "2024-05-01",
+    "category": "google",
+    "amount": 3639
+  },
+  {
+    "seq": 132,
+    "kind": "expense",
+    "period": "Jun 2024",
+    "incurredAt": "2024-06-01",
+    "category": "google",
+    "amount": 3639
+  },
+  {
+    "seq": 133,
+    "kind": "expense",
+    "period": "Jul 2024",
+    "incurredAt": "2024-07-01",
+    "category": "google",
+    "amount": 3639
+  },
+  {
+    "seq": 134,
+    "kind": "expense",
+    "period": "Aug 2024",
+    "incurredAt": "2024-08-01",
+    "category": "google",
+    "amount": 3639
+  },
+  {
+    "seq": 135,
+    "kind": "expense",
+    "period": "Sep 2024",
+    "incurredAt": "2024-09-01",
+    "category": "google",
+    "amount": 3639
+  },
+  {
+    "seq": 136,
+    "kind": "expense",
+    "period": "Oct 2024",
+    "incurredAt": "2024-10-01",
+    "category": "google",
+    "amount": 1739
+  },
+  {
+    "seq": 137,
+    "kind": "expense",
+    "period": "Nov 2024",
+    "incurredAt": "2024-11-01",
+    "category": "google",
+    "amount": 1754
+  },
+  {
+    "seq": 138,
+    "kind": "expense",
+    "period": "Jan 2025",
+    "incurredAt": "2025-01-01",
+    "category": "google",
+    "amount": 3697
+  },
+  {
+    "seq": 139,
+    "kind": "expense",
+    "period": "Feb 2025",
+    "incurredAt": "2025-02-01",
+    "category": "google",
+    "amount": 3697
+  },
+  {
+    "seq": 140,
+    "kind": "expense",
+    "period": "Mar 2025",
+    "incurredAt": "2025-03-01",
+    "category": "google",
+    "amount": 3697
+  },
+  {
+    "seq": 141,
+    "kind": "expense",
+    "period": "Apr 2025",
+    "incurredAt": "2025-04-01",
+    "category": "google",
+    "amount": 3802
+  },
+  {
+    "seq": 142,
+    "kind": "expense",
+    "period": "May 2025",
+    "incurredAt": "2025-05-01",
+    "category": "google",
+    "amount": 3644
+  },
+  {
+    "seq": 143,
+    "kind": "expense",
+    "period": "Jun 2025",
+    "incurredAt": "2025-06-01",
+    "category": "google",
+    "amount": 3616
+  },
+  {
+    "seq": 144,
+    "kind": "expense",
+    "period": "July",
+    "incurredAt": null,
+    "category": "google",
+    "amount": 3683
+  },
+  {
+    "seq": 145,
+    "kind": "expense",
+    "period": "August",
+    "incurredAt": null,
+    "category": "google",
+    "amount": 3616
+  },
+  {
+    "seq": 146,
+    "kind": "expense",
+    "period": "September",
+    "incurredAt": null,
+    "category": "google",
+    "amount": 3616
+  },
+  {
+    "seq": 147,
+    "kind": "expense",
+    "period": "0Ctober",
+    "incurredAt": null,
+    "category": "google",
+    "amount": 3600
+  },
+  {
+    "seq": 148,
+    "kind": "expense",
+    "period": "November",
+    "incurredAt": null,
+    "category": "google",
+    "amount": 3600
+  },
+  {
+    "seq": 149,
+    "kind": "expense",
+    "period": "Dec 2025",
+    "incurredAt": "2025-12-01",
+    "category": "google",
+    "amount": 3600
+  },
+  {
+    "seq": 150,
+    "kind": "expense",
+    "period": "Jan 2026",
+    "incurredAt": "2026-01-01",
+    "category": "google",
+    "amount": 3600
+  },
+  {
+    "seq": 151,
+    "kind": "expense",
+    "period": "Feb 2026",
+    "incurredAt": "2026-02-01",
+    "category": "google",
+    "amount": 3326
+  },
+  {
+    "seq": 152,
+    "kind": "expense",
+    "period": "Mar 2026",
+    "incurredAt": "2026-03-01",
+    "category": "google",
+    "amount": 3326
+  },
+  {
+    "seq": 153,
+    "kind": "expense",
+    "period": "Apr 2026",
+    "incurredAt": "2026-04-01",
+    "category": "google",
+    "amount": 3600
+  },
+  {
+    "seq": 154,
+    "kind": "expense",
+    "period": "May 2026",
+    "incurredAt": "2026-05-01",
+    "category": "google",
+    "amount": 3600
+  },
+  {
+    "seq": 155,
+    "kind": "expense",
+    "period": "Jul 2024",
+    "incurredAt": "2024-07-01",
+    "category": "Admin transport",
+    "amount": 20000
+  },
+  {
+    "seq": 156,
+    "kind": "expense",
+    "period": "Nov 2024",
+    "incurredAt": "2024-11-01",
+    "category": "Admin transport",
+    "amount": 70000
+  },
+  {
+    "seq": 157,
+    "kind": "expense",
+    "period": "Nov 2024",
+    "incurredAt": "2024-11-01",
+    "category": "Phone",
+    "amount": 50000
+  },
+  {
+    "seq": 158,
+    "kind": "expense",
+    "period": "Jan 2025",
+    "incurredAt": "2025-01-01",
+    "category": "Mega build",
+    "amount": 150000
+  },
+  {
+    "seq": 159,
+    "kind": "expense",
+    "period": "Apr 2025",
+    "incurredAt": "2025-04-01",
+    "category": "STATIONARIES",
+    "amount": 89600
+  },
+  {
+    "seq": 160,
+    "kind": "expense",
+    "period": "Jan 2026",
+    "incurredAt": "2026-01-01",
+    "category": "STATIONARIES",
+    "amount": 132320
+  },
+  {
+    "seq": 161,
+    "kind": "expense",
+    "period": "May 2026",
+    "incurredAt": "2026-05-01",
+    "category": "STATIONARIES",
+    "amount": 136800
+  },
+  {
+    "seq": 162,
+    "kind": "expense",
+    "period": "Apr 2025",
+    "incurredAt": "2025-04-01",
+    "category": "BIPA",
+    "amount": 420000
+  },
+  {
+    "seq": 163,
+    "kind": "expense",
+    "period": "Jun 2025",
+    "incurredAt": "2025-06-01",
+    "category": "ACCOUNTING FEES",
+    "amount": 200000
+  },
+  {
+    "seq": 164,
+    "kind": "expense",
+    "period": "August",
+    "incurredAt": null,
+    "category": "ACCOUNTING FEES",
+    "amount": 200000
+  },
+  {
+    "seq": 165,
+    "kind": "expense",
+    "period": "Apr 2026",
+    "incurredAt": "2026-04-01",
+    "category": "ACCOUNTING FEES",
+    "amount": 200000
+  },
+  {
+    "seq": 166,
+    "kind": "expense",
+    "period": "Dec 2025",
+    "incurredAt": "2025-12-01",
+    "category": "transport",
+    "amount": 50000
+  },
+  {
+    "seq": 167,
+    "kind": "expense",
+    "period": "Jan 2026",
+    "incurredAt": "2026-01-01",
+    "category": "staff party",
+    "amount": 160900
+  },
+  {
+    "seq": 168,
+    "kind": "expense",
+    "period": "Jan 2026",
+    "incurredAt": "2026-01-01",
+    "category": "tuta",
+    "amount": 650000
+  },
+  {
+    "seq": 169,
+    "kind": "expense",
+    "period": "Feb 2026",
+    "incurredAt": "2026-02-01",
+    "category": "company loss (gaming)",
+    "amount": 100000
+  },
+  {
+    "seq": 170,
+    "kind": "expense",
+    "period": "Dec 2025",
+    "incurredAt": "2025-12-01",
+    "category": "investigate this Fund (Loss)",
+    "amount": 978499
+  },
+  {
+    "seq": 171,
+    "kind": "expense",
+    "period": "Dec 2025",
+    "incurredAt": "2025-12-01",
+    "category": "marketing/POSTERS",
+    "amount": 50000
+  },
+  {
+    "seq": 172,
+    "kind": "expense",
+    "period": "Mar 2026",
+    "incurredAt": "2026-03-01",
+    "category": "marketing/POSTERS",
+    "amount": 192712
+  },
+  {
+    "seq": 173,
+    "kind": "expense",
+    "period": "Apr 2026",
+    "incurredAt": "2026-04-01",
+    "category": "marketing/POSTERS",
+    "amount": 112712
+  },
+  {
+    "seq": 174,
+    "kind": "expense",
+    "period": "Mar 2026",
+    "incurredAt": "2026-03-01",
+    "category": "OFFICE RENT",
+    "amount": 1002800
+  },
+  {
+    "seq": 175,
+    "kind": "expense",
+    "period": "Apr 2026",
+    "incurredAt": "2026-04-01",
+    "category": "OFFICE RENT",
+    "amount": 410000
+  },
+  {
+    "seq": 176,
+    "kind": "expense",
+    "period": "May 2026",
+    "incurredAt": "2026-05-01",
+    "category": "OFFICE RENT",
+    "amount": 380000
+  },
+  {
+    "seq": 177,
+    "kind": "refund",
+    "period": "Mar 2026",
+    "incurredAt": "2026-03-01",
+    "category": "PAID GAME",
+    "amount": 100000
+  },
+  {
+    "seq": 178,
+    "kind": "refund",
+    "period": "Mar 2026",
+    "incurredAt": "2026-03-01",
+    "category": "SHILONGO LEATHER",
+    "amount": 90000
+  },
+  {
+    "seq": 179,
+    "kind": "refund",
+    "period": "Mar 2026",
+    "incurredAt": "2026-03-01",
+    "category": "GATE GUY",
+    "amount": 500000
+  }
+]

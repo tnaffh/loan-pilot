@@ -140,11 +140,58 @@ const LoanDetailPage = () => {
               Finance charge {formatNad(data.financeCharge)}
             </span>
           </div>
+          {data.bankCharges > 0 || data.namfisaLevy > 0 || data.stampDuty > 0 ? (
+            <p className="pt-1 text-xs text-muted-foreground">
+              Fees: bank charges {formatNad(data.bankCharges)} · NAMFISA levy{' '}
+              {formatNad(data.namfisaLevy)} · stamp duty {formatNad(data.stampDuty)}
+            </p>
+          ) : null}
           {data.collateral ? (
             <p className="pt-1 text-xs text-muted-foreground">
               Collateral: <span className="font-medium text-foreground">{data.collateral}</span>
             </p>
           ) : null}
+          {data.note ? (
+            <p className="pt-1 text-xs text-muted-foreground italic">{data.note}</p>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Payments received</CardTitle>
+        </CardHeader>
+        <CardContent className="px-2">
+          {data.payments.length === 0 ? (
+            <p className="px-4 py-3 text-sm text-muted-foreground">No payments recorded yet.</p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Date</TableHead>
+                  <TableHead className="text-right">Amount</TableHead>
+                  <TableHead>Method</TableHead>
+                  <TableHead>Flags</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data.payments.map((payment) => (
+                  <TableRow key={payment.id}>
+                    <TableCell>{formatDate(payment.paidAt)}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatNad(payment.amount)}
+                    </TableCell>
+                    <TableCell className="capitalize">{payment.method.replace('_', ' ')}</TableCell>
+                    <TableCell>
+                      {payment.badDebt ? (
+                        <span className="text-xs font-medium text-bad">Bad debt</span>
+                      ) : null}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
 

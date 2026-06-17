@@ -24,6 +24,7 @@ export type LoanWithDetails = Prisma.LoanGetPayload<{
   include: {
     borrower: { select: { id: true; firstName: true; lastName: true; idNumber: true } };
     schedule: true;
+    payments: true;
   };
 }>;
 
@@ -99,6 +100,7 @@ export class LoansService {
       include: {
         borrower: { select: { id: true, firstName: true, lastName: true, idNumber: true } },
         schedule: { orderBy: { number: 'asc' } },
+        payments: { orderBy: { paidAt: 'desc' } },
       },
     });
     if (!loan) {
@@ -114,6 +116,7 @@ export class LoansService {
       include: {
         borrower: { select: { id: true, firstName: true, lastName: true, idNumber: true } },
         schedule: { orderBy: { number: 'asc' } },
+        payments: { orderBy: { paidAt: 'desc' } },
       },
     });
     if (!loan) {

@@ -13,8 +13,25 @@ export enum LoanType {
 export enum LoanStatus {
   Active = 'active',
   Arrears = 'arrears',
+  PartlyPaid = 'partly_paid',
   Settled = 'settled',
+  WrittenOff = 'written_off',
   Closed = 'closed',
+}
+
+export enum PaymentMethod {
+  Eft = 'eft',
+  Cash = 'cash',
+  DebitOrder = 'debit_order',
+  Deposit = 'deposit',
+  Ewallet = 'ewallet',
+  Payroll = 'payroll',
+  Revolved = 'revolved',
+}
+
+export enum ExpenseKind {
+  Expense = 'expense',
+  Refund = 'refund',
 }
 
 export enum ApplicationStatus {

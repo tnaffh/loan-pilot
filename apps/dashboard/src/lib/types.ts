@@ -2,8 +2,10 @@ import type {
   AffordabilityResult,
   ApplicationStatus,
   EmploymentType,
+  ExpenseKind,
   LoanStatus,
   LoanType,
+  PaymentMethod,
   RepaymentStatus,
 } from '@loan-pilot/domain';
 
@@ -62,11 +64,24 @@ export interface ScheduleItem {
   paidAt: string | null;
 }
 
+export interface PaymentRow {
+  id: string;
+  paidAt: string;
+  amount: number;
+  method: PaymentMethod;
+  badDebt: boolean;
+  note: string | null;
+}
+
 export interface LoanRow {
   id: string;
   type: LoanType;
   principal: number;
   financeCharge: number;
+  bankCharges: number;
+  namfisaLevy: number;
+  stampDuty: number;
+  interestRate: number;
   total: number;
   termMonths: number;
   instalment: number;
@@ -76,6 +91,8 @@ export interface LoanRow {
   status: LoanStatus;
   collateral: string | null;
   daysLate: number;
+  originMonth: string | null;
+  note: string | null;
   disbursedAt: string | null;
   nextDueAt: string | null;
   borrower: { id: string; firstName: string; lastName: string };
@@ -84,6 +101,23 @@ export interface LoanRow {
 export interface LoanDetail extends LoanRow {
   borrower: { id: string; firstName: string; lastName: string; idNumber: string };
   schedule: ScheduleItem[];
+  payments: PaymentRow[];
+}
+
+export interface ExpenseRow {
+  id: string;
+  kind: ExpenseKind;
+  category: string;
+  period: string | null;
+  incurredAt: string | null;
+  amount: number;
+  note: string | null;
+}
+
+export interface ExpenseTotals {
+  totalExpenses: number;
+  totalRefunds: number;
+  net: number;
 }
 
 export interface BorrowerDetail extends Omit<BorrowerRow, '_count'> {
@@ -99,6 +133,11 @@ export type OverviewStats =
       arrearsValue: number;
       pendingApplications: number;
       borrowers: number;
+      disbursed: number;
+      collected: number;
+      expenses: number;
+      refunds: number;
+      netProfit: number;
     }
   | {
       kind: 'platform';

@@ -127,6 +127,29 @@ const LenderOverview = ({
         />
       </StatGrid>
 
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Lifetime performance</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          {(
+            [
+              { label: 'Disbursed', value: stats.disbursed },
+              { label: 'Collected', value: stats.collected },
+              { label: 'Expenses', value: stats.expenses - stats.refunds },
+              { label: 'Net profit', value: stats.netProfit },
+            ] as const
+          ).map((item) => (
+            <div key={item.label}>
+              <div className="text-xs text-muted-foreground">{item.label}</div>
+              <div className="mt-0.5 text-lg font-semibold tabular-nums">
+                {formatNad(item.value)}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
         <Card>
           <CardHeader>
