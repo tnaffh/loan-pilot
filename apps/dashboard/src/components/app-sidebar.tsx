@@ -2,70 +2,58 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Send } from 'lucide-react';
-import { isPlatform, type SessionUser } from '@loan-pilot/domain';
+import { ChevronRight } from 'lucide-react';
+import type { SessionUser } from '@loan-pilot/domain';
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupContent,
   SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
+  SidebarRail,
 } from '@/components/ui/sidebar';
-import { InitialsAvatar } from '@/components/initials-avatar';
-import { navForRole } from '@/lib/nav';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
+import { NavUser } from '@/components/nav-user';
+import { navForRole, type NavItem } from '@/lib/nav';
 import { useTenantBranding } from '@/lib/tenant-theme';
-import { cn } from '@/lib/utils';
 
-const ROLE_LABELS: Record<string, string> = {
-  platform: 'Platform operator',
-  lender_admin: 'Principal officer',
-  lender_staff: 'Loan officer',
-  borrower: 'Borrower',
-};
-
-export const AppSidebar = ({
-  user,
-  pendingCount,
-}: {
-  user: SessionUser;
-  pendingCount: number;
-}) => {
+export const AppSidebar = ({ user, pendingCount }: { user: SessionUser; pendingCount: number }) => {
   const pathname = usePathname();
   const branding = useTenantBranding();
   const groups = navForRole(user.role);
-  const platform = isPlatform(user.role);
 
-  const workspaceName = branding?.name ?? 'LoanPilot';
-  const workspaceShort = branding?.short ?? 'LP';
-  const workspaceSub = branding ? `${branding.plan} plan` : 'Platform console';
+  const tenantName = branding?.name ?? 'LoanPilot';
+  const tenantShort = branding?.short ?? 'LP';
+  const tenantPlan = branding ? `${branding.plan} plan` : 'Platform console';
+
+  const isActive = (href: string) => (href === '/' ? pathname === '/' : pathname.startsWith(href));
+  const itemActive = (item: NavItem) =>
+    Boolean(item.href && isActive(item.href)) ||
+    Boolean(item.items?.some((sub) => isActive(sub.href)));
 
   return (
-    <Sidebar>
-      <SidebarHeader className="gap-3 p-4">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="flex size-7 items-center justify-center rounded-md bg-[#4f46e5] text-white">
-            <Send className="size-4" />
-          </span>
-          <span className="text-lg font-semibold tracking-tight">
-            Loan<span className="text-primary">Pilot</span>
-          </span>
-        </Link>
-
-        <div className="flex items-center gap-2.5 rounded-lg border border-sidebar-border bg-sidebar-accent/40 p-2.5">
-          <span className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary text-xs font-bold text-primary-foreground">
-            {workspaceShort}
-          </span>
-          <div className="min-w-0">
-            <div className="truncate text-sm font-semibold leading-tight">{workspaceName}</div>
-            <div className="truncate text-xs capitalize text-sidebar-foreground/70">
-              {workspaceSub}
-            </div>
+    <Sidebar collapsible="icon">
+      <SidebarHeader>
+        {/* Current lender identity (one lender per user, so no switcher). */}
+        <div className="flex items-center gap-2 px-1 py-1.5">
+          <div className="flex aspect-square size-8 shrink-0 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+            <span className="text-xs font-semibold">{tenantShort}</span>
+          </div>
+          <div className="grid flex-1 text-left leading-tight group-data-[collapsible=icon]:hidden">
+            <span className="truncate text-sm font-semibold">{tenantName}</span>
+            <span className="truncate text-xs capitalize text-muted-foreground">{tenantPlan}</span>
           </div>
         </div>
       </SidebarHeader>
@@ -74,46 +62,74 @@ export const AppSidebar = ({
         {groups.map((group) => (
           <SidebarGroup key={group.label}>
             <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-            <SidebarGroupContent>
-              <SidebarMenu>
-                {group.items.map((item) => {
-                  const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href);
-                  return (
-                    <SidebarMenuItem key={item.href}>
-                      <SidebarMenuButton
-                        isActive={active}
-                        render={
-                          <Link href={item.href}>
-                            <item.icon />
-                            <span>{item.label}</span>
-                          </Link>
-                        }
-                      />
-                      {item.withBadge && pendingCount > 0 ? (
-                        <SidebarMenuBadge className={cn(active ? 'text-current' : 'text-primary')}>
-                          {pendingCount}
-                        </SidebarMenuBadge>
+            <SidebarMenu>
+              {group.items.map((item) =>
+                item.items ? (
+                  <Collapsible
+                    key={item.label}
+                    defaultOpen={itemActive(item)}
+                    className="group/collapsible"
+                    render={<SidebarMenuItem />}
+                  >
+                    <CollapsibleTrigger
+                      render={
+                        <SidebarMenuButton
+                          tooltip={item.label}
+                          className="h-9 text-[15px] [&>svg]:size-[18px]"
+                        />
+                      }
+                    >
+                      <item.icon />
+                      <span>{item.label}</span>
+                      {item.items.some((sub) => sub.withBadge) && pendingCount > 0 ? (
+                        <SidebarMenuBadge className="mr-5">{pendingCount}</SidebarMenuBadge>
                       ) : null}
-                    </SidebarMenuItem>
-                  );
-                })}
-              </SidebarMenu>
-            </SidebarGroupContent>
+                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-open/collapsible:rotate-90" />
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {item.items.map((sub) => (
+                          <SidebarMenuSubItem key={sub.href}>
+                            <SidebarMenuSubButton
+                              isActive={isActive(sub.href)}
+                              className="h-8 text-[14px]"
+                              render={<Link href={sub.href} />}
+                            >
+                              <span>{sub.label}</span>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </Collapsible>
+                ) : (
+                  <SidebarMenuItem key={item.label}>
+                    <SidebarMenuButton
+                      tooltip={item.label}
+                      isActive={item.href ? isActive(item.href) : false}
+                      className="h-9 text-[15px] [&>svg]:size-[18px]"
+                      render={
+                        <Link href={item.href ?? '#'}>
+                          <item.icon />
+                          <span>{item.label}</span>
+                        </Link>
+                      }
+                    />
+                    {item.withBadge && pendingCount > 0 ? (
+                      <SidebarMenuBadge>{pendingCount}</SidebarMenuBadge>
+                    ) : null}
+                  </SidebarMenuItem>
+                ),
+              )}
+            </SidebarMenu>
           </SidebarGroup>
         ))}
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
-        <div className="flex items-center gap-2.5">
-          <InitialsAvatar name={platform ? 'LoanPilot' : user.name} />
-          <div className="min-w-0">
-            <div className="truncate text-sm font-medium leading-tight">{user.name}</div>
-            <div className="truncate text-xs text-sidebar-foreground/70">
-              {ROLE_LABELS[user.role] ?? user.role}
-            </div>
-          </div>
-        </div>
+      <SidebarFooter>
+        <NavUser user={user} />
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   );
 };

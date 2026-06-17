@@ -14,18 +14,27 @@ import {
 } from 'lucide-react';
 import { LoanStatus, formatNad } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatCard } from '@/components/stat-card';
 import { StatusBadge } from '@/components/status-badge';
 import { TypeChip } from '@/components/type-chip';
 import { InitialsAvatar } from '@/components/initials-avatar';
+import { CashFlowChart } from '@/components/charts/cash-flow-chart';
+import { StatusDonut } from '@/components/charts/status-donut';
+import { ExpenseBar } from '@/components/charts/expense-bar';
 import { BorrowerHome } from '@/components/borrower/home';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
 import { useTenantBranding } from '@/lib/tenant-theme';
 import { formatDate } from '@/lib/format';
-import type { ApplicationRow, LoanRow, OverviewStats } from '@/lib/types';
+import type { ApplicationRow, LenderSeries, LoanRow, OverviewStats } from '@/lib/types';
 
 const greeting = (): string => {
   const hour = new Date().getHours();
@@ -56,6 +65,7 @@ const LenderOverview = ({
   const branding = useTenantBranding();
   const { data: loans } = useApi<LoanRow[]>('/loans');
   const { data: applications } = useApi<ApplicationRow[]>('/applications');
+  const { data: series } = useApi<LenderSeries>('/stats/series');
 
   const firstName = user?.name.split(' ')[0] ?? 'there';
   const today = formatDate(new Date().toISOString());
@@ -128,27 +138,47 @@ const LenderOverview = ({
       </StatGrid>
 
       <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Lifetime performance</CardTitle>
+        <CardHeader>
+          <CardTitle>Cash flow</CardTitle>
+          <CardDescription>Disbursed, collected and expenses by month</CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          {(
-            [
-              { label: 'Disbursed', value: stats.disbursed },
-              { label: 'Collected', value: stats.collected },
-              { label: 'Expenses', value: stats.expenses - stats.refunds },
-              { label: 'Net profit', value: stats.netProfit },
-            ] as const
-          ).map((item) => (
-            <div key={item.label}>
-              <div className="text-xs text-muted-foreground">{item.label}</div>
-              <div className="mt-0.5 text-lg font-semibold tabular-nums">
-                {formatNad(item.value)}
-              </div>
-            </div>
-          ))}
+        <CardContent>
+          {series ? (
+            <CashFlowChart data={series.monthly} />
+          ) : (
+            <Skeleton className="h-[260px] w-full" />
+          )}
         </CardContent>
       </Card>
+
+      <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Loan status</CardTitle>
+            <CardDescription>Distribution across the book</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {series ? (
+              <StatusDonut data={series.statusMix} />
+            ) : (
+              <Skeleton className="mx-auto h-[240px] w-[240px] rounded-full" />
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Top expenses</CardTitle>
+            <CardDescription>Largest operating cost categories</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {series ? (
+              <ExpenseBar data={series.topExpenseCategories} />
+            ) : (
+              <Skeleton className="h-[240px] w-full" />
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
         <Card>
@@ -175,7 +205,7 @@ const LenderOverview = ({
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <TypeChip type={loan.type} />
                           {loan.daysLate > 0 ? (
-                            <span className="text-bad">{loan.daysLate}d late</span>
+                            <span className="text-destructive">{loan.daysLate}d late</span>
                           ) : (
                             <span>Due {formatDate(loan.nextDueAt)}</span>
                           )}

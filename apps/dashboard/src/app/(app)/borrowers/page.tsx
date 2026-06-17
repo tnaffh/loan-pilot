@@ -1,11 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2, Plus, Search } from 'lucide-react';
+import { Loader2, Plus } from 'lucide-react';
+import type { ColumnDef } from '@tanstack/react-table';
 import {
   EmploymentType,
   createBorrowerSchema,
@@ -14,27 +15,19 @@ import {
 } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Card } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/page-header';
 import { InitialsAvatar } from '@/components/initials-avatar';
+import { DataTable } from '@/components/data-table';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
@@ -55,7 +48,58 @@ const FieldError = ({ message }: { message?: string }) =>
 const isBorrowerField = (path: string): path is keyof CreateBorrowerInput =>
   path in createBorrowerSchema.shape;
 
-const NewBorrowerDialog = ({ onCreated }: { onCreated: () => void }) => {
+const columns: ColumnDef<BorrowerRow>[] = [
+  {
+    id: 'borrower',
+    header: 'Borrower',
+    accessorFn: (row) => `${row.firstName} ${row.lastName} ${row.phone}`,
+    cell: ({ row }) => (
+      <div className="flex items-center gap-3">
+        <InitialsAvatar name={`${row.original.firstName} ${row.original.lastName}`} />
+        <div>
+          <div className="font-medium">
+            {row.original.firstName} {row.original.lastName}
+          </div>
+          <div className="text-xs text-muted-foreground">{row.original.phone}</div>
+        </div>
+      </div>
+    ),
+  },
+  { id: 'id number', header: 'ID number', accessorKey: 'idNumber' },
+  {
+    id: 'employer',
+    header: 'Employer',
+    accessorKey: 'employer',
+    cell: ({ row }) => (
+      <div>
+        <div>{row.original.employer}</div>
+        <div className="text-xs text-muted-foreground">{row.original.occupation}</div>
+      </div>
+    ),
+  },
+  {
+    id: 'income',
+    header: () => <div className="text-right">Monthly income</div>,
+    accessorKey: 'monthlyIncome',
+    cell: ({ row }) => (
+      <div className="text-right tabular-nums">{formatNad(row.original.monthlyIncome)}</div>
+    ),
+  },
+  {
+    id: 'loans',
+    header: () => <div className="text-right">Loans</div>,
+    accessorFn: (row) => row._count.loans,
+    cell: ({ row }) => <div className="text-right tabular-nums">{row.original._count.loans}</div>,
+  },
+  {
+    id: 'since',
+    header: 'Since',
+    accessorKey: 'since',
+    cell: ({ row }) => formatDate(row.original.since),
+  },
+];
+
+const NewBorrowerSheet = ({ onCreated }: { onCreated: () => void }) => {
   const { token } = useAuth();
   const [open, setOpen] = useState(false);
 
@@ -97,15 +141,13 @@ const NewBorrowerDialog = ({ onCreated }: { onCreated: () => void }) => {
         <Plus />
         New borrower
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>New borrower</DialogTitle>
-            <DialogDescription>
-              Capture a borrower record. Monthly income is in N$.
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={onSubmit} className="space-y-4" noValidate>
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>New borrower</SheetTitle>
+            <SheetDescription>Capture a borrower record. Monthly income is in N$.</SheetDescription>
+          </SheetHeader>
+          <form onSubmit={onSubmit} className="space-y-4 px-4" noValidate>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
                 <Label htmlFor="firstName">First name</Label>
@@ -161,7 +203,7 @@ const NewBorrowerDialog = ({ onCreated }: { onCreated: () => void }) => {
                 <Label htmlFor="employmentType">Employment type</Label>
                 <select
                   id="employmentType"
-                  className="border-input flex h-9 w-full rounded-md border bg-transparent px-3 py-1 text-sm shadow-xs"
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30"
                   {...register('employmentType')}
                 >
                   {Object.values(EmploymentType).map((value) => (
@@ -183,23 +225,18 @@ const NewBorrowerDialog = ({ onCreated }: { onCreated: () => void }) => {
                 <FieldError message={errors.accountType?.message} />
               </div>
             </div>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setOpen(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
+            <SheetFooter className="px-0">
               <Button type="submit" disabled={isSubmitting}>
                 {isSubmitting ? <Loader2 className="animate-spin" /> : null}
                 Create borrower
               </Button>
-            </DialogFooter>
+              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
+                Cancel
+              </Button>
+            </SheetFooter>
           </form>
-        </DialogContent>
-      </Dialog>
+        </SheetContent>
+      </Sheet>
     </>
   );
 };
@@ -207,41 +244,13 @@ const NewBorrowerDialog = ({ onCreated }: { onCreated: () => void }) => {
 const BorrowersPage = () => {
   const router = useRouter();
   const { data, loading, error, refresh } = useApi<BorrowerRow[]>('/borrowers');
-  const [query, setQuery] = useState('');
-
-  const rows = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    if (!term) {
-      return data ?? [];
-    }
-    return (data ?? []).filter((borrower) =>
-      [`${borrower.firstName} ${borrower.lastName}`, borrower.idNumber, borrower.phone]
-        .join(' ')
-        .toLowerCase()
-        .includes(term),
-    );
-  }, [data, query]);
 
   return (
     <div>
       <PageHeader
         title="Borrowers"
         description="Everyone with a record at your branch"
-        action={
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-              <input
-                type="search"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search name or ID"
-                className="h-9 w-52 rounded-lg border bg-card pr-3 pl-9 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30"
-              />
-            </div>
-            <NewBorrowerDialog onCreated={refresh} />
-          </div>
-        }
+        action={<NewBorrowerSheet onCreated={refresh} />}
       />
 
       {loading ? (
@@ -249,58 +258,12 @@ const BorrowersPage = () => {
       ) : error ? (
         <p className="text-sm text-destructive">{error}</p>
       ) : (
-        <Card className="overflow-hidden py-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Borrower</TableHead>
-                <TableHead>ID number</TableHead>
-                <TableHead>Employer</TableHead>
-                <TableHead className="text-right">Monthly income</TableHead>
-                <TableHead className="text-right">Loans</TableHead>
-                <TableHead>Since</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((borrower) => (
-                <TableRow
-                  key={borrower.id}
-                  className="cursor-pointer"
-                  onClick={() => router.push(`/borrowers/${borrower.id}`)}
-                >
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <InitialsAvatar name={`${borrower.firstName} ${borrower.lastName}`} />
-                      <div>
-                        <div className="font-medium">
-                          {borrower.firstName} {borrower.lastName}
-                        </div>
-                        <div className="text-xs text-muted-foreground">{borrower.phone}</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell className="tabular-nums">{borrower.idNumber}</TableCell>
-                  <TableCell>
-                    <div>{borrower.employer}</div>
-                    <div className="text-xs text-muted-foreground">{borrower.occupation}</div>
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatNad(borrower.monthlyIncome)}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">{borrower._count.loans}</TableCell>
-                  <TableCell>{formatDate(borrower.since)}</TableCell>
-                </TableRow>
-              ))}
-              {rows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground">
-                    No borrowers found.
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </TableBody>
-          </Table>
-        </Card>
+        <DataTable
+          columns={columns}
+          data={data ?? []}
+          searchPlaceholder="Search name, ID or phone…"
+          onRowClick={(borrower) => router.push(`/borrowers/${borrower.id}`)}
+        />
       )}
     </div>
   );

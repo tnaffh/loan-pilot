@@ -1,4 +1,5 @@
 import type { LoanType } from '@loan-pilot/domain';
+import { Badge } from '@/components/ui/badge';
 
 const LABELS: Record<LoanType, string> = {
   payday: 'Payday',
@@ -6,9 +7,9 @@ const LABELS: Record<LoanType, string> = {
   collateral: 'Collateral',
 };
 
-/** Neutral pill for a loan's type. */
+/** Neutral outline badge for a loan's type. */
 export const TypeChip = ({ type }: { type: LoanType }) => (
-  <span className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+  <Badge variant="outline" className="font-normal">
     {LABELS[type] ?? type}
-  </span>
+  </Badge>
 );

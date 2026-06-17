@@ -120,6 +120,20 @@ export interface ExpenseTotals {
   net: number;
 }
 
+export interface MonthlyPoint {
+  month: string;
+  label: string;
+  disbursed: number;
+  collected: number;
+  expenses: number;
+}
+
+export interface LenderSeries {
+  monthly: MonthlyPoint[];
+  statusMix: { status: string; count: number }[];
+  topExpenseCategories: { category: string; amount: number }[];
+}
+
 export interface BorrowerDetail extends Omit<BorrowerRow, '_count'> {
   loans: (Omit<LoanRow, 'borrower'> & { schedule: ScheduleItem[] })[];
 }

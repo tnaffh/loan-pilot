@@ -9,11 +9,8 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
-  --font-heading: var(--font-heading);
-  --color-brand: var(--brand);
-  --color-brand-foreground: var(--brand-foreground);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
+  /* base-vega titles use `font-heading`; keep it on the sans for the stock look. */
+  --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -43,91 +40,49 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
-  --color-ok: var(--ok);
-  --color-ok-soft: var(--ok-soft);
-  --color-warn: var(--warn);
-  --color-warn-soft: var(--warn-soft);
-  --color-bad: var(--bad);
-  --color-bad-soft: var(--bad-soft);
-  --color-brand-soft: var(--brand-soft);
-  --color-brand-deep: var(--brand-deep);
-  --radius-sm: calc(var(--radius) * 0.6);
-  --radius-md: calc(var(--radius) * 0.8);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) * 1.4);
-  --radius-2xl: calc(var(--radius) * 1.8);
-  --radius-3xl: calc(var(--radius) * 2.2);
-  --radius-4xl: calc(var(--radius) * 2.6);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* Stock shadcn "new-york" neutral theme (light). */
 :root {
-  /* Brand accent: LoanPilot indigo by default; the theme provider overrides
-     --brand per tenant (e.g. Raccoons navy #25397a). Shades derive via color-mix
-     so a single property drives the whole palette (mirrors the design prototypes). */
-  --brand: #4f46e5;
-  --brand-deep: color-mix(in srgb, var(--brand) 82%, black);
-  --brand-soft: color-mix(in srgb, var(--brand) 10%, white);
-  --brand-foreground: #ffffff;
-
-  --background: #f6f7f9;
-  --foreground: #15181f;
-  --card: #ffffff;
-  --card-foreground: #15181f;
-  --popover: #ffffff;
-  --popover-foreground: #15181f;
-  --primary: var(--brand);
-  --primary-foreground: var(--brand-foreground);
-  --secondary: #f3f4f7;
-  --secondary-foreground: #15181f;
-  --muted: #f3f4f7;
-  --muted-foreground: #545a68;
-  --accent: var(--brand-soft);
-  --accent-foreground: var(--brand-deep);
-  --destructive: #c83b2c;
-  --border: #edeef2;
-  --input: #edeef2;
-  --ring: var(--brand);
-
-  /* Semantic palette with soft backgrounds (from design/loanpilot/theme.css). */
-  --ok: #15915b;
-  --ok-soft: #e6f5ee;
-  --warn: #b06f08;
-  --warn-soft: #fbf1dd;
-  --bad: #c83b2c;
-  --bad-soft: #fbeae7;
-  --success: var(--ok);
-  --warning: var(--warn);
-
-  --chart-1: var(--brand);
-  --chart-2: color-mix(in srgb, var(--brand) 60%, white);
-  --chart-3: #545a68;
-  --chart-4: #8b91a1;
-  --chart-5: #c2c6cf;
-  --radius: 0.8125rem;
-
-  /* White sidebar (platform operators). Tenant users get the dark block below. */
-  --sidebar: #ffffff;
-  --sidebar-foreground: #15181f;
-  --sidebar-primary: var(--brand);
-  --sidebar-primary-foreground: var(--brand-foreground);
-  --sidebar-accent: var(--brand-soft);
-  --sidebar-accent-foreground: var(--brand-deep);
-  --sidebar-border: #edeef2;
-  --sidebar-ring: var(--brand);
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
 }
 
-/* Tenant users (lender/borrower): dark accent sidebar derived from the brand. */
-html[data-tenant] {
-  --sidebar: color-mix(in srgb, var(--brand) 80%, black);
-  --sidebar-foreground: color-mix(in srgb, var(--brand) 22%, white);
-  --sidebar-primary: #ffffff;
-  --sidebar-primary-foreground: var(--brand-deep);
-  --sidebar-accent: var(--brand);
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: color-mix(in srgb, var(--brand) 65%, black);
-  --sidebar-ring: var(--brand-soft);
-}
-
+/* Stock shadcn "new-york" neutral theme (dark). */
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
@@ -147,11 +102,11 @@ html[data-tenant] {
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -168,16 +123,5 @@ html[data-tenant] {
   }
   body {
     @apply bg-background text-foreground;
-  }
-  html {
-    @apply font-sans;
-  }
-  h1,
-  h2,
-  h3,
-  h4 {
-    font-family: var(--font-heading);
-    font-weight: 600;
-    letter-spacing: -0.01em;
   }
 }

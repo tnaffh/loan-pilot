@@ -43,7 +43,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
       <AppSidebar user={user} pendingCount={pendingCount} />
       <SidebarInset>
         <AppTopbar />
-        <main className="mx-auto w-full max-w-[1300px] p-4 sm:p-6">{children}</main>
+        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">{children}</main>
       </SidebarInset>
     </SidebarProvider>
   );

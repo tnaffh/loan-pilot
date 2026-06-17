@@ -184,7 +184,7 @@ const LoanDetailPage = () => {
                     <TableCell className="capitalize">{payment.method.replace('_', ' ')}</TableCell>
                     <TableCell>
                       {payment.badDebt ? (
-                        <span className="text-xs font-medium text-bad">Bad debt</span>
+                        <span className="text-xs font-medium text-destructive">Bad debt</span>
                       ) : null}
                     </TableCell>
                   </TableRow>

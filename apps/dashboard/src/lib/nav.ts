@@ -2,7 +2,6 @@ import {
   Banknote,
   Building2,
   CreditCard,
-  FileText,
   LayoutDashboard,
   Receipt,
   Users,
@@ -11,12 +10,20 @@ import {
 } from 'lucide-react';
 import { UserRole, isPlatform } from '@loan-pilot/domain';
 
-export interface NavItem {
+export interface NavSubItem {
   href: string;
   label: string;
-  icon: LucideIcon;
   /** When true, the shell renders the pending-applications count beside this item. */
   withBadge?: boolean;
+}
+
+export interface NavItem {
+  label: string;
+  icon: LucideIcon;
+  /** Leaf items link directly; parent items omit href and expand `items`. */
+  href?: string;
+  withBadge?: boolean;
+  items?: NavSubItem[];
 }
 
 export interface NavGroup {
@@ -40,8 +47,14 @@ const LENDER_NAV: NavGroup[] = [
     label: 'Lending',
     items: [
       { href: '/', label: 'Overview', icon: LayoutDashboard },
-      { href: '/applications', label: 'Applications', icon: FileText, withBadge: true },
-      { href: '/loans', label: 'Loans', icon: Banknote },
+      {
+        label: 'Loans',
+        icon: Banknote,
+        items: [
+          { href: '/loans', label: 'All loans' },
+          { href: '/applications', label: 'Applications', withBadge: true },
+        ],
+      },
       { href: '/borrowers', label: 'Borrowers', icon: Users },
       { href: '/expenses', label: 'Expenses', icon: Wallet },
     ],

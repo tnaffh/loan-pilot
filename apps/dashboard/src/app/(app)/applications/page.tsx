@@ -2,31 +2,26 @@
 
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import type { ColumnDef } from '@tanstack/react-table';
 import { ApplicationStatus, formatNad } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
 import { TypeChip } from '@/components/type-chip';
 import { InitialsAvatar } from '@/components/initials-avatar';
 import { FilterSegments } from '@/components/filter-segments';
+import { DataTable } from '@/components/data-table';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
@@ -65,6 +60,69 @@ const ApplicationsPage = () => {
     [data, filter],
   );
 
+  const columns = useMemo<ColumnDef<ApplicationRow>[]>(
+    () => [
+      {
+        id: 'applicant',
+        header: 'Applicant',
+        accessorFn: (row) => `${row.firstName} ${row.lastName}`,
+        cell: ({ row }) => (
+          <div className="flex items-center gap-3">
+            <InitialsAvatar name={`${row.original.firstName} ${row.original.lastName}`} />
+            <div>
+              <div className="font-medium">
+                {row.original.firstName} {row.original.lastName}
+              </div>
+              <div className="text-xs text-muted-foreground">
+                {formatDate(row.original.submittedAt)}
+              </div>
+            </div>
+          </div>
+        ),
+      },
+      { id: 'type', header: 'Type', accessorKey: 'type', cell: ({ row }) => <TypeChip type={row.original.type} /> },
+      {
+        id: 'amount',
+        header: () => <div className="text-right">Amount</div>,
+        accessorKey: 'amount',
+        cell: ({ row }) => <div className="text-right tabular-nums">{formatNad(row.original.amount)}</div>,
+      },
+      {
+        id: 'affordability',
+        header: 'Affordability',
+        accessorKey: 'affordability',
+        cell: ({ row }) => <StatusBadge value={row.original.affordability} />,
+      },
+      { id: 'status', header: 'Status', accessorKey: 'status', cell: ({ row }) => <StatusBadge value={row.original.status} /> },
+      {
+        id: 'actions',
+        header: () => <div className="text-right">Actions</div>,
+        enableHiding: false,
+        cell: ({ row }) =>
+          isOpen(row.original.status) ? (
+            <div className="flex justify-end gap-2">
+              <Button
+                size="sm"
+                onClick={() => setPending({ application: row.original, decision: ApplicationStatus.Approved })}
+              >
+                Approve
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => setPending({ application: row.original, decision: ApplicationStatus.Declined })}
+              >
+                Decline
+              </Button>
+            </div>
+          ) : (
+            <div className="text-right text-muted-foreground">—</div>
+          ),
+      },
+    ],
+    [],
+  );
+
   const confirmDecision = async () => {
     if (!pending) {
       return;
@@ -87,9 +145,7 @@ const ApplicationsPage = () => {
       setPending(null);
       refresh();
     } catch (decisionError) {
-      toast.error(
-        decisionError instanceof ApiError ? decisionError.message : 'Something went wrong',
-      );
+      toast.error(decisionError instanceof ApiError ? decisionError.message : 'Something went wrong');
     } finally {
       setSubmitting(false);
     }
@@ -97,110 +153,28 @@ const ApplicationsPage = () => {
 
   return (
     <div>
-      <PageHeader
-        title="Applications"
-        description="Review and decide incoming loan applications"
-        action={<FilterSegments value={filter} onChange={setFilter} options={FILTER_OPTIONS} />}
-      />
+      <PageHeader title="Applications" description="Review and decide incoming loan applications" />
 
       {loading ? (
         <Skeleton className="h-64 w-full rounded-xl" />
       ) : error ? (
         <p className="text-sm text-destructive">{error}</p>
       ) : (
-        <Card className="overflow-hidden py-0">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Applicant</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead className="text-right">Instalment</TableHead>
-                <TableHead>Affordability</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((application) => (
-                <TableRow key={application.id}>
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <InitialsAvatar name={`${application.firstName} ${application.lastName}`} />
-                      <div>
-                        <div className="font-medium">
-                          {application.firstName} {application.lastName}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatDate(application.submittedAt)}
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <TypeChip type={application.type} />
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatNad(application.amount)}
-                  </TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatNad(application.quotedInstalment)} × {application.termMonths}
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge value={application.affordability} />
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge value={application.status} />
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {isOpen(application.status) ? (
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          size="sm"
-                          className="bg-brand-soft text-brand-deep hover:bg-brand-soft/70"
-                          onClick={() =>
-                            setPending({ application, decision: ApplicationStatus.Approved })
-                          }
-                        >
-                          Approve
-                        </Button>
-                        <Button
-                          size="sm"
-                          className="bg-bad-soft text-bad hover:bg-bad-soft/70"
-                          onClick={() =>
-                            setPending({ application, decision: ApplicationStatus.Declined })
-                          }
-                        >
-                          Decline
-                        </Button>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {rows.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
-                    No applications here.
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </TableBody>
-          </Table>
-        </Card>
+        <DataTable
+          columns={columns}
+          data={rows}
+          searchPlaceholder="Search applicants…"
+          toolbar={<FilterSegments value={filter} onChange={setFilter} options={FILTER_OPTIONS} />}
+        />
       )}
 
-      <Dialog open={pending !== null} onOpenChange={(open) => (open ? null : setPending(null))}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {pending?.decision === ApplicationStatus.Approved
-                ? 'Approve application'
-                : 'Decline application'}
-            </DialogTitle>
-            <DialogDescription>
+      <AlertDialog open={pending !== null} onOpenChange={(open) => (open ? null : setPending(null))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {pending?.decision === ApplicationStatus.Approved ? 'Approve application' : 'Decline application'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
               {pending
                 ? pending.decision === ApplicationStatus.Approved
                   ? `Approve ${pending.application.firstName} ${pending.application.lastName}'s ` +
@@ -208,25 +182,22 @@ const ApplicationsPage = () => {
                     `over ${pending.application.termMonths} month(s)? This disburses the loan ` +
                     `immediately (total repayable ${formatNad(pending.application.quotedTotal)}).`
                   : `Decline ${pending.application.firstName} ${pending.application.lastName}'s ` +
-                    `application for ${formatNad(pending.application.amount)}? ` +
-                    `This cannot be undone.`
+                    `application for ${formatNad(pending.application.amount)}? This cannot be undone.`
                 : null}
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPending(null)} disabled={submitting}>
-              Cancel
-            </Button>
-            <Button
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={submitting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
               onClick={confirmDecision}
               disabled={submitting}
               variant={pending?.decision === ApplicationStatus.Declined ? 'destructive' : 'default'}
             >
               {pending?.decision === ApplicationStatus.Approved ? 'Approve & disburse' : 'Decline'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

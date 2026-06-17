@@ -35,7 +35,7 @@ const QuickAction = ({
         disabled ? 'opacity-60' : 'hover:border-primary',
       )}
     >
-      <span className="flex size-10 items-center justify-center rounded-lg bg-brand-soft text-brand-deep">
+      <span className="flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
         <Icon className="size-5" />
       </span>
       <span className="text-sm font-medium">{label}</span>
@@ -99,15 +99,12 @@ export const BorrowerHome = () => {
         <p className="mt-1 text-sm text-muted-foreground">Here&apos;s where your loan stands today.</p>
       </div>
 
-      <div
-        className="relative overflow-hidden rounded-2xl p-6 text-white sm:p-8"
-        style={{ backgroundImage: 'linear-gradient(150deg, var(--brand), var(--brand-deep))' }}
-      >
+      <div className="relative overflow-hidden rounded-2xl bg-primary p-6 text-primary-foreground sm:p-8">
         <div
-          className="pointer-events-none absolute inset-0 opacity-20"
+          className="pointer-events-none absolute inset-0 opacity-10"
           style={{
             backgroundImage:
-              'linear-gradient(white 1px, transparent 1px), linear-gradient(90deg, white 1px, transparent 1px)',
+              'linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)',
             backgroundSize: '34px 34px',
           }}
         />
@@ -121,8 +118,11 @@ export const BorrowerHome = () => {
           <div className="mt-2 text-sm capitalize opacity-90">
             of {formatNad(total)} total · {activeLoan.type} loan
           </div>
-          <div className="mt-5 h-[7px] overflow-hidden rounded-full bg-white/25">
-            <div className="h-full rounded-full bg-white" style={{ width: `${progress}%` }} />
+          <div className="mt-5 h-[7px] overflow-hidden rounded-full bg-primary-foreground/25">
+            <div
+              className="h-full rounded-full bg-primary-foreground"
+              style={{ width: `${progress}%` }}
+            />
           </div>
           <div className="mt-2 flex items-center justify-between text-xs opacity-90">
             <span>
@@ -172,7 +172,7 @@ export const BorrowerHome = () => {
                   .filter((item) => item.status === RepaymentStatus.Paid)
                   .map((item) => (
                     <div key={item.id} className="flex items-center gap-3">
-                      <span className="flex size-8 items-center justify-center rounded-full bg-ok-soft text-ok">
+                      <span className="flex size-8 items-center justify-center rounded-full bg-muted text-foreground">
                         <ArrowDownLeft className="size-4" />
                       </span>
                       <div className="flex-1">
@@ -183,7 +183,7 @@ export const BorrowerHome = () => {
                     </div>
                   ))}
                 <div className="flex items-center gap-3">
-                  <span className="flex size-8 items-center justify-center rounded-full bg-brand-soft text-brand-deep">
+                  <span className="flex size-8 items-center justify-center rounded-full bg-muted text-foreground">
                     <Wallet className="size-4" />
                   </span>
                   <div className="flex-1">
@@ -217,7 +217,7 @@ export const BorrowerHome = () => {
                       <span
                         className={cn(
                           'flex size-8 items-center justify-center rounded-full text-xs font-bold',
-                          paid ? 'bg-ok-soft text-ok' : 'bg-warn-soft text-warn',
+                          paid ? 'bg-muted text-foreground' : 'bg-muted text-muted-foreground',
                         )}
                       >
                         {paid ? <Check className="size-4" /> : item.number}

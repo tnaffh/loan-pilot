@@ -5,6 +5,7 @@ import { LogOut } from 'lucide-react';
 import type { SessionUser } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import { InitialsAvatar } from '@/components/initials-avatar';
+import { ModeToggle } from '@/components/mode-toggle';
 import { useAuth } from '@/lib/auth-context';
 import { useTenantBranding } from '@/lib/tenant-theme';
 
@@ -23,7 +24,8 @@ export const PortalShell = ({ user, children }: { user: SessionUser; children: R
             </span>
             <span className="text-sm font-semibold">{branding?.name ?? 'LoanPilot'}</span>
           </Link>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <ModeToggle />
             <InitialsAvatar name={user.name} />
             <Button variant="outline" size="icon-sm" onClick={logout} aria-label="Sign out">
               <LogOut />
