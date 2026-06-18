@@ -20,11 +20,14 @@ export interface LenderOverview {
   pendingApplications: number;
   borrowers: number;
   // Lifetime cash flows (cents): disbursed principal, collected payments,
-  // operating expenses, refunds, and the resulting net.
+  // operating expenses, and the resulting net profit. Capital movements
+  // (owner drawings out, capital invested in) are tracked separately — they
+  // affect the cash/capital position, not profit.
   disbursed: number;
   collected: number;
   expenses: number;
-  refunds: number;
+  drawings: number;
+  invested: number;
   netProfit: number;
 }
 
@@ -155,7 +158,7 @@ export class StatsService {
   }
 
   private async lenderOverview(tenantId: string): Promise<LenderOverview> {
-    const [book, arrears, pendingApplications, borrowers, disbursed, collected, expenseSums] =
+    const [book, arrears, pendingApplications, borrowers, disbursed, collected, expenseSums, invested] =
       await Promise.all([
         this.prisma.loan.aggregate({
           where: { tenantId, status: { in: [LoanStatus.Active, LoanStatus.Arrears] } },
@@ -181,11 +184,12 @@ export class StatsService {
           where: { tenantId },
           _sum: { amount: true },
         }),
+        this.prisma.investment.aggregate({ where: { tenantId }, _sum: { amount: true } }),
       ]);
 
     const expenses =
       expenseSums.find((row) => row.kind === ExpenseKind.Expense)?._sum.amount ?? 0;
-    const refunds = expenseSums.find((row) => row.kind === ExpenseKind.Refund)?._sum.amount ?? 0;
+    const drawings = expenseSums.find((row) => row.kind === ExpenseKind.Drawing)?._sum.amount ?? 0;
     const collectedTotal = collected._sum.amount ?? 0;
     const disbursedTotal = disbursed._sum.principal ?? 0;
 
@@ -200,9 +204,11 @@ export class StatsService {
       disbursed: disbursedTotal,
       collected: collectedTotal,
       expenses,
-      refunds,
-      // Net = interest earned (collected − disbursed principal) − expenses + refunds.
-      netProfit: collectedTotal - disbursedTotal - expenses + refunds,
+      drawings,
+      invested: invested._sum.amount ?? 0,
+      // Net profit = interest earned (collected − disbursed principal) − operating
+      // expenses. Owner drawings and capital invested are financing, not P&L.
+      netProfit: collectedTotal - disbursedTotal - expenses,
     };
   }
 

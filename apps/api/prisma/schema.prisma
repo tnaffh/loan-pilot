@@ -57,7 +57,7 @@ enum PaymentMethod {
 
 enum ExpenseKind {
   expense
-  refund
+  drawing
 }
 
 enum ApplicationStatus {
@@ -114,6 +114,7 @@ model Tenant {
   invoices     Invoice[]
   payments     Payment[]
   expenses     Expense[]
+  investments  Investment[]
 }
 
 model User {
@@ -318,7 +319,8 @@ model Payment {
   @@index([loanId])
 }
 
-// An operating expense or refund for the lender. Amounts are integer N$ cents.
+// An operating expense (or an owner drawing/dividend) for the lender. Amounts
+// are integer N$ cents.
 model Expense {
   id          String      @id @default(cuid())
   tenantId    String
@@ -333,6 +335,27 @@ model Expense {
   externalRef String?
   note        String?
   createdAt   DateTime    @default(now())
+
+  @@unique([tenantId, externalRef])
+  @@index([tenantId])
+}
+
+// Capital injected into the cash-loan book by the owners (the "Additional
+// Investment" register). Financing, not income — excluded from P&L. Amounts are
+// integer N$ cents.
+model Investment {
+  id            String    @id @default(cuid())
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  name          String
+  // Raw label from the source register; the year is often absent there.
+  period        String?
+  contributedAt DateTime?
+  amount        Int
+  // Stable key from the source register; enables idempotent import.
+  externalRef   String?
+  note          String?
+  createdAt     DateTime  @default(now())
 
   @@unique([tenantId, externalRef])
   @@index([tenantId])

@@ -9,6 +9,7 @@ import { BorrowersModule } from './borrowers/borrowers.module';
 import { LoansModule } from './loans/loans.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ExpensesModule } from './expenses/expenses.module';
+import { InvestmentsModule } from './investments/investments.module';
 import { StatsModule } from './stats/stats.module';
 
 @Module({
@@ -23,6 +24,7 @@ import { StatsModule } from './stats/stats.module';
     LoansModule,
     PaymentsModule,
     ExpensesModule,
+    InvestmentsModule,
     StatsModule,
   ],
 })

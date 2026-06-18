@@ -37,13 +37,13 @@ describe('ExpensesService', () => {
     expect(data.category).toBe('Office Rent');
   });
 
-  it('nets refunds against expenses in the totals', async () => {
+  it('sums operating expenses and drawings into total cash out', async () => {
     aggregate
       .mockResolvedValueOnce({ _sum: { amount: 500000 } }) // expenses
-      .mockResolvedValueOnce({ _sum: { amount: 120000 } }); // refunds
+      .mockResolvedValueOnce({ _sum: { amount: 120000 } }); // drawings
 
     const totals = await service.totals('tenant_1');
 
-    expect(totals).toEqual({ totalExpenses: 500000, totalRefunds: 120000, net: 380000 });
+    expect(totals).toEqual({ totalExpenses: 500000, totalDrawings: 120000, net: 620000 });
   });
 });

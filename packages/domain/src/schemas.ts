@@ -112,8 +112,8 @@ export const createPaymentSchema = z.object({
 export type CreatePaymentInput = z.infer<typeof createPaymentSchema>;
 
 /**
- * Record an operating expense or refund for the lender. `amount` is submitted
- * in major Namibian Dollar units and converted to cents server-side.
+ * Record an operating expense or owner drawing for the lender. `amount` is
+ * submitted in major Namibian Dollar units and converted to cents server-side.
  */
 export const createExpenseSchema = z.object({
   kind: z.nativeEnum(ExpenseKind).default(ExpenseKind.Expense),
@@ -124,6 +124,20 @@ export const createExpenseSchema = z.object({
   note: z.string().max(280).optional().or(z.literal('')),
 });
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
+
+/**
+ * Record capital injected into the cash-loan book (an "Additional Investment").
+ * `amount` is submitted in major Namibian Dollar units and converted to cents
+ * server-side.
+ */
+export const createInvestmentSchema = z.object({
+  name: z.string().min(1, 'A name is required'),
+  amount: z.coerce.number().min(0.01, 'An amount is required'),
+  period: z.string().max(40).optional().or(z.literal('')),
+  contributedAt: z.string().optional().or(z.literal('')),
+  note: z.string().max(280).optional().or(z.literal('')),
+});
+export type CreateInvestmentInput = z.infer<typeof createInvestmentSchema>;
 
 /** Approve or decline a pending loan application. */
 export const updateApplicationStatusSchema = z.object({

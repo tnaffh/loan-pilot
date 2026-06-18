@@ -31,7 +31,9 @@ export enum PaymentMethod {
 
 export enum ExpenseKind {
   Expense = 'expense',
-  Refund = 'refund',
+  // An owner withdrawal / dividend ("Investment Cash-out"); a distribution of
+  // profit rather than an operating cost, so excluded from net profit.
+  Drawing = 'drawing',
 }
 
 export enum ApplicationStatus {

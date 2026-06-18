@@ -4,16 +4,16 @@
  *   pnpm --filter @loan-pilot/api db:import
  *
  * Source of truth is the committed JSON in prisma/import-data/, produced from
- * the optimised Google Sheet by parse-sheet.mjs. The import is idempotent:
- * every entity upserts on a tenant-scoped natural key, so re-running converges.
+ * the real workbook (raccoons-register.xlsx) by parse-register.mjs. The import
+ * is idempotent: every entity upserts on a tenant-scoped natural key, so
+ * re-running converges.
  *
- * Coverage note: the source sheet details loans loan-by-loan only for
- * Oct 2023 – Jun 2024. Payments run later than that; for any payment whose loan
- * is not in the detailed table we reconstruct a minimal 1-month / 30% loan from
- * the payment (these loans are uniform — verified: every detailed loan is a
- * single 30% instalment and every payment equals the loan total). Such loans
- * are tagged `[reconstructed]` in their note. Borrowers (195) and expenses
- * (179) are complete in the source.
+ * The register details every loan loan-by-loan across all 33 months
+ * (Oct 2023 – Jun 2026), so loans are imported directly — no reconstruction.
+ * A loan's key is `${monthSlug}#${rowId}` (the per-month row slot); payments
+ * join the same key. Expenses carry a `kind` of `expense` (operating cost) or
+ * `drawing` (owner withdrawal / dividend). Capital injected by the owners is
+ * imported into the separate Investment table.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -24,6 +24,7 @@ import {
   LoanStatus,
   LoanType,
   PaymentMethod,
+  addMonths,
 } from '@loan-pilot/domain';
 
 const prisma = new PrismaClient();
@@ -35,6 +36,7 @@ interface BorrowerRow {
   idNumber: string;
   phone: string;
   employer: string;
+  monthlyIncome: number;
 }
 interface LoanRow {
   loanKey: string;
@@ -72,6 +74,13 @@ interface ExpenseRow {
   period: string | null;
   incurredAt: string | null;
   category: string;
+  amount: number;
+}
+interface InvestmentRow {
+  seq: number;
+  name: string;
+  period: string | null;
+  contributedAt: string | null;
   amount: number;
 }
 
@@ -127,6 +136,61 @@ const STATUS: Record<string, LoanStatus> = {
   written_off: LoanStatus.WrittenOff,
   closed: LoanStatus.Closed,
 };
+const CLOSED_OUT: ReadonlySet<LoanStatus> = new Set([
+  LoanStatus.Settled,
+  LoanStatus.WrittenOff,
+  LoanStatus.Closed,
+]);
+
+/**
+ * Reconcile a register loan into the fields LoanPilot stores. The register's
+ * Status text is authoritative when present; when it's blank we infer from how
+ * much has been collected. Balance and instalments-paid always come from the
+ * payments (the Outstanding Balance column in the sheet is unreliable), and
+ * missing dates fall back to the loan's reporting month / term length.
+ */
+const deriveLoanFields = (
+  row: LoanRow,
+): {
+  status: LoanStatus;
+  balance: number;
+  instalmentsPaid: number;
+  disbursedAt: Date | null;
+  nextDueAt: Date | null;
+} => {
+  const total = row.totalRepayable;
+  const collected = row.collected ?? 0;
+  const registerStatus =
+    STATUS[row.status] ??
+    (total > 0 && collected >= total
+      ? LoanStatus.Settled
+      : collected > 0
+        ? LoanStatus.PartlyPaid
+        : LoanStatus.Active);
+
+  // Payments are the reliable signal. If they fully cover the loan it is settled,
+  // regardless of a stale "dispersed"/"partly paid" note left in the register.
+  const fullyPaid = total > 0 && collected >= total;
+  const status =
+    fullyPaid && !CLOSED_OUT.has(registerStatus) ? LoanStatus.Settled : registerStatus;
+
+  const closedOut = CLOSED_OUT.has(status);
+  const balance = closedOut ? 0 : Math.max(0, total - collected);
+
+  const perInstalment = row.termMonths > 0 ? Math.round(total / row.termMonths) : total;
+  const instalmentsPaid =
+    closedOut || balance <= 0
+      ? row.termMonths
+      : Math.min(row.termMonths, Math.floor(collected / Math.max(1, perInstalment)));
+
+  // Loan date: explicit start date, else the first of its reporting month.
+  const disbursedAt = toDate(row.startDate) ?? monthLabelToDate(row.originMonth);
+  // Due date: explicit end date, else one term from the loan date.
+  const nextDueAt =
+    toDate(row.dueDate) ?? (disbursedAt ? addMonths(disbursedAt, row.termMonths || 1) : null);
+
+  return { status, balance, instalmentsPaid, disbursedAt, nextDueAt };
+};
 
 const main = async (): Promise<void> => {
   // 1. Resolve the Raccoons Finance tenant (matches prisma/seed.ts).
@@ -155,6 +219,7 @@ const main = async (): Promise<void> => {
     payments: (await prisma.payment.deleteMany({ where: { tenantId } })).count,
     loans: (await prisma.loan.deleteMany({ where: { tenantId } })).count,
     expenses: (await prisma.expense.deleteMany({ where: { tenantId } })).count,
+    investments: (await prisma.investment.deleteMany({ where: { tenantId } })).count,
     borrowerUsers: (await prisma.user.deleteMany({ where: { tenantId, role: 'borrower' } })).count,
     borrowers: (await prisma.borrower.deleteMany({ where: { tenantId } })).count,
   };
@@ -165,6 +230,7 @@ const main = async (): Promise<void> => {
   const loanRows = load<LoanRow>('raccoons-loans.json');
   const paymentRows = load<PaymentRow>('raccoons-payments.json');
   const expenseRows = load<ExpenseRow>('raccoons-expenses.json');
+  const investmentRows = load<InvestmentRow>('raccoons-investments.json');
 
   // 2. Borrowers. The registry maps both ID number and normalised name to the
   // borrower id so loans/payments can link by whichever they carry.
@@ -177,6 +243,7 @@ const main = async (): Promise<void> => {
     idNumber?: string;
     phone?: string;
     employer?: string;
+    monthlyIncome?: number;
   }): Promise<string> => {
     const id = input.idNumber?.trim() ?? '';
     const nKey = nameKey(input.clientName);
@@ -203,7 +270,7 @@ const main = async (): Promise<void> => {
         address: '',
         employer,
         occupation: '',
-        monthlyIncome: 0, // not recorded in the source register
+        monthlyIncome: input.monthlyIncome ?? 0, // net salary from the register, when recorded
         employmentType: employmentFor(employer),
         bank: '',
         accountType: '',
@@ -220,13 +287,11 @@ const main = async (): Promise<void> => {
     await ensureBorrower(row);
   }
 
-  // 3. Detailed loans (Oct 2023 – Jun 2024).
-  const knownLoanKeys = new Set<string>();
+  // 3. Loans — every loan in the register, keyed by `${monthSlug}#${rowId}`.
   let loansCreated = 0;
   for (const row of loanRows) {
     const borrowerId = await ensureBorrower(row);
-    knownLoanKeys.add(row.loanKey);
-    const disbursedAt = toDate(row.startDate);
+    const { status, balance, instalmentsPaid, disbursedAt, nextDueAt } = deriveLoanFields(row);
     await prisma.loan.upsert({
       where: { tenantId_externalRef: { tenantId, externalRef: row.loanKey } },
       update: {},
@@ -242,63 +307,21 @@ const main = async (): Promise<void> => {
         interestRate: row.interestRate || DEFAULT_RATE,
         total: row.totalRepayable,
         termMonths: row.termMonths,
-        instalment: row.totalRepayable,
-        instalmentsPaid: row.balance <= 0 ? row.termMonths : 0,
+        instalment: row.termMonths > 0 ? Math.round(row.totalRepayable / row.termMonths) : row.totalRepayable,
+        instalmentsPaid,
         instalmentsTotal: row.termMonths,
-        balance: row.balance,
-        status: STATUS[row.status] ?? LoanStatus.Active,
+        balance,
+        status,
         originMonth: row.originMonth,
         externalRef: row.loanKey,
         disbursedAt,
-        nextDueAt: toDate(row.dueDate),
+        nextDueAt,
       },
     });
     loansCreated += 1;
   }
 
-  // 4. Reconstruct loans for payments whose loan is not in the detailed table.
-  // Verified uniform: 1-month, 30% flat, paid in full → total == payment amount.
-  let loansReconstructed = 0;
-  const reconstructed = new Map<string, PaymentRow>();
-  for (const p of paymentRows) {
-    if (!knownLoanKeys.has(p.loanKey) && !reconstructed.has(p.loanKey)) {
-      reconstructed.set(p.loanKey, p);
-    }
-  }
-  for (const [loanKey, p] of reconstructed) {
-    const borrowerId = await ensureBorrower({ clientName: p.clientName });
-    const total = p.amount;
-    const principal = Math.round(total / (1 + DEFAULT_RATE));
-    const originMonth = loanKey.split('#')[0] ?? null;
-    await prisma.loan.upsert({
-      where: { tenantId_externalRef: { tenantId, externalRef: loanKey } },
-      update: {},
-      create: {
-        tenantId,
-        borrowerId,
-        type: LoanType.Payday,
-        principal,
-        financeCharge: total - principal,
-        interestRate: DEFAULT_RATE,
-        total,
-        termMonths: 1,
-        instalment: total,
-        instalmentsPaid: 1,
-        instalmentsTotal: 1,
-        balance: 0,
-        status: LoanStatus.Settled,
-        originMonth,
-        externalRef: loanKey,
-        disbursedAt: toDate(p.paidAt) ?? monthLabelToDate(originMonth),
-        nextDueAt: toDate(p.paidAt) ?? monthLabelToDate(originMonth),
-        note: '[reconstructed] no loan-level row in source; inferred from payment',
-      },
-    });
-    knownLoanKeys.add(loanKey);
-    loansReconstructed += 1;
-  }
-
-  // 5. Payments. Loan resolved by loanKey; ref is unique per (loanKey, payRef).
+  // 4. Payments. Loan resolved by loanKey; ref is unique per (loanKey, payRef).
   const loanIdByKey = new Map<string, string>();
   for (const l of await prisma.loan.findMany({
     where: { tenantId, externalRef: { not: null } },
@@ -333,16 +356,18 @@ const main = async (): Promise<void> => {
     paymentsCreated += 1;
   }
 
-  // 6. Expenses & refunds.
+  // 5. Expenses (operating costs) and drawings (owner withdrawals / dividends).
   let expensesCreated = 0;
+  let drawingsCreated = 0;
   for (const e of expenseRows) {
     const externalRef = `exp#${e.seq}`;
+    const kind = e.kind === 'drawing' ? ExpenseKind.Drawing : ExpenseKind.Expense;
     await prisma.expense.upsert({
       where: { tenantId_externalRef: { tenantId, externalRef } },
       update: {},
       create: {
         tenantId,
-        kind: e.kind === 'refund' ? ExpenseKind.Refund : ExpenseKind.Expense,
+        kind,
         category: e.category,
         period: e.period,
         incurredAt: toDate(e.incurredAt),
@@ -350,18 +375,39 @@ const main = async (): Promise<void> => {
         externalRef,
       },
     });
-    expensesCreated += 1;
+    if (kind === ExpenseKind.Drawing) drawingsCreated += 1;
+    else expensesCreated += 1;
+  }
+
+  // 6. Investments — capital injected into the cash-loan book by the owners.
+  let investmentsCreated = 0;
+  for (const inv of investmentRows) {
+    const externalRef = `inv#${inv.seq}`;
+    await prisma.investment.upsert({
+      where: { tenantId_externalRef: { tenantId, externalRef } },
+      update: {},
+      create: {
+        tenantId,
+        name: inv.name,
+        period: inv.period,
+        contributedAt: toDate(inv.contributedAt),
+        amount: inv.amount,
+        externalRef,
+      },
+    });
+    investmentsCreated += 1;
   }
 
   // eslint-disable-next-line no-console
   console.log('Raccoons import complete:', {
     tenant: tenant.slug,
     borrowers: borrowersCreated,
-    loansDetailed: loansCreated,
-    loansReconstructed,
+    loans: loansCreated,
     paymentsImported: paymentsCreated,
     paymentsSkipped,
     expenses: expensesCreated,
+    drawings: drawingsCreated,
+    investments: investmentsCreated,
   });
 };
 

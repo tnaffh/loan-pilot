@@ -35,7 +35,7 @@ describe('StatsService.lenderSeries', () => {
     expenseFindMany.mockResolvedValue([
       { incurredAt: new Date('2023-10-01'), amount: 20000, kind: ExpenseKind.Expense, category: 'Rent' },
       { incurredAt: new Date('2023-10-01'), amount: 10000, kind: ExpenseKind.Expense, category: 'Airtime' },
-      { incurredAt: new Date('2023-10-01'), amount: 5000, kind: ExpenseKind.Refund, category: 'Refund' },
+      { incurredAt: new Date('2023-10-01'), amount: 5000, kind: ExpenseKind.Drawing, category: 'Investment Cash-out' },
     ]);
     loanGroupBy.mockResolvedValue([
       { status: LoanStatus.Settled, _count: 2 },
@@ -48,7 +48,7 @@ describe('StatsService.lenderSeries', () => {
       { month: '2023-10', label: 'Oct 2023', disbursed: 100000, collected: 131500, expenses: 30000 },
       { month: '2023-11', label: 'Nov 2023', disbursed: 50000, collected: 65000, expenses: 0 },
     ]);
-    // Refunds are excluded from the expense total and category ranking.
+    // Drawings are excluded from the expense total and category ranking.
     expect(series.topExpenseCategories).toEqual([
       { category: 'Rent', amount: 20000 },
       { category: 'Airtime', amount: 10000 },

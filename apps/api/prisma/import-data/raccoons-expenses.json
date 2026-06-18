@@ -122,8 +122,8 @@
   {
     "seq": 16,
     "kind": "expense",
-    "period": "August",
-    "incurredAt": null,
+    "period": "Aug 2025",
+    "incurredAt": "2025-08-01",
     "category": "collerateral FNB",
     "amount": 300000
   },
@@ -290,40 +290,40 @@
   {
     "seq": 37,
     "kind": "expense",
-    "period": "July",
-    "incurredAt": null,
+    "period": "Jul 2025",
+    "incurredAt": "2025-07-01",
     "category": "bank charges",
     "amount": 34700
   },
   {
     "seq": 38,
     "kind": "expense",
-    "period": "August",
-    "incurredAt": null,
+    "period": "Aug 2025",
+    "incurredAt": "2025-08-01",
     "category": "bank charges",
     "amount": 36700
   },
   {
     "seq": 39,
     "kind": "expense",
-    "period": "September",
-    "incurredAt": null,
+    "period": "Sep 2025",
+    "incurredAt": "2025-09-01",
     "category": "bank charges",
     "amount": 37800
   },
   {
     "seq": 40,
     "kind": "expense",
-    "period": "0Ctober",
-    "incurredAt": null,
+    "period": "Oct 2025",
+    "incurredAt": "2025-10-01",
     "category": "bank charges",
     "amount": 39460
   },
   {
     "seq": 41,
     "kind": "expense",
-    "period": "November",
-    "incurredAt": null,
+    "period": "Nov 2025",
+    "incurredAt": "2025-11-01",
     "category": "bank charges",
     "amount": 38665
   },
@@ -530,40 +530,40 @@
   {
     "seq": 67,
     "kind": "expense",
-    "period": "July",
-    "incurredAt": null,
+    "period": "Jul 2025",
+    "incurredAt": "2025-07-01",
     "category": "collexia Fees",
     "amount": 129175
   },
   {
     "seq": 68,
     "kind": "expense",
-    "period": "August",
-    "incurredAt": null,
+    "period": "Aug 2025",
+    "incurredAt": "2025-08-01",
     "category": "collexia Fees",
     "amount": 129175
   },
   {
     "seq": 69,
     "kind": "expense",
-    "period": "September",
-    "incurredAt": null,
+    "period": "Sep 2025",
+    "incurredAt": "2025-09-01",
     "category": "collexia Fees",
     "amount": 104678
   },
   {
     "seq": 70,
     "kind": "expense",
-    "period": "0Ctober",
-    "incurredAt": null,
+    "period": "Oct 2025",
+    "incurredAt": "2025-10-01",
     "category": "collexia Fees",
     "amount": 151504
   },
   {
     "seq": 71,
     "kind": "expense",
-    "period": "November",
-    "incurredAt": null,
+    "period": "Nov 2025",
+    "incurredAt": "2025-11-01",
     "category": "collexia Fees",
     "amount": 151694
   },
@@ -762,32 +762,32 @@
   {
     "seq": 96,
     "kind": "expense",
-    "period": "August",
-    "incurredAt": null,
+    "period": "Aug 2025",
+    "incurredAt": "2025-08-01",
     "category": "Salaries",
     "amount": 400000
   },
   {
     "seq": 97,
     "kind": "expense",
-    "period": "September",
-    "incurredAt": null,
+    "period": "Sep 2025",
+    "incurredAt": "2025-09-01",
     "category": "Salaries",
     "amount": 500000
   },
   {
     "seq": 98,
     "kind": "expense",
-    "period": "0Ctober",
-    "incurredAt": null,
+    "period": "Oct 2025",
+    "incurredAt": "2025-10-01",
     "category": "Salaries",
     "amount": 250000
   },
   {
     "seq": 99,
     "kind": "expense",
-    "period": "November",
-    "incurredAt": null,
+    "period": "Nov 2025",
+    "incurredAt": "2025-11-01",
     "category": "Salaries",
     "amount": 250000
   },
@@ -938,22 +938,22 @@
   {
     "seq": 118,
     "kind": "expense",
-    "period": "July",
-    "incurredAt": null,
+    "period": "Jul 2025",
+    "incurredAt": "2025-07-01",
     "category": "Namfisa",
     "amount": 153900
   },
   {
     "seq": 119,
     "kind": "expense",
-    "period": "September",
-    "incurredAt": null,
+    "period": "Sep 2025",
+    "incurredAt": "2025-09-01",
     "category": "Namfisa",
     "amount": 176000
   },
   {
     "seq": 120,
-    "kind": "expense",
+    "kind": "drawing",
     "period": "Aug 2024",
     "incurredAt": "2024-08-01",
     "category": "Investment Cash-out",
@@ -961,7 +961,7 @@
   },
   {
     "seq": 121,
-    "kind": "expense",
+    "kind": "drawing",
     "period": "Jan 2025",
     "incurredAt": "2025-01-01",
     "category": "Investment Cash-out",
@@ -969,7 +969,7 @@
   },
   {
     "seq": 122,
-    "kind": "expense",
+    "kind": "drawing",
     "period": "Apr 2025",
     "incurredAt": "2025-04-01",
     "category": "Investment Cash-out",
@@ -977,31 +977,31 @@
   },
   {
     "seq": 123,
-    "kind": "expense",
-    "period": "August",
-    "incurredAt": null,
+    "kind": "drawing",
+    "period": "Aug 2025",
+    "incurredAt": "2025-08-01",
     "category": "Investment Cash-out",
     "amount": 150000
   },
   {
     "seq": 124,
-    "kind": "expense",
-    "period": "September",
-    "incurredAt": null,
+    "kind": "drawing",
+    "period": "Sep 2025",
+    "incurredAt": "2025-09-01",
     "category": "Investment Cash-out",
     "amount": 300000
   },
   {
     "seq": 125,
-    "kind": "expense",
-    "period": "November",
-    "incurredAt": null,
+    "kind": "drawing",
+    "period": "Nov 2025",
+    "incurredAt": "2025-11-01",
     "category": "Investment Cash-out",
     "amount": 5000000
   },
   {
     "seq": 126,
-    "kind": "expense",
+    "kind": "drawing",
     "period": "Apr 2026",
     "incurredAt": "2026-04-01",
     "category": "Investment Cash-out",
@@ -1009,7 +1009,7 @@
   },
   {
     "seq": 127,
-    "kind": "expense",
+    "kind": "drawing",
     "period": "May 2026",
     "incurredAt": "2026-05-01",
     "category": "Investment Cash-out",
@@ -1017,7 +1017,7 @@
   },
   {
     "seq": 128,
-    "kind": "expense",
+    "kind": "drawing",
     "period": "Jun 2026",
     "incurredAt": "2026-06-01",
     "category": "Investment Cash-out",
@@ -1146,40 +1146,40 @@
   {
     "seq": 144,
     "kind": "expense",
-    "period": "July",
-    "incurredAt": null,
+    "period": "Jul 2025",
+    "incurredAt": "2025-07-01",
     "category": "google",
     "amount": 3683
   },
   {
     "seq": 145,
     "kind": "expense",
-    "period": "August",
-    "incurredAt": null,
+    "period": "Aug 2025",
+    "incurredAt": "2025-08-01",
     "category": "google",
     "amount": 3616
   },
   {
     "seq": 146,
     "kind": "expense",
-    "period": "September",
-    "incurredAt": null,
+    "period": "Sep 2025",
+    "incurredAt": "2025-09-01",
     "category": "google",
     "amount": 3616
   },
   {
     "seq": 147,
     "kind": "expense",
-    "period": "0Ctober",
-    "incurredAt": null,
+    "period": "Oct 2025",
+    "incurredAt": "2025-10-01",
     "category": "google",
     "amount": 3600
   },
   {
     "seq": 148,
     "kind": "expense",
-    "period": "November",
-    "incurredAt": null,
+    "period": "Nov 2025",
+    "incurredAt": "2025-11-01",
     "category": "google",
     "amount": 3600
   },
@@ -1306,8 +1306,8 @@
   {
     "seq": 164,
     "kind": "expense",
-    "period": "August",
-    "incurredAt": null,
+    "period": "Aug 2025",
+    "incurredAt": "2025-08-01",
     "category": "ACCOUNTING FEES",
     "amount": 200000
   },
@@ -1406,29 +1406,5 @@
     "incurredAt": "2026-05-01",
     "category": "OFFICE RENT",
     "amount": 380000
-  },
-  {
-    "seq": 177,
-    "kind": "refund",
-    "period": "Mar 2026",
-    "incurredAt": "2026-03-01",
-    "category": "PAID GAME",
-    "amount": 100000
-  },
-  {
-    "seq": 178,
-    "kind": "refund",
-    "period": "Mar 2026",
-    "incurredAt": "2026-03-01",
-    "category": "SHILONGO LEATHER",
-    "amount": 90000
-  },
-  {
-    "seq": 179,
-    "kind": "refund",
-    "period": "Mar 2026",
-    "incurredAt": "2026-03-01",
-    "category": "GATE GUY",
-    "amount": 500000
   }
 ]

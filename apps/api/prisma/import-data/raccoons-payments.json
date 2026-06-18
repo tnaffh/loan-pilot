@@ -1,2207 +1,4554 @@
 [
   {
     "payRef": "1",
-    "loanKey": "October 2023#1",
-    "clientName": "Raymond Draghoender",
+    "loanKey": "2023-10#1",
     "paidAt": "2023-10-25",
     "amount": 131500,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "2",
-    "loanKey": "October 2023#2",
-    "clientName": "Hamalwa Trofimus En",
+    "payRef": "1",
+    "loanKey": "2023-10#2",
     "paidAt": "2023-10-25",
     "amount": 136500,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "3",
-    "loanKey": "October 2023#3",
-    "clientName": "Mwaala Amunyela Ananias",
+    "payRef": "1",
+    "loanKey": "2023-10#3",
     "paidAt": "2023-10-25",
     "amount": 66500,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "4",
-    "loanKey": "October 2023#4",
-    "clientName": "Recardo Reinhard Harageab",
+    "payRef": "1",
+    "loanKey": "2023-10#4",
     "paidAt": "2023-10-25",
     "amount": 196500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "5",
-    "loanKey": "October 2023#5",
-    "clientName": "Tomas Hafeni",
+    "payRef": "1",
+    "loanKey": "2023-10#5",
     "paidAt": "2023-10-25",
     "amount": 68000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "6",
-    "loanKey": "October 2023#6",
-    "clientName": "Leochatia Skeyer",
+    "payRef": "1",
+    "loanKey": "2023-10#6",
     "paidAt": "2023-10-25",
     "amount": 196500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "7",
-    "loanKey": "October 2023#7",
-    "clientName": "Loini Almando",
+    "payRef": "1",
+    "loanKey": "2023-10#7",
     "paidAt": "2023-10-25",
     "amount": 78000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "8",
-    "loanKey": "October 2023#8",
-    "clientName": "Basson Tueritjiwa",
+    "payRef": "1",
+    "loanKey": "2023-10#8",
     "paidAt": "2023-10-25",
     "amount": 65000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "9",
-    "loanKey": "October 2023#9",
-    "clientName": "Joe Haihambo",
+    "payRef": "1",
+    "loanKey": "2023-10#9",
     "paidAt": "2023-10-27",
     "amount": 65000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "10",
-    "loanKey": "October 2023#10",
-    "clientName": "Uataviza Kamuaruuma",
+    "payRef": "1",
+    "loanKey": "2023-10#10",
     "paidAt": "2023-10-26",
     "amount": 104000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "11",
-    "loanKey": "October 2023#11",
-    "clientName": "Naftal Timotheus",
+    "payRef": "1",
+    "loanKey": "2023-10#11",
     "paidAt": "2023-10-27",
     "amount": 261500,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "12",
-    "loanKey": "October 2023#12",
-    "clientName": "Eufemia Nghifenwa",
+    "payRef": "1",
+    "loanKey": "2023-10#12",
     "paidAt": "2023-10-26",
     "amount": 301500,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "13",
-    "loanKey": "October 2023#15",
-    "clientName": "Debby Jod",
+    "payRef": "1",
+    "loanKey": "2023-10#15",
     "paidAt": "2023-11-30",
     "amount": 53500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "14",
-    "loanKey": "November 2023#16",
-    "clientName": "Recardo Reinhard Harageab",
+    "payRef": "1",
+    "loanKey": "2023-11#16",
     "paidAt": "2023-11-15",
     "amount": 195000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "15",
-    "loanKey": "November 2023#17",
-    "clientName": "Mwaala Amunyela Ananias",
+    "payRef": "1",
+    "loanKey": "2023-11#17",
     "paidAt": "2023-11-24",
     "amount": 130000,
     "method": "cash",
     "badDebt": true
   },
   {
-    "payRef": "16",
-    "loanKey": "November 2023#18",
-    "clientName": "Hamalwa Trofimus En",
+    "payRef": "1",
+    "loanKey": "2023-11#18",
     "paidAt": "2023-11-24",
     "amount": 243750,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "17",
-    "loanKey": "November 2023#19",
-    "clientName": "Joseph Daniel Josef Ndeutapo",
+    "payRef": "1",
+    "loanKey": "2023-11#19",
     "paidAt": "2023-11-24",
     "amount": 75400,
     "method": "cash",
     "badDebt": true
   },
   {
-    "payRef": "18",
-    "loanKey": "November 2023#20",
-    "clientName": "Leochatia Skeyer",
+    "payRef": "1",
+    "loanKey": "2023-11#20",
     "paidAt": "2023-11-24",
     "amount": 196500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "19",
-    "loanKey": "November 2023#21",
-    "clientName": "Uataviza Kamuaruuma",
+    "payRef": "1",
+    "loanKey": "2023-11#21",
     "paidAt": "2023-11-24",
     "amount": 195000,
     "method": "eft",
     "badDebt": true
   },
   {
-    "payRef": "20",
-    "loanKey": "November 2023#22",
-    "clientName": "Kristofina Nghifenwa",
+    "payRef": "1",
+    "loanKey": "2023-11#22",
     "paidAt": "2023-11-24",
     "amount": 130000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "21",
-    "loanKey": "November 2023#23",
-    "clientName": "Raymond Draghoender",
+    "payRef": "1",
+    "loanKey": "2023-11#23",
     "paidAt": "2023-11-24",
     "amount": 196500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "22",
-    "loanKey": "November 2023#24",
-    "clientName": "Debby Jod",
+    "payRef": "1",
+    "loanKey": "2023-11#24",
     "paidAt": "2023-11-24",
     "amount": 260000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "23",
-    "loanKey": "November 2023#25",
-    "clientName": "Tomas Hafeni",
+    "payRef": "1",
+    "loanKey": "2023-11#25",
     "paidAt": "2023-11-24",
     "amount": 78000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "24",
-    "loanKey": "November 2023#26",
-    "clientName": "Joe Haihambo",
+    "payRef": "1",
+    "loanKey": "2023-11#26",
     "paidAt": "2023-11-26",
     "amount": 26000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "25",
-    "loanKey": "November 2023#27",
-    "clientName": "Avia Joakim",
+    "payRef": "1",
+    "loanKey": "2023-11#27",
     "paidAt": "2023-11-25",
     "amount": 117000,
     "method": "cash",
     "badDebt": true
   },
   {
-    "payRef": "26",
-    "loanKey": "November 2023#28",
-    "clientName": "Loini Almando",
+    "payRef": "1",
+    "loanKey": "2023-11#28",
     "paidAt": null,
     "amount": 65000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "27",
-    "loanKey": "November 2023#29",
-    "clientName": "Naftal Timotheus",
+    "payRef": "1",
+    "loanKey": "2023-11#29",
     "paidAt": "2023-11-30",
     "amount": 130000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "28",
-    "loanKey": "December 2023#16",
-    "clientName": "Recardo Reinhard Harageab",
+    "payRef": "1",
+    "loanKey": "2023-12#16",
     "paidAt": null,
     "amount": 195000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "29",
-    "loanKey": "December 2023#17",
-    "clientName": "Debby",
+    "payRef": "1",
+    "loanKey": "2023-12#17",
     "paidAt": null,
     "amount": 130000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "30",
-    "loanKey": "December 2023#18",
-    "clientName": "Raymond Draghoender",
+    "payRef": "1",
+    "loanKey": "2023-12#18",
     "paidAt": null,
     "amount": 202500,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "31",
-    "loanKey": "December 2023#19",
-    "clientName": "Kristofina Nghifenwa",
+    "payRef": "1",
+    "loanKey": "2023-12#19",
     "paidAt": null,
     "amount": 130000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "32",
-    "loanKey": "December 2023#20",
-    "clientName": "Hamalwa Trofimus En",
+    "payRef": "1",
+    "loanKey": "2023-12#20",
     "paidAt": null,
     "amount": 208000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "33",
-    "loanKey": "December 2023#31",
-    "clientName": "Uataviza Kamuaruuma",
+    "payRef": "1",
+    "loanKey": "2023-12#31",
     "paidAt": null,
     "amount": 195000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "35",
-    "loanKey": "December 2023#33",
-    "clientName": "Kristof",
+    "payRef": "1",
+    "loanKey": "2023-12#33",
     "paidAt": null,
     "amount": 52000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "36",
-    "loanKey": "December 2023#34",
-    "clientName": "Tsamaseb Stefanus",
+    "payRef": "1",
+    "loanKey": "2023-12#34",
     "paidAt": null,
     "amount": 104000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "37",
-    "loanKey": "December 2023#35",
-    "clientName": "Andreas Felestianus",
+    "payRef": "1",
+    "loanKey": "2023-12#35",
     "paidAt": null,
     "amount": 66500,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "38",
-    "loanKey": "December 2023#37",
-    "clientName": "Katia",
+    "payRef": "1",
+    "loanKey": "2023-12#37",
     "paidAt": null,
     "amount": 125000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "39",
-    "loanKey": "December 2023#38",
-    "clientName": "Tomas Hafeni",
+    "payRef": "1",
+    "loanKey": "2023-12#38",
     "paidAt": null,
     "amount": 105500,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "40",
-    "loanKey": "December 2023#39",
-    "clientName": "Meyer Wilma Jakobine",
+    "payRef": "1",
+    "loanKey": "2023-12#39",
     "paidAt": null,
     "amount": 66500,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "41",
-    "loanKey": "December 2023#40",
-    "clientName": "Eufemia Nghifenwa",
+    "payRef": "1",
+    "loanKey": "2023-12#40",
     "paidAt": null,
     "amount": 26000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "42",
-    "loanKey": "December 2023#41",
-    "clientName": "Basson Tueritjiwa",
+    "payRef": "1",
+    "loanKey": "2023-12#41",
     "paidAt": null,
     "amount": 26000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "43",
-    "loanKey": "January 2024#16",
-    "clientName": "Hamalwa Trofimus En",
+    "payRef": "1",
+    "loanKey": "2024-01#16",
     "paidAt": "2024-01-19",
     "amount": 221000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "44",
-    "loanKey": "January 2024#17",
-    "clientName": "Leochatia Skeyer",
+    "payRef": "1",
+    "loanKey": "2024-01#17",
     "paidAt": "2024-01-25",
     "amount": 196500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "45",
-    "loanKey": "January 2024#18",
-    "clientName": "Tomas Hafeni",
+    "payRef": "1",
+    "loanKey": "2024-01#18",
     "paidAt": "2025-01-25",
     "amount": 94000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "46",
-    "loanKey": "January 2024#19",
-    "clientName": "Andreas Felestianus",
+    "payRef": "1",
+    "loanKey": "2024-01#19",
     "paidAt": "2026-01-25",
     "amount": 86000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "47",
-    "loanKey": "January 2024#20",
-    "clientName": "Cecilia Ashipala",
+    "payRef": "1",
+    "loanKey": "2024-01#20",
     "paidAt": "2027-01-25",
     "amount": 195000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "48",
-    "loanKey": "January 2024#31",
-    "clientName": "Uataviza Kamuaruuma",
+    "payRef": "1",
+    "loanKey": "2024-01#31",
     "paidAt": "2028-01-25",
     "amount": 196500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "49",
-    "loanKey": "January 2024#32",
-    "clientName": "Recardo Reinhard Harageab",
+    "payRef": "1",
+    "loanKey": "2024-01#32",
     "paidAt": "2029-01-25",
     "amount": 196500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "50",
-    "loanKey": "January 2024#33",
-    "clientName": "Naftal Timotheus",
+    "payRef": "1",
+    "loanKey": "2024-01#33",
     "paidAt": "2024-02-22",
     "amount": 725400,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "51",
-    "loanKey": "January 2024#34",
-    "clientName": "Meyer Wilma Jakobine",
+    "payRef": "1",
+    "loanKey": "2024-01#34",
     "paidAt": "2024-02-22",
     "amount": 130000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "52",
-    "loanKey": "February 2024#16",
-    "clientName": "Hamalwa Trofimus En",
+    "payRef": "1",
+    "loanKey": "2024-02#16",
     "paidAt": "2024-02-16",
     "amount": 270000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "53",
-    "loanKey": "February 2024#31",
-    "clientName": "Uataviza Kamuaruuma",
+    "payRef": "1",
+    "loanKey": "2024-02#31",
     "paidAt": "2024-02-22",
     "amount": 195000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "54",
-    "loanKey": "February 2024#32",
-    "clientName": "Recardo Reinhard Harageab",
+    "payRef": "1",
+    "loanKey": "2024-02#32",
     "paidAt": "2024-02-19",
     "amount": 195000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "55",
-    "loanKey": "February 2024#33",
-    "clientName": "Tomas Hafeni",
+    "payRef": "1",
+    "loanKey": "2024-02#33",
     "paidAt": "2024-02-22",
     "amount": 104000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "56",
-    "loanKey": "February 2024#34",
-    "clientName": "Kristona Nghifenwa",
+    "payRef": "1",
+    "loanKey": "2024-02#34",
     "paidAt": "2024-02-22",
     "amount": 130000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "57",
-    "loanKey": "February 2024#35",
-    "clientName": "Michael Mudabeti",
+    "payRef": "1",
+    "loanKey": "2024-02#35",
     "paidAt": "2024-02-27",
     "amount": 260000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "58",
-    "loanKey": "February 2024#36",
-    "clientName": "Loini Almando",
+    "payRef": "1",
+    "loanKey": "2024-02#36",
     "paidAt": "2024-02-22",
     "amount": 91000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "59",
-    "loanKey": "February 2024#37",
-    "clientName": "Fenni Shuuya",
+    "payRef": "1",
+    "loanKey": "2024-02#37",
     "paidAt": "2024-02-23",
     "amount": 65000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "60",
-    "loanKey": "February 2024#38",
-    "clientName": "Erasmus Shoopala",
+    "payRef": "1",
+    "loanKey": "2024-02#38",
     "paidAt": "2024-03-29",
     "amount": 52000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "61",
-    "loanKey": "February 2024#40",
-    "clientName": "Naftal Timotheus",
+    "payRef": "1",
+    "loanKey": "2024-02#40",
     "paidAt": "2024-03-29",
     "amount": 683020,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "62",
-    "loanKey": "February 2024#41",
-    "clientName": "Andreas Felestianus",
+    "payRef": "1",
+    "loanKey": "2024-02#41",
     "paidAt": "2024-02-23",
     "amount": 71500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "63",
-    "loanKey": "March 2024#16",
-    "clientName": "Timotheus Timotheus",
+    "payRef": "1",
+    "loanKey": "2024-03#16",
     "paidAt": "2024-03-20",
     "amount": 156000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "64",
-    "loanKey": "March 2024#31",
-    "clientName": "Uataviza Kamuaruuma",
+    "payRef": "1",
+    "loanKey": "2024-03#31",
     "paidAt": null,
     "amount": 195000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "65",
-    "loanKey": "March 2024#32",
-    "clientName": "Recardo Reinhard Harageab",
+    "payRef": "1",
+    "loanKey": "2024-03#32",
     "paidAt": null,
     "amount": 195000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "66",
-    "loanKey": "March 2024#33",
-    "clientName": "Michael Mudabeti",
+    "payRef": "1",
+    "loanKey": "2024-03#33",
     "paidAt": null,
     "amount": 260000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "67",
-    "loanKey": "March 2024#34",
-    "clientName": "Tomas Hafeni",
+    "payRef": "1",
+    "loanKey": "2024-03#34",
     "paidAt": null,
     "amount": 120000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "68",
-    "loanKey": "March 2024#35",
-    "clientName": "Samewell Hangula",
+    "payRef": "1",
+    "loanKey": "2024-03#35",
     "paidAt": null,
     "amount": 131500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "69",
-    "loanKey": "March 2024#36",
-    "clientName": "Act Security ( Payroll Deduction)",
+    "payRef": "1",
+    "loanKey": "2024-03#36",
     "paidAt": null,
     "amount": 195000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "70",
-    "loanKey": "March 2024#37",
-    "clientName": "Naftal Timotheus",
+    "payRef": "1",
+    "loanKey": "2024-03#37",
     "paidAt": null,
     "amount": 874650,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "71",
-    "loanKey": "March 2024#38",
-    "clientName": "Nuuyoma Timotheus",
+    "payRef": "1",
+    "loanKey": "2024-03#38",
     "paidAt": null,
     "amount": 195000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "72",
-    "loanKey": "March 2024#39",
-    "clientName": "Erasmus",
+    "payRef": "1",
+    "loanKey": "2024-03#39",
     "paidAt": null,
     "amount": 66500,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "73",
-    "loanKey": "April 2024#16",
-    "clientName": "Samwell",
+    "payRef": "1",
+    "loanKey": "2024-04#16",
     "paidAt": "2024-04-25",
     "amount": 130000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "74",
-    "loanKey": "April 2024#31",
-    "clientName": "Uataviza Kamuaruuma",
+    "payRef": "1",
+    "loanKey": "2024-04#31",
     "paidAt": "2024-04-25",
     "amount": 195000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "75",
-    "loanKey": "April 2024#32",
-    "clientName": "Recardo Reinhard Harageab",
+    "payRef": "1",
+    "loanKey": "2024-04#32",
     "paidAt": "2024-05-24",
     "amount": 195000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "76",
-    "loanKey": "April 2024#33",
-    "clientName": "Michael Mudabeti",
+    "payRef": "1",
+    "loanKey": "2024-04#33",
     "paidAt": "2024-04-25",
     "amount": 390000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "77",
-    "loanKey": "April 2024#34",
-    "clientName": "Wilfred Kongolo",
+    "payRef": "1",
+    "loanKey": "2024-04#34",
     "paidAt": "2024-04-30",
     "amount": 650000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "78",
-    "loanKey": "April 2024#35",
-    "clientName": "Trofimus Hamalwa",
+    "payRef": "1",
+    "loanKey": "2024-04#35",
     "paidAt": "2024-04-25",
     "amount": 91000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "79",
-    "loanKey": "April 2024#36",
-    "clientName": "Naftal Timothy'S",
-    "paidAt": "2024-01-05",
+    "payRef": "1",
+    "loanKey": "2024-04#36",
+    "paidAt": "2024-01-04",
     "amount": 749450,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "80",
-    "loanKey": "April 2024#40",
-    "clientName": "Act Security",
+    "payRef": "1",
+    "loanKey": "2024-04#40",
     "paidAt": "2024-04-29",
     "amount": 218750,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "82",
-    "loanKey": "May 2024#16",
-    "clientName": "Samwell",
+    "payRef": "1",
+    "loanKey": "2024-05#16",
     "paidAt": "2024-05-20",
     "amount": 26000,
     "method": "deposit",
     "badDebt": false
   },
   {
-    "payRef": "83",
-    "loanKey": "May 2024#31",
-    "clientName": "Uataviza Kamuaruuma",
+    "payRef": "1",
+    "loanKey": "2024-05#31",
     "paidAt": "2024-05-20",
     "amount": 195000,
     "method": "deposit",
     "badDebt": false
   },
   {
-    "payRef": "85",
-    "loanKey": "May 2024#34",
-    "clientName": "Wilfred Kongolo",
+    "payRef": "1",
+    "loanKey": "2024-05#34",
     "paidAt": "2024-05-24",
     "amount": 734783,
     "method": "deposit",
     "badDebt": false
   },
   {
-    "payRef": "86",
-    "loanKey": "May 2024#35",
-    "clientName": "Trofimus Hamalwa",
+    "payRef": "1",
+    "loanKey": "2024-05#35",
     "paidAt": "2024-05-24",
     "amount": 104000,
     "method": "deposit",
     "badDebt": false
   },
   {
-    "payRef": "87",
-    "loanKey": "May 2024#36",
-    "clientName": "Naftal Timothy'S",
+    "payRef": "1",
+    "loanKey": "2024-05#36",
     "paidAt": "2024-05-24",
     "amount": 390000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "88",
-    "loanKey": "May 2024#40",
-    "clientName": "Act Security",
+    "payRef": "1",
+    "loanKey": "2024-05#40",
     "paidAt": "2024-05-24",
     "amount": 375000,
     "method": "deposit",
     "badDebt": false
   },
   {
-    "payRef": "89",
-    "loanKey": "May 2024#41",
-    "clientName": "Aina Selma Uusiku",
+    "payRef": "1",
+    "loanKey": "2024-05#41",
     "paidAt": "2024-05-24",
     "amount": 195000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "90",
-    "loanKey": "May 2024#42",
-    "clientName": "Timotheus Timotheus",
+    "payRef": "1",
+    "loanKey": "2024-05#42",
     "paidAt": "2024-05-24",
     "amount": 130000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "91",
-    "loanKey": "May 2024#43",
-    "clientName": "Fredy Nakale",
+    "payRef": "1",
+    "loanKey": "2024-05#43",
     "paidAt": "2024-05-24",
     "amount": 26000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "92",
-    "loanKey": "May 2024#44",
-    "clientName": "Tomas Hafeni",
+    "payRef": "1",
+    "loanKey": "2024-05#44",
     "paidAt": "2024-05-24",
     "amount": 169000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "93",
-    "loanKey": "May 2024#45",
-    "clientName": "David Hamalwa",
+    "payRef": "1",
+    "loanKey": "2024-05#45",
     "paidAt": "2024-05-31",
     "amount": 65000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "94",
-    "loanKey": "May 2024#46",
-    "clientName": "Leokatia Skeyer",
-    "paidAt": "2024-01-06",
+    "payRef": "1",
+    "loanKey": "2024-05#46",
+    "paidAt": "2024-01-05",
     "amount": 130000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "95",
-    "loanKey": "May 2024#47",
-    "clientName": "Reinold",
+    "payRef": "1",
+    "loanKey": "2024-05#47",
     "paidAt": null,
     "amount": 260000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "96",
-    "loanKey": "May 2024#48",
-    "clientName": "Ndemuweda Michael",
+    "payRef": "1",
+    "loanKey": "2024-05#48",
     "paidAt": "2024-06-14",
     "amount": 65000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "97",
-    "loanKey": "May 2024#49",
-    "clientName": "Castro Liameke",
-    "paidAt": "2024-01-06",
+    "payRef": "1",
+    "loanKey": "2024-05#49",
+    "paidAt": "2024-01-05",
     "amount": 26000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "98",
-    "loanKey": "May 2024#50",
-    "clientName": "Asnath Meroro",
+    "payRef": "1",
+    "loanKey": "2024-05#50",
     "paidAt": null,
     "amount": 26000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "99",
-    "loanKey": "May 2024#51",
-    "clientName": "Andreas Felestianus",
+    "payRef": "1",
+    "loanKey": "2024-05#51",
     "paidAt": null,
     "amount": 65000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "100",
-    "loanKey": "May 2024#52",
-    "clientName": "Michael Patrick",
+    "payRef": "1",
+    "loanKey": "2024-05#52",
     "paidAt": null,
     "amount": 195000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "101",
-    "loanKey": "May 2024#53",
-    "clientName": "Welma Nghifenwa",
+    "payRef": "1",
+    "loanKey": "2024-05#53",
     "paidAt": null,
     "amount": 104000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "102",
-    "loanKey": "June 2024#16",
-    "clientName": "Samwell",
-    "paidAt": "2024-11-06",
+    "payRef": "1",
+    "loanKey": "2024-06#16",
+    "paidAt": "2024-11-05",
     "amount": 26000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "103",
-    "loanKey": "June 2024#31",
-    "clientName": "Uataviza Kamuaruuma",
+    "payRef": "1",
+    "loanKey": "2024-06#31",
     "paidAt": "2024-06-20",
     "amount": 130000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "104",
-    "loanKey": "June 2024#33",
-    "clientName": "Michael Mudabeti",
+    "payRef": "1",
+    "loanKey": "2024-06#33",
     "paidAt": "2024-06-20",
     "amount": 520000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "105",
-    "loanKey": "June 2024#35",
-    "clientName": "Trofimus Hamalwa",
+    "payRef": "1",
+    "loanKey": "2024-06#35",
     "paidAt": "2024-06-20",
     "amount": 131500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "106",
-    "loanKey": "June 2024#36",
-    "clientName": "Naftal Timothy'S",
-    "paidAt": "2024-06-25",
+    "payRef": "1",
+    "loanKey": "2024-06#36",
+    "paidAt": "2024-06-24",
     "amount": 156000,
     "method": "deposit",
     "badDebt": false
   },
   {
-    "payRef": "107",
-    "loanKey": "June 2024#40",
-    "clientName": "Act Security",
-    "paidAt": "2024-06-25",
+    "payRef": "1",
+    "loanKey": "2024-06#40",
+    "paidAt": "2024-06-24",
     "amount": 500000,
     "method": "deposit",
     "badDebt": false
   },
   {
-    "payRef": "108",
-    "loanKey": "June 2024#41",
-    "clientName": "Aina Selma Uusiku",
-    "paidAt": "2024-06-25",
+    "payRef": "1",
+    "loanKey": "2024-06#41",
+    "paidAt": "2024-06-24",
     "amount": 195000,
     "method": "deposit",
     "badDebt": false
   },
   {
-    "payRef": "109",
-    "loanKey": "June 2024#44",
-    "clientName": "Tomas Hafeni",
-    "paidAt": "2024-06-25",
+    "payRef": "1",
+    "loanKey": "2024-06#44",
+    "paidAt": "2024-06-24",
     "amount": 143000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "110",
-    "loanKey": "June 2024#45",
-    "clientName": "David Hamalwa",
-    "paidAt": "2024-06-25",
+    "payRef": "1",
+    "loanKey": "2024-06#45",
+    "paidAt": "2024-06-24",
     "amount": 104000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "111",
-    "loanKey": "June 2024#46",
-    "clientName": "Leokatia Skeyer",
-    "paidAt": "2024-06-25",
+    "payRef": "1",
+    "loanKey": "2024-06#46",
+    "paidAt": "2024-06-24",
     "amount": 66500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "112",
-    "loanKey": "June 2024#49",
-    "clientName": "Nghifenwa Welma",
-    "paidAt": "2024-06-25",
+    "payRef": "1",
+    "loanKey": "2024-06#49",
+    "paidAt": "2024-06-24",
     "amount": 130000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "113",
-    "loanKey": "June 2024#50",
-    "clientName": "Asnath Meroro",
-    "paidAt": "2024-06-25",
+    "payRef": "1",
+    "loanKey": "2024-06#50",
+    "paidAt": "2024-06-24",
     "amount": 26000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "114",
-    "loanKey": "June 2024#51",
-    "clientName": "Andreas Felestianus",
-    "paidAt": "2024-06-25",
+    "payRef": "1",
+    "loanKey": "2024-06#51",
+    "paidAt": "2024-06-24",
     "amount": 45500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "115",
-    "loanKey": "June 2024#52",
-    "clientName": "Michael Patrick",
-    "paidAt": "2024-06-25",
+    "payRef": "1",
+    "loanKey": "2024-06#52",
+    "paidAt": "2024-06-24",
     "amount": 260000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "116",
-    "loanKey": "June 2024#53",
-    "clientName": "Recardo Reinhard Harageab",
-    "paidAt": "2024-06-25",
+    "payRef": "1",
+    "loanKey": "2024-06#53",
+    "paidAt": "2024-06-24",
     "amount": 195000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "117",
-    "loanKey": "June 2024#54",
-    "clientName": "Wilma",
-    "paidAt": "2024-06-25",
+    "payRef": "1",
+    "loanKey": "2024-06#54",
+    "paidAt": "2024-06-24",
     "amount": 130000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "118",
-    "loanKey": "June 2024#55",
-    "clientName": "Debby Jo'S",
-    "paidAt": "2024-06-25",
+    "payRef": "1",
+    "loanKey": "2024-06#55",
+    "paidAt": "2024-06-24",
     "amount": 261500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "119",
-    "loanKey": "June 2024#56",
-    "clientName": "Elasi",
+    "payRef": "1",
+    "loanKey": "2024-06#56",
     "paidAt": "2024-06-25",
     "amount": 65000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "120",
-    "loanKey": "June 2024#57",
-    "clientName": "Ester Jonas",
+    "payRef": "1",
+    "loanKey": "2024-06#57",
     "paidAt": "2024-06-28",
     "amount": 289596,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "121",
-    "loanKey": "June 2024#58",
-    "clientName": "Nekundi Antonia",
-    "paidAt": "2024-01-07",
+    "payRef": "1",
+    "loanKey": "2024-06#58",
+    "paidAt": "2024-01-06",
     "amount": 84500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "122",
-    "loanKey": "June 2024#59",
-    "clientName": "Emilia Nghifenwa",
+    "payRef": "1",
+    "loanKey": "2024-06#59",
     "paidAt": null,
     "amount": 260000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "123",
-    "loanKey": "June 2024#60",
-    "clientName": "Loini Almondo",
+    "payRef": "1",
+    "loanKey": "2024-06#60",
     "paidAt": "2024-07-18",
     "amount": 39000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "124",
-    "loanKey": "June 2024#61",
-    "clientName": "Kristofina Nghifenwa",
+    "payRef": "1",
+    "loanKey": "2024-06#61",
     "paidAt": null,
     "amount": 130000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "125",
-    "loanKey": "June 2024#62",
-    "clientName": "Eufemia",
+    "payRef": "1",
+    "loanKey": "2024-06#62",
     "paidAt": null,
     "amount": 52000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "126",
-    "loanKey": "June 2024#63",
-    "clientName": "Pandu Kakololo",
+    "payRef": "1",
+    "loanKey": "2024-06#63",
     "paidAt": null,
     "amount": 158600,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "127",
-    "loanKey": "June 2024#64",
-    "clientName": "Victorina Tjiwedha",
+    "payRef": "1",
+    "loanKey": "2024-06#64",
     "paidAt": null,
     "amount": 26000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "128",
-    "loanKey": "July 2024#16",
-    "clientName": "Uusiku Aina Selma",
-    "paidAt": "2024-05-07",
+    "payRef": "1",
+    "loanKey": "2024-07#16",
+    "paidAt": "2024-05-06",
     "amount": 197658,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "129",
-    "loanKey": "July 2024#31",
-    "clientName": "Saima Amia",
+    "payRef": "1",
+    "loanKey": "2024-07#31",
     "paidAt": "2024-07-17",
     "amount": 371910,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "130",
-    "loanKey": "July 2024#35",
-    "clientName": "Recardo",
+    "payRef": "1",
+    "loanKey": "2024-07#35",
     "paidAt": null,
     "amount": 221000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "131",
-    "loanKey": "July 2024#36",
-    "clientName": "Michael Mudabedi",
+    "payRef": "1",
+    "loanKey": "2024-07#36",
     "paidAt": null,
     "amount": 650000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "132",
-    "loanKey": "July 2024#40",
-    "clientName": "Andreas Felestianus",
-    "paidAt": "2024-07-25",
+    "payRef": "1",
+    "loanKey": "2024-07#40",
+    "paidAt": "2024-07-24",
     "amount": 195000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "133",
-    "loanKey": "July 2024#41",
-    "clientName": "Debby Jod",
-    "paidAt": "2024-07-25",
+    "payRef": "1",
+    "loanKey": "2024-07#41",
+    "paidAt": "2024-07-24",
     "amount": 261500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "134",
-    "loanKey": "July 2024#44",
-    "clientName": "Elton Mamaregame",
-    "paidAt": "2024-07-25",
+    "payRef": "1",
+    "loanKey": "2024-07#44",
+    "paidAt": "2024-07-24",
     "amount": 260000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "135",
-    "loanKey": "July 2024#51",
-    "clientName": "Pandu Kakololo",
-    "paidAt": "2024-07-25",
+    "payRef": "1",
+    "loanKey": "2024-07#51",
+    "paidAt": "2024-07-24",
     "amount": 416000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "136",
-    "loanKey": "July 2024#52",
-    "clientName": "Joe Haihambo",
-    "paidAt": "2024-07-25",
+    "payRef": "1",
+    "loanKey": "2024-07#52",
+    "paidAt": "2024-07-24",
     "amount": 79500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "137",
-    "loanKey": "July 2024#53",
-    "clientName": "Michael Patrick",
-    "paidAt": "2024-07-25",
+    "payRef": "1",
+    "loanKey": "2024-07#53",
+    "paidAt": "2024-07-24",
     "amount": 261500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "138",
-    "loanKey": "July 2024#54",
-    "clientName": "Wilma Meyer",
-    "paidAt": "2024-07-25",
+    "payRef": "1",
+    "loanKey": "2024-07#54",
+    "paidAt": "2024-07-24",
     "amount": 131500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "139",
-    "loanKey": "July 2024#55",
-    "clientName": "Castro Riameke",
-    "paidAt": "2024-07-25",
+    "payRef": "1",
+    "loanKey": "2024-07#55",
+    "paidAt": "2024-07-24",
     "amount": 65000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "140",
-    "loanKey": "July 2024#56",
-    "clientName": "Asnath Meroro",
-    "paidAt": "2024-07-25",
+    "payRef": "1",
+    "loanKey": "2024-07#56",
+    "paidAt": "2024-07-24",
     "amount": 52000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "141",
-    "loanKey": "July 2024#57",
-    "clientName": "Act Security",
-    "paidAt": "2024-07-26",
+    "payRef": "1",
+    "loanKey": "2024-07#57",
+    "paidAt": "2024-07-25",
     "amount": 500000,
     "method": "payroll",
     "badDebt": false
   },
   {
-    "payRef": "142",
-    "loanKey": "July 2024#58",
-    "clientName": "Samwell Hangula",
+    "payRef": "1",
+    "loanKey": "2024-07#58",
     "paidAt": "2024-07-31",
     "amount": 39000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "143",
-    "loanKey": "July 2024#59",
-    "clientName": "Timotheus Timothy",
+    "payRef": "1",
+    "loanKey": "2024-07#59",
     "paidAt": "2024-07-27",
     "amount": 260000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "144",
-    "loanKey": "July 2024#60",
-    "clientName": "Antonia Nekundi",
+    "payRef": "1",
+    "loanKey": "2024-07#60",
     "paidAt": "2024-07-31",
     "amount": 78000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "145",
-    "loanKey": "July 2024#61",
-    "clientName": "Fenni Shuuya",
+    "payRef": "1",
+    "loanKey": "2024-07#61",
     "paidAt": "2024-07-26",
     "amount": 130000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "146",
-    "loanKey": "July 2024#62",
-    "clientName": "Ester Katoole",
+    "payRef": "1",
+    "loanKey": "2024-07#62",
     "paidAt": "2024-07-27",
     "amount": 39000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "147",
-    "loanKey": "July 2024#63",
-    "clientName": "Velema Nghifenwa",
-    "paidAt": "2024-03-07",
+    "payRef": "1",
+    "loanKey": "2024-07#63",
+    "paidAt": "2024-03-06",
     "amount": 130000,
     "method": "ewallet",
     "badDebt": false
   },
   {
-    "payRef": "148",
-    "loanKey": "July 2024#64",
-    "clientName": "Lilie",
+    "payRef": "1",
+    "loanKey": "2024-07#64",
     "paidAt": "2024-07-25",
     "amount": 39000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "149",
-    "loanKey": "August 2024#16",
-    "clientName": "Ester Jonas",
-    "paidAt": "2024-02-08",
+    "payRef": "1",
+    "loanKey": "2024-08#16",
+    "paidAt": "2024-02-07",
     "amount": 394667,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "150",
-    "loanKey": "August 2024#31",
-    "clientName": "Kristofina Nghifenwa",
-    "paidAt": "2024-08-19",
+    "payRef": "1",
+    "loanKey": "2024-08#31",
+    "paidAt": "2024-08-18",
     "amount": 130000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "151",
-    "loanKey": "August 2024#33",
-    "clientName": "Michael Mundabeti",
-    "paidAt": "2024-08-20",
+    "payRef": "1",
+    "loanKey": "2024-08#33",
+    "paidAt": "2024-08-19",
     "amount": 651500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "152",
-    "loanKey": "August 2024#35",
-    "clientName": "Elton",
-    "paidAt": "2024-08-23",
+    "payRef": "1",
+    "loanKey": "2024-08#35",
+    "paidAt": "2024-08-22",
     "amount": 390000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "153",
-    "loanKey": "August 2024#36",
-    "clientName": "Andreas Felestianus",
-    "paidAt": "2024-08-23",
+    "payRef": "1",
+    "loanKey": "2024-08#36",
+    "paidAt": "2024-08-22",
     "amount": 234000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "154",
-    "loanKey": "August 2024#40",
-    "clientName": "Debby Jod",
-    "paidAt": "2024-08-22",
+    "payRef": "1",
+    "loanKey": "2024-08#40",
+    "paidAt": "2024-08-21",
     "amount": 261500,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "155",
-    "loanKey": "August 2024#41",
-    "clientName": "Joe Haihambo",
-    "paidAt": "2024-08-22",
+    "payRef": "1",
+    "loanKey": "2024-08#41",
+    "paidAt": "2024-08-21",
     "amount": 105000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "157",
-    "loanKey": "August 2024#45",
-    "clientName": "Pandu Kakololo",
-    "paidAt": "2024-08-23",
+    "payRef": "1",
+    "loanKey": "2024-08#45",
+    "paidAt": "2024-08-22",
     "amount": 143000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "158",
-    "loanKey": "August 2024#46",
-    "clientName": "Wilma Meyer",
-    "paidAt": "2024-08-23",
+    "payRef": "1",
+    "loanKey": "2024-08#46",
+    "paidAt": "2024-08-22",
     "amount": 131500,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "159",
-    "loanKey": "August 2024#49",
-    "clientName": "Uataviza",
-    "paidAt": "2024-08-23",
+    "payRef": "1",
+    "loanKey": "2024-08#49",
+    "paidAt": "2024-08-22",
     "amount": 65000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "160",
-    "loanKey": "August 2024#50",
-    "clientName": "Trofimus Hamalwa",
-    "paidAt": "2024-08-23",
+    "payRef": "1",
+    "loanKey": "2024-08#50",
+    "paidAt": "2024-08-22",
     "amount": 65000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "161",
-    "loanKey": "August 2024#51",
-    "clientName": "Michael Patrik",
-    "paidAt": "2024-08-23",
+    "payRef": "1",
+    "loanKey": "2024-08#51",
+    "paidAt": "2024-08-22",
     "amount": 234000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "162",
-    "loanKey": "August 2024#52",
-    "clientName": "Act Security",
-    "paidAt": "2024-08-23",
+    "payRef": "1",
+    "loanKey": "2024-08#52",
+    "paidAt": "2024-08-22",
     "amount": 550000,
     "method": "payroll",
     "badDebt": false
   },
   {
-    "payRef": "163",
-    "loanKey": "August 2024#53",
-    "clientName": "Samewell Hangula",
-    "paidAt": "2024-08-23",
+    "payRef": "1",
+    "loanKey": "2024-08#53",
+    "paidAt": "2024-08-22",
     "amount": 65000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "164",
-    "loanKey": "August 2024#54",
-    "clientName": "Eufemia",
+    "payRef": "1",
+    "loanKey": "2024-08#54",
     "paidAt": "2024-08-23",
     "amount": 50500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "165",
-    "loanKey": "August 2024#55",
-    "clientName": "Wilma Nghifenwa",
+    "payRef": "1",
+    "loanKey": "2024-08#55",
     "paidAt": "2024-08-25",
     "amount": 130000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "166",
-    "loanKey": "August 2024#57",
-    "clientName": "Castro Riameke",
+    "payRef": "1",
+    "loanKey": "2024-08#57",
     "paidAt": null,
     "amount": 26000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "167",
-    "loanKey": "August 2024#58",
-    "clientName": "Naftal",
+    "payRef": "1",
+    "loanKey": "2024-08#58",
     "paidAt": null,
     "amount": 165100,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "168",
-    "loanKey": "August 2024#59",
-    "clientName": "David Hamalwa",
+    "payRef": "1",
+    "loanKey": "2024-08#59",
     "paidAt": "2024-09-18",
     "amount": 39000,
     "method": "ewallet",
     "badDebt": false
   },
   {
-    "payRef": "169",
-    "loanKey": "August 2024#60",
-    "clientName": "Diina Fillemon",
+    "payRef": "1",
+    "loanKey": "2024-08#60",
     "paidAt": "2024-08-30",
     "amount": 130000,
     "method": "ewallet",
     "badDebt": false
   },
   {
-    "payRef": "170",
-    "loanKey": "August 2024#61",
-    "clientName": "Hendrik Herman",
+    "payRef": "1",
+    "loanKey": "2024-08#61",
     "paidAt": null,
     "amount": 130000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "171",
-    "loanKey": "September 2024#33",
-    "clientName": "Michael Mundabeti",
+    "payRef": "1",
+    "loanKey": "2024-09#33",
     "paidAt": "2024-09-25",
     "amount": 651500,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "172",
-    "loanKey": "September 2024#50",
-    "clientName": "Trofimus Hamalwa",
-    "paidAt": "2024-09-25",
+    "payRef": "1",
+    "loanKey": "2024-09#50",
+    "paidAt": "2024-09-24",
     "amount": 196500,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "173",
-    "loanKey": "September 2024#70",
-    "clientName": "Uataviza Kamuaruuma",
-    "paidAt": "2024-09-25",
+    "payRef": "1",
+    "loanKey": "2024-09#70",
+    "paidAt": "2024-09-24",
     "amount": 131500,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "174",
-    "loanKey": "September 2024#45",
-    "clientName": "Pandu Kakololo",
-    "paidAt": "2024-09-25",
+    "payRef": "1",
+    "loanKey": "2024-09#45",
+    "paidAt": "2024-09-24",
     "amount": 198000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "175",
-    "loanKey": "September 2024#73",
-    "clientName": "Erasmus Shoopala",
-    "paidAt": "2024-09-25",
+    "payRef": "1",
+    "loanKey": "2024-09#73",
+    "paidAt": "2024-09-24",
     "amount": 65000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "176",
-    "loanKey": "September 2024#41",
-    "clientName": "Joe Haihambo",
-    "paidAt": "2024-09-25",
+    "payRef": "1",
+    "loanKey": "2024-09#41",
+    "paidAt": "2024-09-24",
     "amount": 79500,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "177",
-    "loanKey": "September 2024#36",
-    "clientName": "Andrease Felestianus",
-    "paidAt": "2024-09-25",
+    "payRef": "1",
+    "loanKey": "2024-09#36",
+    "paidAt": "2024-09-24",
     "amount": 131500,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "178",
-    "loanKey": "September 2024#77",
-    "clientName": "Elton",
-    "paidAt": "2024-09-25",
+    "payRef": "1",
+    "loanKey": "2024-09#77",
+    "paidAt": "2024-09-24",
     "amount": 391500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "179",
-    "loanKey": "September 2024#78",
-    "clientName": "Asnath Meroro",
-    "paidAt": "2024-09-25",
+    "payRef": "1",
+    "loanKey": "2024-09#78",
+    "paidAt": "2024-09-24",
     "amount": 91000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "180",
-    "loanKey": "September 2024#79",
-    "clientName": "Raymond",
-    "paidAt": "2024-09-25",
+    "payRef": "1",
+    "loanKey": "2024-09#79",
+    "paidAt": "2024-09-24",
     "amount": 195000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "181",
-    "loanKey": "September 2024#80",
-    "clientName": "Debby Jod",
-    "paidAt": "2024-09-25",
+    "payRef": "1",
+    "loanKey": "2024-09#80",
+    "paidAt": "2024-09-24",
     "amount": 261500,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "182",
-    "loanKey": "September 2024#81",
-    "clientName": "Sofia Uutoni",
+    "payRef": "1",
+    "loanKey": "2024-09#81",
     "paidAt": "2024-09-25",
     "amount": 104000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "183",
-    "loanKey": "September 2024#82",
-    "clientName": "Kristofina Nghifenwa",
+    "payRef": "1",
+    "loanKey": "2024-09#82",
     "paidAt": "2024-09-25",
     "amount": 130000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "184",
-    "loanKey": "September 2024#52",
-    "clientName": "Act Security",
+    "payRef": "1",
+    "loanKey": "2024-09#52",
     "paidAt": "2024-09-25",
     "amount": 650000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "185",
-    "loanKey": "September 2024#84",
-    "clientName": "Wilma Meyer",
+    "payRef": "1",
+    "loanKey": "2024-09#84",
     "paidAt": "2024-09-30",
     "amount": 131500,
     "method": "payroll",
     "badDebt": false
   },
   {
-    "payRef": "186",
-    "loanKey": "September 2024#85",
-    "clientName": "Castro",
+    "payRef": "1",
+    "loanKey": "2024-09#85",
     "paidAt": "2024-09-30",
     "amount": 39000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "187",
-    "loanKey": "September 2024#86",
-    "clientName": "Wilma Nghifenwa",
+    "payRef": "1",
+    "loanKey": "2024-09#86",
     "paidAt": "2024-09-27",
     "amount": 195000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "188",
-    "loanKey": "September 2024#87",
-    "clientName": "Mee Fenny",
+    "payRef": "1",
+    "loanKey": "2024-09#87",
     "paidAt": "2024-09-30",
     "amount": 78000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "189",
-    "loanKey": "September 2024#88",
-    "clientName": "Hendrik Herman",
-    "paidAt": "2024-01-10",
+    "payRef": "1",
+    "loanKey": "2024-09#88",
+    "paidAt": "2024-01-09",
     "amount": 130000,
     "method": "eft",
     "badDebt": true
   },
   {
-    "payRef": "190",
-    "loanKey": "September 2024#90",
-    "clientName": "Leonard",
-    "paidAt": "2024-03-10",
+    "payRef": "1",
+    "loanKey": "2024-09#90",
+    "paidAt": "2024-03-09",
     "amount": 131500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "191",
-    "loanKey": "September 2024#237",
-    "clientName": "Naftal",
+    "payRef": "1",
+    "loanKey": "2024-09#237",
     "paidAt": null,
     "amount": 208000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "192",
-    "loanKey": "September 2024#238",
-    "clientName": "Victorina Tjiwedha",
+    "payRef": "1",
+    "loanKey": "2024-09#238",
     "paidAt": "2024-11-30",
     "amount": 39000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "193",
-    "loanKey": "October 2024#33",
-    "clientName": "Debby Jod",
+    "payRef": "1",
+    "loanKey": "2024-10#33",
     "paidAt": "2024-10-25",
     "amount": 260000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "194",
-    "loanKey": "October 2024#50",
-    "clientName": "Michael Mundabedi",
+    "payRef": "1",
+    "loanKey": "2024-10#50",
     "paidAt": "2024-10-25",
     "amount": 650000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "195",
-    "loanKey": "October 2024#70",
-    "clientName": "Elton",
+    "payRef": "1",
+    "loanKey": "2024-10#70",
     "paidAt": "2024-10-25",
     "amount": 391500,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "196",
-    "loanKey": "October 2024#71",
-    "clientName": "Samwell Hangula",
+    "payRef": "1",
+    "loanKey": "2024-10#71",
     "paidAt": "2024-10-25",
     "amount": 130000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "197",
-    "loanKey": "October 2024#45",
-    "clientName": "Uataviza",
+    "payRef": "1",
+    "loanKey": "2024-10#45",
     "paidAt": "2024-10-25",
     "amount": 131500,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "198",
-    "loanKey": "October 2024#73",
-    "clientName": "Trofimus",
+    "payRef": "1",
+    "loanKey": "2024-10#73",
     "paidAt": "2024-10-25",
     "amount": 195000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "199",
-    "loanKey": "October 2024#41",
-    "clientName": "Andreas Felestianus",
+    "payRef": "1",
+    "loanKey": "2024-10#41",
     "paidAt": "2024-10-25",
     "amount": 26000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "200",
-    "loanKey": "October 2024#75",
-    "clientName": "Wilma",
+    "payRef": "1",
+    "loanKey": "2024-10#75",
     "paidAt": "2024-10-25",
     "amount": 130000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "201",
-    "loanKey": "October 2024#36",
-    "clientName": "Raymond",
+    "payRef": "1",
+    "loanKey": "2024-10#36",
     "paidAt": "2024-10-25",
     "amount": 195000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "202",
-    "loanKey": "October 2024#78",
-    "clientName": "Joe Haihambo",
+    "payRef": "1",
+    "loanKey": "2024-10#78",
     "paidAt": "2024-10-26",
     "amount": 92500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "203",
-    "loanKey": "October 2024#79",
-    "clientName": "Willema Nghifenwa",
+    "payRef": "1",
+    "loanKey": "2024-10#79",
     "paidAt": "2024-10-31",
     "amount": 130000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "204",
-    "loanKey": "October 2024#80",
-    "clientName": "Matheus Lilwenya",
+    "payRef": "1",
+    "loanKey": "2024-10#80",
     "paidAt": "2024-10-30",
     "amount": 65000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "205",
-    "loanKey": "October 2024#81",
-    "clientName": "Michael Patrik",
+    "payRef": "1",
+    "loanKey": "2024-10#81",
     "paidAt": "2024-10-30",
     "amount": 261500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "206",
-    "loanKey": "October 2024#82",
-    "clientName": "Reinaldo Jabu",
-    "paidAt": "2024-02-10",
+    "payRef": "1",
+    "loanKey": "2024-10#82",
+    "paidAt": "2024-02-09",
     "amount": 261500,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "207",
-    "loanKey": "October 2024#52",
-    "clientName": "Act Security Employees",
-    "paidAt": "2024-01-11",
+    "payRef": "1",
+    "loanKey": "2024-10#52",
+    "paidAt": "2024-01-10",
     "amount": 700000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "208",
-    "loanKey": "October 2024#84",
-    "clientName": "Naftal",
+    "payRef": "1",
+    "loanKey": "2024-10#84",
     "paidAt": "2024-11-25",
     "amount": 152100,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "209",
-    "loanKey": "October 2024#85",
-    "clientName": "Lilie",
+    "payRef": "1",
+    "loanKey": "2024-10#85",
     "paidAt": "2024-11-26",
     "amount": 26000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "210",
-    "loanKey": "October 2024#86",
-    "clientName": "Hendrick Herman",
-    "paidAt": "2024-02-12",
+    "payRef": "1",
+    "loanKey": "2024-10#86",
+    "paidAt": "2024-02-11",
     "amount": 130000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "211",
-    "loanKey": "November 2024#33",
-    "clientName": "Debby Jod",
+    "payRef": "1",
+    "loanKey": "2024-11#33",
     "paidAt": "2024-11-25",
     "amount": 261500,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "212",
-    "loanKey": "November 2024#70",
-    "clientName": "Elton",
+    "payRef": "1",
+    "loanKey": "2024-11#70",
     "paidAt": "2024-11-25",
     "amount": 391500,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "213",
-    "loanKey": "November 2024#71",
-    "clientName": "Samwell Hangula",
+    "payRef": "1",
+    "loanKey": "2024-11#71",
     "paidAt": "2024-11-25",
     "amount": 130000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "214",
-    "loanKey": "November 2024#41",
-    "clientName": "Andreas Felestianus",
+    "payRef": "1",
+    "loanKey": "2024-11#41",
     "paidAt": "2024-11-25",
     "amount": 195000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "215",
-    "loanKey": "November 2024#75",
-    "clientName": "Wilma",
+    "payRef": "1",
+    "loanKey": "2024-11#75",
     "paidAt": "2024-11-25",
     "amount": 185000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "216",
-    "loanKey": "November 2024#36",
-    "clientName": "Raymond",
+    "payRef": "1",
+    "loanKey": "2024-11#36",
     "paidAt": "2024-11-25",
     "amount": 286000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "217",
-    "loanKey": "November 2024#78",
-    "clientName": "Joe Haihambo",
+    "payRef": "1",
+    "loanKey": "2024-11#78",
     "paidAt": "2024-11-25",
     "amount": 65000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "218",
-    "loanKey": "November 2024#79",
-    "clientName": "Willema Nghifenwa",
+    "payRef": "1",
+    "loanKey": "2024-11#79",
     "paidAt": "2024-11-25",
     "amount": 196500,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "219",
-    "loanKey": "November 2024#81",
-    "clientName": "Michael Patrik",
+    "payRef": "1",
+    "loanKey": "2024-11#81",
     "paidAt": "2024-11-25",
     "amount": 260000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "220",
-    "loanKey": "November 2024#52",
-    "clientName": "Act Security Employees",
+    "payRef": "1",
+    "loanKey": "2024-11#52",
     "paidAt": "2024-11-25",
     "amount": 1000000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "221",
-    "loanKey": "November 2024#87",
-    "clientName": "David Hamalwa",
+    "payRef": "1",
+    "loanKey": "2024-11#87",
     "paidAt": "2024-11-25",
     "amount": 40500,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "222",
-    "loanKey": "November 2024#88",
-    "clientName": "Loini Almando",
+    "payRef": "1",
+    "loanKey": "2024-11#88",
     "paidAt": null,
     "amount": 39000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "223",
-    "loanKey": "November 2024#89",
-    "clientName": "Lilie Moses",
+    "payRef": "1",
+    "loanKey": "2024-11#89",
     "paidAt": null,
     "amount": 52000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "224",
-    "loanKey": "November 2024#90",
-    "clientName": "Fenni Shuuya",
+    "payRef": "1",
+    "loanKey": "2024-11#90",
     "paidAt": null,
     "amount": 78000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "225",
-    "loanKey": "November 2024#237",
-    "clientName": "Michael Mundabedi",
+    "payRef": "1",
+    "loanKey": "2024-11#237",
     "paidAt": null,
     "amount": 328000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "226",
-    "loanKey": "December 2024#248",
-    "clientName": "Michael Mundabedi",
+    "payRef": "1",
+    "loanKey": "2024-12#248",
     "paidAt": "2024-12-20",
     "amount": 528000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "227",
-    "loanKey": "December 2024#247",
-    "clientName": "Aina Uusiku",
+    "payRef": "1",
+    "loanKey": "2024-12#247",
     "paidAt": "2024-12-20",
     "amount": 390000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "228",
-    "loanKey": "December 2024#239",
-    "clientName": "Elton",
+    "payRef": "1",
+    "loanKey": "2024-12#239",
     "paidAt": "2024-12-24",
     "amount": 651500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "229",
-    "loanKey": "December 2024#249",
-    "clientName": "Castro Geka",
+    "payRef": "1",
+    "loanKey": "2024-12#249",
     "paidAt": "2024-12-24",
     "amount": 65000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "230",
-    "loanKey": "December 2024#246",
-    "clientName": "David Hamalwa",
+    "payRef": "1",
+    "loanKey": "2024-12#246",
     "paidAt": "2024-12-24",
     "amount": 79500,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "231",
-    "loanKey": "December 2024#36",
-    "clientName": "Raymond",
+    "payRef": "1",
+    "loanKey": "2024-12#36",
     "paidAt": "2024-12-24",
     "amount": 455000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "232",
-    "loanKey": "December 2024#243",
-    "clientName": "Act Security",
+    "payRef": "1",
+    "loanKey": "2024-12#243",
     "paidAt": "2024-12-30",
     "amount": 926500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "233",
-    "loanKey": "December 2024#251",
-    "clientName": "Fenny Shuuya",
-    "paidAt": "2024-03-01",
+    "payRef": "1",
+    "loanKey": "2024-12#251",
+    "paidAt": "2024-02-29",
     "amount": 80000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "234",
-    "loanKey": "December 2024#244",
-    "clientName": "Andreas Felestianus",
+    "payRef": "1",
+    "loanKey": "2024-12#244",
     "paidAt": null,
     "amount": 130000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "235",
-    "loanKey": "December 2024#242",
-    "clientName": "Michael Patrik",
-    "paidAt": "2025-02-01",
+    "payRef": "1",
+    "loanKey": "2024-12#242",
+    "paidAt": "2025-01-31",
     "amount": 260000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "236",
-    "loanKey": "December 2024#240",
-    "clientName": "Emilia",
-    "paidAt": "2025-11-01",
+    "payRef": "1",
+    "loanKey": "2024-12#240",
+    "paidAt": "2025-10-31",
     "amount": 165000,
     "method": "deposit",
     "badDebt": false
   },
   {
-    "payRef": "237",
-    "loanKey": "December 2024#250",
-    "clientName": "Diina Fillemon",
+    "payRef": "1",
+    "loanKey": "2024-12#250",
     "paidAt": "2025-01-15",
     "amount": 130000,
     "method": "cash",
     "badDebt": false
   },
   {
-    "payRef": "238",
-    "loanKey": "December 2024#241",
-    "clientName": "Wilma Meyer",
+    "payRef": "1",
+    "loanKey": "2024-12#241",
     "paidAt": "2025-01-24",
     "amount": 148457,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "239",
-    "loanKey": "December 2024#238",
-    "clientName": "Debby",
+    "payRef": "1",
+    "loanKey": "2024-12#238",
     "paidAt": "2025-01-24",
     "amount": 295414,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "240",
-    "loanKey": "December 2024#245",
-    "clientName": "Trofimus Hamalwa",
+    "payRef": "1",
+    "loanKey": "2024-12#245",
     "paidAt": "2025-01-24",
     "amount": 146957,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "241",
-    "loanKey": "December 2024#240",
-    "clientName": "Emilia",
-    "paidAt": "2025-05-04",
+    "payRef": "2",
+    "loanKey": "2024-12#240",
+    "paidAt": "2025-05-03",
     "amount": 165000,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "242",
-    "loanKey": "January 2025#242",
-    "clientName": "Aina Uusiku",
+    "payRef": "1",
+    "loanKey": "2025-01#242",
     "paidAt": "2025-01-14",
     "amount": 521500,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "243",
-    "loanKey": "January 2025#247",
-    "clientName": "Loini",
+    "payRef": "1",
+    "loanKey": "2025-01#247",
     "paidAt": "2025-01-16",
     "amount": 140895,
     "method": "eft",
     "badDebt": false
   },
   {
-    "payRef": "244",
-    "loanKey": "January 2025#36",
-    "clientName": "Raymond",
+    "payRef": "1",
+    "loanKey": "2025-01#36",
     "paidAt": "2025-01-24",
     "amount": 650000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "245",
-    "loanKey": "January 2025#239",
-    "clientName": "Michael Mundabeti",
+    "payRef": "1",
+    "loanKey": "2025-01#239",
     "paidAt": "2025-01-24",
     "amount": 651500,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "246",
-    "loanKey": "January 2025#240",
-    "clientName": "Andreas Felestianus",
+    "payRef": "1",
+    "loanKey": "2025-01#240",
     "paidAt": "2025-01-24",
     "amount": 130000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "247",
-    "loanKey": "January 2025#241",
-    "clientName": "Elton",
+    "payRef": "1",
+    "loanKey": "2025-01#241",
     "paidAt": "2025-01-24",
     "amount": 650000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "248",
-    "loanKey": "January 2025#248",
-    "clientName": "Priskilla S",
+    "payRef": "1",
+    "loanKey": "2025-01#248",
     "paidAt": "2025-01-24",
     "amount": 39000,
     "method": "debit_order",
     "badDebt": false
   },
   {
-    "payRef": "249",
-    "loanKey": "January 2025#243",
-    "clientName": "Michael Patrick",
+    "payRef": "1",
+    "loanKey": "2025-01#243",
     "paidAt": "2025-01-31",
     "amount": 169000,
     "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-01#244",
+    "paidAt": "2025-04-01",
+    "amount": 1037500,
+    "method": "payroll",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-01#249",
+    "paidAt": "2025-04-01",
+    "amount": 104000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-01#246",
+    "paidAt": "2025-10-01",
+    "amount": 130000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-01#250",
+    "paidAt": "2025-02-15",
+    "amount": 65000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-01#245",
+    "paidAt": "2025-03-28",
+    "amount": 130000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-02#239",
+    "paidAt": "2025-02-25",
+    "amount": 650000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-02#240",
+    "paidAt": "2025-02-25",
+    "amount": 195000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-02#241",
+    "paidAt": "2025-02-25",
+    "amount": 338000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-02#247",
+    "paidAt": "2025-02-25",
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-02#253",
+    "paidAt": "2025-02-25",
+    "amount": 65000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-02#243",
+    "paidAt": "2025-02-25",
+    "amount": 130000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-02#244",
+    "paidAt": "2025-02-28",
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-02#246",
+    "paidAt": "2025-02-25",
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-02#248",
+    "paidAt": "2025-02-28",
+    "amount": 1050000,
+    "method": "payroll",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-02#249",
+    "paidAt": "2025-02-28",
+    "amount": 390000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-02#250",
+    "paidAt": "2025-01-02",
+    "amount": 260000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-02#252",
+    "paidAt": "2025-02-27",
+    "amount": 91000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-02#36",
+    "paidAt": "2025-03-25",
+    "amount": 734783,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-03#36",
+    "paidAt": "2025-03-20",
+    "amount": 585000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-03#275",
+    "paidAt": "2025-03-20",
+    "amount": 26000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-03#262",
+    "paidAt": "2025-03-25",
+    "amount": 325000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-03#263",
+    "paidAt": "2025-03-25",
+    "amount": 715000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-03#264",
+    "paidAt": "2025-03-25",
+    "amount": 195000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-03#265",
+    "paidAt": "2025-03-28",
+    "amount": 156000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-03#266",
+    "paidAt": "2025-03-25",
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-03#269",
+    "paidAt": "2025-03-27",
+    "amount": 390000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-03#271",
+    "paidAt": "2025-03-28",
+    "amount": 1250000,
+    "method": "payroll",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-03#273",
+    "paidAt": "2025-03-25",
+    "amount": 26000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-03#268",
+    "paidAt": "2025-01-02",
+    "amount": 520000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-03#267",
+    "paidAt": "2025-05-03",
+    "amount": 104000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-03#270",
+    "paidAt": "2025-04-03",
+    "amount": 260000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-03#274",
+    "paidAt": "2025-03-03",
+    "amount": 65000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-03#276",
+    "paidAt": "2025-04-03",
+    "amount": 130000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-03#272",
+    "paidAt": "2025-04-25",
+    "amount": 65000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-04#36",
+    "paidAt": "2025-04-20",
+    "amount": 390000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-04#262",
+    "paidAt": "2025-04-25",
+    "amount": 715000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-04#263",
+    "paidAt": "2025-04-25",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-04#264",
+    "paidAt": "2025-04-25",
+    "amount": 390000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-04#265",
+    "paidAt": "2025-04-25",
+    "amount": 156000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-04#266",
+    "paidAt": "2025-04-25",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-04#269",
+    "paidAt": "2025-04-25",
+    "amount": 52000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-04#277",
+    "paidAt": "2025-04-25",
+    "amount": 1300000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-04#268",
+    "paidAt": "2025-01-04",
+    "amount": 390000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-04#270",
+    "paidAt": "2025-04-29",
+    "amount": 156000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-04#272",
+    "paidAt": "2025-05-30",
+    "amount": 390000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-04#273",
+    "paidAt": "2025-02-04",
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-04#275",
+    "paidAt": "2025-02-04",
+    "amount": 78000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-04#271",
+    "paidAt": "2025-04-04",
+    "amount": 195000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-04#274",
+    "paidAt": "2025-05-04",
+    "amount": 130000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-04#267",
+    "paidAt": "2025-05-15",
+    "amount": 130000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-04#276",
+    "paidAt": "2025-05-31",
+    "amount": 150000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-05#263",
+    "paidAt": "2025-05-23",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-05#264",
+    "paidAt": "2025-05-23",
+    "amount": 390000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-05#265",
+    "paidAt": "2025-05-23",
+    "amount": 156000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-05#266",
+    "paidAt": "2025-05-23",
+    "amount": 520000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-05#267",
+    "paidAt": "2025-05-23",
+    "amount": 325000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-05#278",
+    "paidAt": "2025-05-23",
+    "amount": 130000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-05#280",
+    "paidAt": "2025-05-21",
+    "amount": 130000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-05#279",
+    "paidAt": "2025-05-27",
+    "amount": 100000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-05#277",
+    "paidAt": "2025-05-30",
+    "amount": 1690500,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-05#273",
+    "paidAt": "2025-03-05",
+    "amount": 260000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-05#271",
+    "paidAt": "2025-03-05",
+    "amount": 195000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-05#272",
+    "paidAt": "2025-05-05",
+    "amount": 910000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-05#275",
+    "paidAt": "2025-12-05",
+    "amount": 130000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-05#274",
+    "paidAt": "2025-06-16",
+    "amount": 130000,
+    "method": "ewallet",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-05#282",
+    "paidAt": "2025-06-20",
+    "amount": 260000,
+    "method": "ewallet",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-06#264",
+    "paidAt": "2025-05-05",
+    "amount": 100000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-06#282",
+    "paidAt": "2025-06-20",
+    "amount": 130000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-06#283",
+    "paidAt": "2025-06-23",
+    "amount": 325000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-06#281",
+    "paidAt": "2025-06-20",
+    "amount": 325000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "2",
+    "loanKey": "2025-06#264",
+    "paidAt": "2025-06-25",
+    "amount": 355000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-06#265",
+    "paidAt": "2025-06-25",
+    "amount": 195000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-06#266",
+    "paidAt": "2025-06-25",
+    "amount": 910000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-06#267",
+    "paidAt": "2025-06-25",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-06#286",
+    "paidAt": "2025-06-25",
+    "amount": 390000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-06#277",
+    "paidAt": "2025-06-29",
+    "amount": 1853000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-06#263",
+    "paidAt": "2025-06-27",
+    "amount": 650000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-06#285",
+    "paidAt": "2025-06-27",
+    "amount": 455000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-06#273",
+    "paidAt": "2025-01-06",
+    "amount": 195000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-06#271",
+    "paidAt": "2025-03-06",
+    "amount": 260000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-06#287",
+    "paidAt": "2025-05-06",
+    "amount": 130000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-06#275",
+    "paidAt": "2025-07-13",
+    "amount": 78000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-06#289",
+    "paidAt": "2025-06-05",
+    "amount": 52000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-06#284",
+    "paidAt": "2025-07-31",
+    "amount": 65000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-06#288",
+    "paidAt": "2025-07-28",
+    "amount": 65000,
+    "method": "ewallet",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#290",
+    "paidAt": "2025-06-25",
+    "amount": 338000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#291",
+    "paidAt": "2025-07-17",
+    "amount": 65000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#305",
+    "paidAt": "2025-07-22",
+    "amount": 455000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#302",
+    "paidAt": "2025-07-18",
+    "amount": 130000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#307",
+    "paidAt": "2025-07-24",
+    "amount": 390000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#309",
+    "paidAt": "2025-07-21",
+    "amount": 260000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#300",
+    "paidAt": "2025-07-24",
+    "amount": 195000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#293",
+    "paidAt": "2025-07-25",
+    "amount": 236590,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#294",
+    "paidAt": "2025-07-25",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#295",
+    "paidAt": "2025-07-25",
+    "amount": 195000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#296",
+    "paidAt": "2025-07-25",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#297",
+    "paidAt": "2025-07-25",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#299",
+    "paidAt": "2025-07-25",
+    "amount": 130000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#298",
+    "paidAt": "2025-04-07",
+    "amount": 660000,
+    "method": "deposit",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#301",
+    "paidAt": "2025-07-28",
+    "amount": 2192500,
+    "method": "deposit",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#303",
+    "paidAt": "2025-07-28",
+    "amount": 130000,
+    "method": "deposit",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#304",
+    "paidAt": "2025-03-07",
+    "amount": 260000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#310",
+    "paidAt": "2025-01-07",
+    "amount": 130000,
+    "method": "ewallet",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#289",
+    "paidAt": "2025-08-14",
+    "amount": 520000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#311",
+    "paidAt": "2025-12-22",
+    "amount": 650000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#306",
+    "paidAt": null,
+    "amount": 60000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "2",
+    "loanKey": "2025-07#293",
+    "paidAt": "2025-08-25",
+    "amount": 160000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-07#308",
+    "paidAt": null,
+    "amount": 160000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "2",
+    "loanKey": "2025-07#298",
+    "paidAt": null,
+    "amount": 200000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "3",
+    "loanKey": "2025-07#293",
+    "paidAt": null,
+    "amount": 71410,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "3",
+    "loanKey": "2025-07#298",
+    "paidAt": "2025-10-24",
+    "amount": 400000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "2",
+    "loanKey": "2025-07#306",
+    "paidAt": "2025-12-19",
+    "amount": 50000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "4",
+    "loanKey": "2025-07#298",
+    "paidAt": null,
+    "amount": 430000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "3",
+    "loanKey": "2025-07#306",
+    "paidAt": null,
+    "amount": 280000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "2",
+    "loanKey": "2025-07#308",
+    "paidAt": null,
+    "amount": 360000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-08#290",
+    "paidAt": "2025-08-20",
+    "amount": 390000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-08#294",
+    "paidAt": "2025-08-22",
+    "amount": 650000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-08#295",
+    "paidAt": "2025-08-25",
+    "amount": 195000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-08#296",
+    "paidAt": "2025-08-25",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-08#297",
+    "paidAt": "2025-08-25",
+    "amount": 390000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-08#307",
+    "paidAt": "2025-08-22",
+    "amount": 455000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-08#313",
+    "paidAt": "2025-08-22",
+    "amount": 520000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-08#301",
+    "paidAt": null,
+    "amount": 2725000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-08#304",
+    "paidAt": null,
+    "amount": 260000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-08#310",
+    "paidAt": null,
+    "amount": 260000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-08#314",
+    "paidAt": null,
+    "amount": 195000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-08#316",
+    "paidAt": null,
+    "amount": 78000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-08#299",
+    "paidAt": "2025-09-25",
+    "amount": 130000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-08#291",
+    "paidAt": "2025-08-30",
+    "amount": 130000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-08#315",
+    "paidAt": "2025-09-25",
+    "amount": 104000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-09#290",
+    "paidAt": "2025-05-05",
+    "amount": 390000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-09#294",
+    "paidAt": "2025-12-06",
+    "amount": 650000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-09#295",
+    "paidAt": "2025-08-22",
+    "amount": 195000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-09#317",
+    "paidAt": null,
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-09#318",
+    "paidAt": null,
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-09#319",
+    "paidAt": null,
+    "amount": 325000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-09#322",
+    "paidAt": null,
+    "amount": 130000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-09#323",
+    "paidAt": null,
+    "amount": 104000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-09#326",
+    "paidAt": null,
+    "amount": 520000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-09#327",
+    "paidAt": null,
+    "amount": 104000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-09#324",
+    "paidAt": null,
+    "amount": 3050000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-09#320",
+    "paidAt": null,
+    "amount": 650000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-09#325",
+    "paidAt": null,
+    "amount": 260000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-09#328",
+    "paidAt": null,
+    "amount": 130000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#290",
+    "paidAt": "2025-10-20",
+    "amount": 520000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#294",
+    "paidAt": "2025-10-24",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#295",
+    "paidAt": "2025-10-24",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#317",
+    "paidAt": "2025-10-24",
+    "amount": 195000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#318",
+    "paidAt": "2025-10-24",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#319",
+    "paidAt": "2025-10-24",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#320",
+    "paidAt": "2025-10-24",
+    "amount": 104000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#323",
+    "paidAt": "2025-10-24",
+    "amount": 65000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#328",
+    "paidAt": "2025-10-24",
+    "amount": 91000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#331",
+    "paidAt": "2025-10-24",
+    "amount": 78000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#332",
+    "paidAt": "2025-10-24",
+    "amount": 52000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#326",
+    "paidAt": "2025-10-31",
+    "amount": 3237500,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#324",
+    "paidAt": "2025-03-10",
+    "amount": 260000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#325",
+    "paidAt": "2025-04-10",
+    "amount": 650000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#327",
+    "paidAt": "2025-10-31",
+    "amount": 325000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#330",
+    "paidAt": "2025-11-30",
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#291",
+    "paidAt": "2025-11-15",
+    "amount": 104000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#322",
+    "paidAt": null,
+    "amount": 130000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-10#333",
+    "paidAt": null,
+    "amount": 455000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#295",
+    "paidAt": "2025-11-24",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#334",
+    "paidAt": "2025-03-10",
+    "amount": 65000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#320",
+    "paidAt": "2025-11-20",
+    "amount": 104000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#335",
+    "paidAt": "2025-11-20",
+    "amount": 130000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#343",
+    "paidAt": "2025-11-20",
+    "amount": 130000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#294",
+    "paidAt": "2025-11-25",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#318",
+    "paidAt": "2025-11-25",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#319",
+    "paidAt": "2025-11-25",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#336",
+    "paidAt": "2025-11-25",
+    "amount": 195000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#339",
+    "paidAt": "2025-11-25",
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#340",
+    "paidAt": "2025-11-25",
+    "amount": 403000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#341",
+    "paidAt": "2025-11-25",
+    "amount": 130000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#342",
+    "paidAt": "2025-11-27",
+    "amount": 3250000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#344",
+    "paidAt": "2025-11-25",
+    "amount": 65000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#346",
+    "paidAt": "2025-11-25",
+    "amount": 52000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#328",
+    "paidAt": "2025-11-25",
+    "amount": 65000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#337",
+    "paidAt": "2025-11-20",
+    "amount": 130000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#338",
+    "paidAt": null,
+    "amount": 195000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-11#345",
+    "paidAt": null,
+    "amount": 221000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-12#295",
+    "paidAt": "2025-12-19",
+    "amount": 650000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-12#294",
+    "paidAt": "2025-12-19",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-12#320",
+    "paidAt": "2025-12-19",
+    "amount": 390000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-12#318",
+    "paidAt": null,
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-12#319",
+    "paidAt": null,
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-12#334",
+    "paidAt": null,
+    "amount": 65000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-12#339",
+    "paidAt": null,
+    "amount": 130000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-12#340",
+    "paidAt": null,
+    "amount": 390000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-12#346",
+    "paidAt": null,
+    "amount": 78000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-12#348",
+    "paidAt": null,
+    "amount": 52000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-12#344",
+    "paidAt": null,
+    "amount": 65000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-12#342",
+    "paidAt": null,
+    "amount": 2500000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-12#335",
+    "paidAt": null,
+    "amount": 104000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-12#336",
+    "paidAt": null,
+    "amount": 195000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-12#349",
+    "paidAt": null,
+    "amount": 130000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-12#350",
+    "paidAt": null,
+    "amount": 260000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-12#351",
+    "paidAt": null,
+    "amount": 65000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2025-12#328",
+    "paidAt": null,
+    "amount": 104000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-01#295",
+    "paidAt": "2025-12-19",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-01#294",
+    "paidAt": "2025-12-19",
+    "amount": 741000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-01#318",
+    "paidAt": "2025-12-19",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-01#319",
+    "paidAt": "2025-11-20",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-01#337",
+    "paidAt": null,
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-01#339",
+    "paidAt": null,
+    "amount": 130000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-01#353",
+    "paidAt": null,
+    "amount": 52000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-01#356",
+    "paidAt": null,
+    "amount": 26000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-01#354",
+    "paidAt": null,
+    "amount": 130000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-01#328",
+    "paidAt": null,
+    "amount": 130000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-01#348",
+    "paidAt": null,
+    "amount": 104000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-01#320",
+    "paidAt": null,
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-01#334",
+    "paidAt": null,
+    "amount": 520000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-01#335",
+    "paidAt": null,
+    "amount": 300000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-01#342",
+    "paidAt": null,
+    "amount": 500000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-01#357",
+    "paidAt": null,
+    "amount": 130000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-01#336",
+    "paidAt": null,
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-01#355",
+    "paidAt": "2026-06-02",
+    "amount": 325000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "2",
+    "loanKey": "2026-01#342",
+    "paidAt": "2026-03-25",
+    "amount": 250000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "2",
+    "loanKey": "2026-01#335",
+    "paidAt": "2026-04-30",
+    "amount": 25000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-02#352",
+    "paidAt": null,
+    "amount": 130000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-02#294",
+    "paidAt": "2026-02-25",
+    "amount": 715000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-02#295",
+    "paidAt": "2026-02-25",
+    "amount": 195000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-02#318",
+    "paidAt": "2026-02-25",
+    "amount": 910000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-02#328",
+    "paidAt": "2026-02-25",
+    "amount": 130000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-02#334",
+    "paidAt": "2026-02-25",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-02#339",
+    "paidAt": "2026-02-25",
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-02#353",
+    "paidAt": "2026-02-25",
+    "amount": 130000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-02#356",
+    "paidAt": "2026-02-25",
+    "amount": 104000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-02#355",
+    "paidAt": "2026-02-25",
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-02#354",
+    "paidAt": "2026-02-25",
+    "amount": 195000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-02#319",
+    "paidAt": "2026-02-25",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-02#320",
+    "paidAt": "2026-02-26",
+    "amount": 130000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-02#335",
+    "paidAt": null,
+    "amount": 650000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-02#336",
+    "paidAt": null,
+    "amount": 40000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-02#357",
+    "paidAt": null,
+    "amount": 260000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-02#340",
+    "paidAt": "2026-03-25",
+    "amount": 39000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "2",
+    "loanKey": "2026-02#336",
+    "paidAt": "2026-04-28",
+    "amount": 64000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "2",
+    "loanKey": "2026-02#340",
+    "paidAt": "2025-02-25",
+    "amount": 130000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#358",
+    "paidAt": "2026-03-23",
+    "amount": 375000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#362",
+    "paidAt": "2026-03-24",
+    "amount": 625000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#364",
+    "paidAt": "2026-03-25",
+    "amount": 350000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#360",
+    "paidAt": "2026-03-25",
+    "amount": 125000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#319",
+    "paidAt": "2026-03-25",
+    "amount": 625000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#359",
+    "paidAt": "2026-03-25",
+    "amount": 312500,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#373",
+    "paidAt": "2026-03-25",
+    "amount": 328597,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#376",
+    "paidAt": "2026-03-25",
+    "amount": 118455,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#371",
+    "paidAt": "2026-03-25",
+    "amount": 195000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#375",
+    "paidAt": "2026-03-24",
+    "amount": 130000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#372",
+    "paidAt": "2026-03-24",
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#361",
+    "paidAt": "2026-03-24",
+    "amount": 625000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#370",
+    "paidAt": "2026-03-24",
+    "amount": 525700,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#381",
+    "paidAt": "2026-03-25",
+    "amount": 65000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#363",
+    "paidAt": "2026-03-26",
+    "amount": 104000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#365",
+    "paidAt": "2026-03-26",
+    "amount": 65000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#328",
+    "paidAt": "2026-03-26",
+    "amount": 125000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#368",
+    "paidAt": "2026-03-27",
+    "amount": 299000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#378",
+    "paidAt": "2026-03-29",
+    "amount": 65000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#366",
+    "paidAt": "2026-03-31",
+    "amount": 250000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#367",
+    "paidAt": "2026-03-31",
+    "amount": 520000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#369",
+    "paidAt": "2026-03-31",
+    "amount": 78000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#374",
+    "paidAt": "2026-03-31",
+    "amount": 130000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#377",
+    "paidAt": "2026-04-13",
+    "amount": 390000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "2",
+    "loanKey": "2026-03#370",
+    "paidAt": null,
+    "amount": 514300,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#379",
+    "paidAt": "2026-04-23",
+    "amount": 104000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "2",
+    "loanKey": "2026-03#376",
+    "paidAt": "2026-04-24",
+    "amount": 115545,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#380",
+    "paidAt": "2026-04-17",
+    "amount": 78000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-03#294",
+    "paidAt": "2026-04-24",
+    "amount": 734783,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "2",
+    "loanKey": "2026-03#373",
+    "paidAt": "2026-04-24",
+    "amount": 321403,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#391",
+    "paidAt": null,
+    "amount": 260000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#392",
+    "paidAt": "2026-04-20",
+    "amount": 195000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#387",
+    "paidAt": "2026-04-23",
+    "amount": 104000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#384",
+    "paidAt": "2026-04-23",
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#401",
+    "paidAt": "2026-04-24",
+    "amount": 195000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#377",
+    "paidAt": "2026-04-25",
+    "amount": 455000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#381",
+    "paidAt": "2026-04-25",
+    "amount": 130000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#383",
+    "paidAt": "2026-04-24",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#379",
+    "paidAt": "2026-04-24",
+    "amount": 325000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#378",
+    "paidAt": "2026-04-24",
+    "amount": 754000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#399",
+    "paidAt": "2026-04-24",
+    "amount": 78000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#388",
+    "paidAt": "2026-04-24",
+    "amount": 169000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#380",
+    "paidAt": "2026-04-24",
+    "amount": 910000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#382",
+    "paidAt": "2026-04-25",
+    "amount": 104000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#390",
+    "paidAt": "2026-04-26",
+    "amount": 195000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#394",
+    "paidAt": "2026-04-24",
+    "amount": 195000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#385",
+    "paidAt": "2026-04-28",
+    "amount": 375000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#398",
+    "paidAt": "2026-04-28",
+    "amount": 52000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#389",
+    "paidAt": "2026-04-30",
+    "amount": 520000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#393",
+    "paidAt": "2026-01-04",
+    "amount": 65000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#400",
+    "paidAt": "2026-01-04",
+    "amount": 65000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#396",
+    "paidAt": "2026-07-04",
+    "amount": 325000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#395",
+    "paidAt": "2026-05-13",
+    "amount": 110000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#397",
+    "paidAt": "2026-05-18",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-04#386",
+    "paidAt": "2026-05-30",
+    "amount": 260000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "2",
+    "loanKey": "2026-04#395",
+    "paidAt": "2026-04-05",
+    "amount": 280000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#380",
+    "paidAt": "2026-05-22",
+    "amount": 1170000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#406",
+    "paidAt": "2026-05-22",
+    "amount": 299000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#424",
+    "paidAt": "2026-05-22",
+    "amount": 65000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#404",
+    "paidAt": "2026-05-22",
+    "amount": 754000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#420",
+    "paidAt": "2026-05-22",
+    "amount": 650000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#405",
+    "paidAt": "2026-05-22",
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#414",
+    "paidAt": "2026-05-22",
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#422",
+    "paidAt": "2026-05-22",
+    "amount": 130000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#413",
+    "paidAt": "2026-05-22",
+    "amount": 53500,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#427",
+    "paidAt": "2026-05-22",
+    "amount": 130000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#419",
+    "paidAt": "2026-05-22",
+    "amount": 325000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#421",
+    "paidAt": "2026-05-24",
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#403",
+    "paidAt": "2026-05-15",
+    "amount": 160000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#407",
+    "paidAt": "2026-05-15",
+    "amount": 375000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#426",
+    "paidAt": "2026-05-26",
+    "amount": 350000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#411",
+    "paidAt": "2026-05-30",
+    "amount": 78000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#412",
+    "paidAt": "2026-05-30",
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#428",
+    "paidAt": "2026-05-30",
+    "amount": 260000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#415",
+    "paidAt": "2026-05-30",
+    "amount": 65000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#417",
+    "paidAt": "2026-05-29",
+    "amount": 78000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#410",
+    "paidAt": "2026-05-29",
+    "amount": 520000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#432",
+    "paidAt": "2026-02-05",
+    "amount": 78000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#416",
+    "paidAt": "2026-02-05",
+    "amount": 130000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#409",
+    "paidAt": "2026-02-05",
+    "amount": 195000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#429",
+    "paidAt": "2026-02-05",
+    "amount": 200000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "2",
+    "loanKey": "2026-05#403",
+    "paidAt": "2026-03-05",
+    "amount": 100000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#418",
+    "paidAt": "2026-05-05",
+    "amount": 325000,
+    "method": "cash",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-05#408",
+    "paidAt": "2026-10-05",
+    "amount": 438000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "2",
+    "loanKey": "2026-05#429",
+    "paidAt": "2026-12-05",
+    "amount": 99000,
+    "method": "eft",
     "badDebt": false
   }
 ]

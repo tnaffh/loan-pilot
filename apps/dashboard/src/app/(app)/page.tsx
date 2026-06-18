@@ -4,11 +4,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   AlertTriangle,
+  ArrowDownCircle,
   Banknote,
   Building2,
   Download,
   FileText,
   Inbox,
+  PiggyBank,
+  TrendingUp,
   Users,
   Wallet,
 } from 'lucide-react';
@@ -134,6 +137,35 @@ const LenderOverview = ({
           icon={Inbox}
           tone="amber"
           hint="Awaiting a decision"
+        />
+      </StatGrid>
+
+      <StatGrid>
+        <StatCard
+          label="Net profit"
+          value={formatNad(stats.netProfit)}
+          icon={TrendingUp}
+          tone={stats.netProfit >= 0 ? 'green' : 'red'}
+          hint="Collected − disbursed − expenses"
+        />
+        <StatCard
+          label="Collected to date"
+          value={formatNad(stats.collected)}
+          icon={Banknote}
+          hint={`${formatNad(stats.expenses)} operating costs`}
+        />
+        <StatCard
+          label="Invested capital"
+          value={formatNad(stats.invested)}
+          icon={PiggyBank}
+          tone="brand"
+          hint="Owner contributions in"
+        />
+        <StatCard
+          label="Owner drawings"
+          value={formatNad(stats.drawings)}
+          icon={ArrowDownCircle}
+          hint="Dividends / cash-out"
         />
       </StatGrid>
 

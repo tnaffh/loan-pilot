@@ -50,10 +50,34 @@ const columns: ColumnDef<LoanRow>[] = [
     ),
   },
   {
-    id: 'next due',
-    header: 'Next due',
+    id: 'term',
+    header: () => <div className="text-right">Term</div>,
+    accessorKey: 'termMonths',
+    cell: ({ row }) => (
+      <div className="text-right tabular-nums">
+        {row.original.termMonths} {row.original.termMonths === 1 ? 'mo' : 'mos'}
+      </div>
+    ),
+  },
+  {
+    id: 'disbursed',
+    header: 'Disbursed',
+    accessorKey: 'disbursedAt',
+    cell: ({ row }) => (
+      <span className="whitespace-nowrap text-muted-foreground">
+        {formatDate(row.original.disbursedAt)}
+      </span>
+    ),
+  },
+  {
+    id: 'due',
+    header: 'Due',
     accessorKey: 'nextDueAt',
-    cell: ({ row }) => formatDate(row.original.nextDueAt),
+    cell: ({ row }) => (
+      <span className="whitespace-nowrap text-muted-foreground">
+        {formatDate(row.original.nextDueAt)}
+      </span>
+    ),
   },
   {
     id: 'status',

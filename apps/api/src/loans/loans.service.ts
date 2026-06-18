@@ -80,7 +80,7 @@ export class LoansService {
     return this.prisma.loan.findMany({
       where: { tenantId },
       include: { borrower: { select: { id: true, firstName: true, lastName: true } } },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ disbursedAt: 'desc' }, { createdAt: 'desc' }],
     });
   }
 

@@ -21,7 +21,7 @@ type KindFilter = 'all' | ExpenseKind;
 const KIND_OPTIONS: { value: KindFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: ExpenseKind.Expense, label: 'Expenses' },
-  { value: ExpenseKind.Refund, label: 'Refunds' },
+  { value: ExpenseKind.Drawing, label: 'Drawings' },
 ];
 
 const columns: ColumnDef<ExpenseRow>[] = [
@@ -33,7 +33,7 @@ const columns: ColumnDef<ExpenseRow>[] = [
     header: 'Type',
     accessorKey: 'kind',
     cell: ({ row }) => (
-      <Badge variant={row.original.kind === ExpenseKind.Refund ? 'secondary' : 'outline'} className="capitalize">
+      <Badge variant={row.original.kind === ExpenseKind.Drawing ? 'secondary' : 'outline'} className="capitalize">
         {row.original.kind}
       </Badge>
     ),
@@ -73,14 +73,14 @@ const ExpensesPage = () => {
     <div>
       <PageHeader
         title="Expenses"
-        description={data ? `${data.length} entries recorded` : 'Operating costs and refunds'}
+        description={data ? `${data.length} entries recorded` : 'Operating costs and owner drawings'}
       />
 
       {totals ? (
         <div className="mb-4 grid gap-4 sm:grid-cols-3">
           <StatCard label="Total expenses" value={formatNad(totals.totalExpenses)} icon={ArrowUpCircle} />
-          <StatCard label="Total refunds" value={formatNad(totals.totalRefunds)} icon={ArrowDownCircle} />
-          <StatCard label="Net cost" value={formatNad(totals.net)} icon={Scale} />
+          <StatCard label="Owner drawings" value={formatNad(totals.totalDrawings)} icon={ArrowDownCircle} />
+          <StatCard label="Total cash out" value={formatNad(totals.net)} icon={Scale} />
         </div>
       ) : null}
 

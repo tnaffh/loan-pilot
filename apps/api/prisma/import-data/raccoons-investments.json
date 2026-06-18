@@ -1,0 +1,23 @@
+[
+  {
+    "seq": 1,
+    "name": "Personal",
+    "period": "June",
+    "contributedAt": null,
+    "amount": 400000
+  },
+  {
+    "seq": 2,
+    "name": "School",
+    "period": "April",
+    "contributedAt": null,
+    "amount": 700000
+  },
+  {
+    "seq": 3,
+    "name": "future Jacob investment",
+    "period": "FEBRUARY",
+    "contributedAt": null,
+    "amount": 9310000
+  }
+]

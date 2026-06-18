@@ -36,6 +36,13 @@ import { useApi } from '@/lib/use-api';
 import { formatDate } from '@/lib/format';
 import type { LoanDetail } from '@/lib/types';
 
+const Detail = ({ label, value }: { label: string; value: string }) => (
+  <div>
+    <dt className="text-xs text-muted-foreground">{label}</dt>
+    <dd className="mt-0.5 font-medium tabular-nums">{value}</dd>
+  </div>
+);
+
 const LoanDetailPage = () => {
   const params = useParams<{ id: string }>();
   const { user, token } = useAuth();
@@ -117,6 +124,28 @@ const LoanDetailPage = () => {
           hint={data.daysLate > 0 ? 'In arrears' : 'On track'}
         />
       </div>
+
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base">Loan details</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-3 lg:grid-cols-6">
+            <Detail label="Register month" value={data.originMonth ?? '—'} />
+            <Detail label="Disbursed" value={formatDate(data.disbursedAt)} />
+            <Detail label="Due" value={formatDate(data.nextDueAt)} />
+            <Detail
+              label="Term"
+              value={`${data.termMonths} ${data.termMonths === 1 ? 'month' : 'months'}`}
+            />
+            <Detail label="Finance rate" value={`${Math.round(data.interestRate * 100)}%`} />
+            <Detail
+              label="Instalment"
+              value={formatNad(data.instalment)}
+            />
+          </dl>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader className="pb-2">

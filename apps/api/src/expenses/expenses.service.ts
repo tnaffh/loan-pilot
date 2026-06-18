@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 export interface ExpenseTotals {
   totalExpenses: number;
-  totalRefunds: number;
+  totalDrawings: number;
   net: number;
 }
 
@@ -13,7 +13,7 @@ export interface ExpenseTotals {
 export class ExpensesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  /** List expenses/refunds for a tenant, most recent first; optionally by period. */
+  /** List expenses/drawings for a tenant, most recent first; optionally by period. */
   findAllForTenant(tenantId: string, period?: string): Promise<Expense[]> {
     return this.prisma.expense.findMany({
       where: { tenantId, ...(period ? { period } : {}) },
@@ -21,24 +21,24 @@ export class ExpensesService {
     });
   }
 
-  /** Totals across all expenses and refunds (cents). */
+  /** Totals for operating expenses and owner drawings (cents); net is total cash out. */
   async totals(tenantId: string): Promise<ExpenseTotals> {
-    const [expenses, refunds] = await Promise.all([
+    const [expenses, drawings] = await Promise.all([
       this.prisma.expense.aggregate({
         where: { tenantId, kind: ExpenseKind.Expense },
         _sum: { amount: true },
       }),
       this.prisma.expense.aggregate({
-        where: { tenantId, kind: ExpenseKind.Refund },
+        where: { tenantId, kind: ExpenseKind.Drawing },
         _sum: { amount: true },
       }),
     ]);
     const totalExpenses = expenses._sum.amount ?? 0;
-    const totalRefunds = refunds._sum.amount ?? 0;
-    return { totalExpenses, totalRefunds, net: totalExpenses - totalRefunds };
+    const totalDrawings = drawings._sum.amount ?? 0;
+    return { totalExpenses, totalDrawings, net: totalExpenses + totalDrawings };
   }
 
-  /** Record an expense or refund. `amount` arrives in major N$ units. */
+  /** Record an operating expense or owner drawing. `amount` arrives in major N$ units. */
   create(tenantId: string, input: CreateExpenseInput): Promise<Expense> {
     return this.prisma.expense.create({
       data: {

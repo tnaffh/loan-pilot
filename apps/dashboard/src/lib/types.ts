@@ -116,8 +116,22 @@ export interface ExpenseRow {
 
 export interface ExpenseTotals {
   totalExpenses: number;
-  totalRefunds: number;
+  totalDrawings: number;
   net: number;
+}
+
+export interface InvestmentRow {
+  id: string;
+  name: string;
+  period: string | null;
+  contributedAt: string | null;
+  amount: number;
+  note: string | null;
+}
+
+export interface InvestmentTotals {
+  total: number;
+  count: number;
 }
 
 export interface MonthlyPoint {
@@ -150,7 +164,8 @@ export type OverviewStats =
       disbursed: number;
       collected: number;
       expenses: number;
-      refunds: number;
+      drawings: number;
+      invested: number;
       netProfit: number;
     }
   | {
