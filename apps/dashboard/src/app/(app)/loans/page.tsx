@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, Plus } from 'lucide-react';
+import { Activity, AlertTriangle, Eye, Plus, Wallet } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { LoanStatus, formatNad } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,9 @@ import { StatusBadge } from '@/components/status-badge';
 import { TypeChip } from '@/components/type-chip';
 import { InitialsAvatar } from '@/components/initials-avatar';
 import { FilterSegments } from '@/components/filter-segments';
+import { MonthFilter, toMonthKey, useMonthOptions, ALL_MONTHS } from '@/components/month-filter';
+import { DateRangeFilter, isInRange, type IsoRange } from '@/components/date-range-filter';
+import { StatStrip } from '@/components/stat-strip';
 import { DataTable } from '@/components/data-table';
 import { useCommand } from '@/components/command-provider';
 import { useApi } from '@/lib/use-api';
@@ -105,6 +108,12 @@ const LoansPage = () => {
   const command = useCommand();
   const { data, loading, error } = useApi<LoanRow[]>('/loans');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [range, setRange] = useState<IsoRange>({});
+
+  const { months, latest } = useMonthOptions((data ?? []).map((loan) => loan.disbursedAt));
+  const [month, setMonth] = useState<string>('');
+  // Default to the most recent month that has data once the data arrives.
+  const activeMonth = month || latest;
 
   const columns = useMemo<ColumnDef<LoanRow>[]>(
     () => [
@@ -113,6 +122,7 @@ const LoansPage = () => {
         id: 'quickview',
         header: () => <span className="sr-only">Quick view</span>,
         enableHiding: false,
+        enableSorting: false,
         cell: ({ row }) => (
           <div className="flex justify-end">
             <Button
@@ -135,9 +145,23 @@ const LoansPage = () => {
   );
 
   const rows = useMemo(
-    () => (data ?? []).filter((loan) => statusFilter === 'all' || loan.status === statusFilter),
-    [data, statusFilter],
+    () =>
+      (data ?? []).filter(
+        (loan) =>
+          (statusFilter === 'all' || loan.status === statusFilter) &&
+          (activeMonth === ALL_MONTHS || toMonthKey(loan.disbursedAt) === activeMonth) &&
+          isInRange(loan.disbursedAt, range),
+      ),
+    [data, statusFilter, activeMonth, range],
   );
+
+  const summary = useMemo(() => {
+    const book = rows.reduce((sum, loan) => sum + loan.balance, 0);
+    const active = rows.filter((loan) => loan.status === LoanStatus.Active).length;
+    const arrears = rows.filter((loan) => loan.status === LoanStatus.Arrears).length;
+    const avg = rows.length ? Math.round(rows.reduce((s, l) => s + l.principal, 0) / rows.length) : 0;
+    return { book, active, arrears, avg };
+  }, [rows]);
 
   const outstanding = (data ?? []).reduce((sum, loan) => sum + loan.balance, 0);
 
@@ -166,8 +190,27 @@ const LoansPage = () => {
           data={rows}
           searchPlaceholder="Search borrowers…"
           onRowClick={(loan) => router.push(`/loans/${loan.id}`)}
+          summary={
+            <StatStrip
+              items={[
+                { label: 'Outstanding (shown)', value: formatNad(summary.book), icon: Wallet },
+                { label: 'Active', value: String(summary.active), icon: Activity, tone: 'green' },
+                {
+                  label: 'In arrears',
+                  value: String(summary.arrears),
+                  icon: AlertTriangle,
+                  tone: summary.arrears > 0 ? 'red' : 'default',
+                },
+                { label: 'Avg loan size', value: formatNad(summary.avg) },
+              ]}
+            />
+          }
           toolbar={
-            <FilterSegments value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} />
+            <div className="flex flex-wrap items-center gap-2">
+              <FilterSegments value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} />
+              <MonthFilter months={months} value={activeMonth} onChange={setMonth} />
+              <DateRangeFilter value={range} onChange={setRange} />
+            </div>
           }
         />
       )}

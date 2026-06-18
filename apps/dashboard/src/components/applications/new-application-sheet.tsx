@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -21,11 +21,18 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { bumpRevalidation } from '@/lib/revalidate';
-import { FieldError, selectClass } from '@/components/form-field';
+import { FormField } from '@/components/form-field';
 
 const TYPE_LABELS: Record<LoanType, string> = {
   [LoanType.Payday]: 'Payday',
@@ -39,12 +46,14 @@ const EMPLOYMENT_LABELS: Record<EmploymentType, string> = {
   [EmploymentType.Contract]: 'Contract',
   [EmploymentType.Pensioner]: 'Pensioner',
 };
+const ACCOUNT_TYPES = ['Savings', 'Cheque', 'Transmission'];
 
 const DEFAULTS: Partial<CreateApplicationInput> = {
   loanType: LoanType.Payday,
   amount: 5000,
   termMonths: 1,
   purpose: '',
+  dateOfBirth: '',
   employmentType: EmploymentType.PermanentlyEmployed,
   accountType: 'Savings',
   references: [
@@ -59,7 +68,7 @@ const SectionTitle = ({ children }: { children: React.ReactNode }) => (
 );
 
 const isApplicationField = (path: string): path is keyof CreateApplicationInput =>
-  path in createApplicationSchema.shape;
+  path in createApplicationSchema.innerType().shape;
 
 interface Props {
   open: boolean;
@@ -70,6 +79,7 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
   const { token } = useAuth();
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setError,
@@ -113,133 +123,175 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
             affordability, then enters the review queue.
           </SheetDescription>
         </SheetHeader>
-        <form onSubmit={onSubmit} className="space-y-5 px-4 pb-4" noValidate>
-          <div className="space-y-3">
+        <form onSubmit={onSubmit} className="space-y-6 px-4 pb-4" noValidate>
+          <div className="space-y-4">
             <SectionTitle>Loan</SectionTitle>
             <div className="grid gap-4 sm:grid-cols-3">
-              <div>
-                <Label htmlFor="loanType">Type</Label>
-                <select id="loanType" className={selectClass} {...register('loanType')}>
-                  {Object.values(LoanType).map((value) => (
-                    <option key={value} value={value}>
-                      {TYPE_LABELS[value]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="amount">Amount (N$)</Label>
+              <FormField label="Type" htmlFor="loanType">
+                <Controller
+                  control={control}
+                  name="loanType"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="loanType" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.values(LoanType).map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {TYPE_LABELS[value]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </FormField>
+              <FormField label="Amount (N$)" htmlFor="amount" error={errors.amount?.message}>
                 <Input id="amount" type="number" inputMode="numeric" {...register('amount')} />
-                <FieldError message={errors.amount?.message} />
-              </div>
-              <div>
-                <Label htmlFor="termMonths">Term (months)</Label>
+              </FormField>
+              <FormField label="Term (months)" htmlFor="termMonths" error={errors.termMonths?.message}>
                 <Input id="termMonths" type="number" inputMode="numeric" {...register('termMonths')} />
-                <FieldError message={errors.termMonths?.message} />
-              </div>
+              </FormField>
             </div>
-            <div>
-              <Label htmlFor="purpose">Purpose (optional)</Label>
+            <FormField label="Purpose" htmlFor="purpose" optional>
               <Input id="purpose" {...register('purpose')} />
-            </div>
+            </FormField>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <SectionTitle>Applicant</SectionTitle>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label htmlFor="firstName">First name</Label>
+              <FormField label="First name" htmlFor="firstName" error={errors.firstName?.message}>
                 <Input id="firstName" {...register('firstName')} />
-                <FieldError message={errors.firstName?.message} />
-              </div>
-              <div>
-                <Label htmlFor="lastName">Surname</Label>
+              </FormField>
+              <FormField label="Surname" htmlFor="lastName" error={errors.lastName?.message}>
                 <Input id="lastName" {...register('lastName')} />
-                <FieldError message={errors.lastName?.message} />
-              </div>
-              <div>
-                <Label htmlFor="idNumber">ID number</Label>
-                <Input id="idNumber" {...register('idNumber')} />
-                <FieldError message={errors.idNumber?.message} />
-              </div>
-              <div>
-                <Label htmlFor="dateOfBirth">Date of birth</Label>
-                <Input id="dateOfBirth" type="date" {...register('dateOfBirth')} />
-                <FieldError message={errors.dateOfBirth?.message} />
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" {...register('phone')} />
-                <FieldError message={errors.phone?.message} />
-              </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
+              </FormField>
+              <FormField
+                label="ID number"
+                htmlFor="idNumber"
+                error={errors.idNumber?.message}
+                description="Namibian 11-digit ID or passport"
+              >
+                <Input id="idNumber" inputMode="numeric" {...register('idNumber')} />
+              </FormField>
+              <FormField label="Date of birth" htmlFor="dateOfBirth" error={errors.dateOfBirth?.message}>
+                <Controller
+                  control={control}
+                  name="dateOfBirth"
+                  render={({ field }) => (
+                    <DatePicker
+                      id="dateOfBirth"
+                      value={field.value}
+                      onChange={field.onChange}
+                      disableFuture
+                    />
+                  )}
+                />
+              </FormField>
+              <FormField label="Phone" htmlFor="phone" error={errors.phone?.message}>
+                <Input id="phone" type="tel" inputMode="tel" {...register('phone')} />
+              </FormField>
+              <FormField label="Email" htmlFor="email" error={errors.email?.message}>
                 <Input id="email" type="email" {...register('email')} />
-                <FieldError message={errors.email?.message} />
-              </div>
-              <div className="sm:col-span-2">
-                <Label htmlFor="address">Address</Label>
+              </FormField>
+              <FormField
+                label="Address"
+                htmlFor="address"
+                error={errors.address?.message}
+                className="sm:col-span-2"
+              >
                 <Input id="address" {...register('address')} />
-                <FieldError message={errors.address?.message} />
-              </div>
+              </FormField>
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <SectionTitle>Employment &amp; bank</SectionTitle>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label htmlFor="employmentType">Employment type</Label>
-                <select id="employmentType" className={selectClass} {...register('employmentType')}>
-                  {Object.values(EmploymentType).map((value) => (
-                    <option key={value} value={value}>
-                      {EMPLOYMENT_LABELS[value]}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="monthlyIncome">Monthly income (N$)</Label>
+              <FormField label="Employment type" htmlFor="employmentType">
+                <Controller
+                  control={control}
+                  name="employmentType"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="employmentType" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.values(EmploymentType).map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {EMPLOYMENT_LABELS[value]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </FormField>
+              <FormField
+                label="Monthly income (N$)"
+                htmlFor="monthlyIncome"
+                error={errors.monthlyIncome?.message}
+              >
                 <Input id="monthlyIncome" type="number" inputMode="numeric" {...register('monthlyIncome')} />
-                <FieldError message={errors.monthlyIncome?.message} />
-              </div>
-              <div>
-                <Label htmlFor="employer">Employer</Label>
+              </FormField>
+              <FormField label="Employer" htmlFor="employer" error={errors.employer?.message}>
                 <Input id="employer" {...register('employer')} />
-                <FieldError message={errors.employer?.message} />
-              </div>
-              <div>
-                <Label htmlFor="occupation">Occupation</Label>
+              </FormField>
+              <FormField label="Occupation" htmlFor="occupation" error={errors.occupation?.message}>
                 <Input id="occupation" {...register('occupation')} />
-                <FieldError message={errors.occupation?.message} />
-              </div>
-              <div>
-                <Label htmlFor="bank">Bank</Label>
+              </FormField>
+              <FormField label="Bank" htmlFor="bank" error={errors.bank?.message}>
                 <Input id="bank" {...register('bank')} />
-                <FieldError message={errors.bank?.message} />
-              </div>
-              <div>
-                <Label htmlFor="accountType">Account type</Label>
-                <Input id="accountType" {...register('accountType')} />
-                <FieldError message={errors.accountType?.message} />
-              </div>
+              </FormField>
+              <FormField label="Account type" htmlFor="accountType" error={errors.accountType?.message}>
+                <Controller
+                  control={control}
+                  name="accountType"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="accountType" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ACCOUNT_TYPES.map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </FormField>
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-4">
             <SectionTitle>References</SectionTitle>
             {[0, 1].map((index) => (
               <div key={index} className="grid gap-4 sm:grid-cols-2">
-                <div>
-                  <Label htmlFor={`ref-${index}-name`}>Name</Label>
+                <FormField
+                  label="Name"
+                  htmlFor={`ref-${index}-name`}
+                  error={errors.references?.[index]?.name?.message}
+                >
                   <Input id={`ref-${index}-name`} {...register(`references.${index}.name` as const)} />
-                  <FieldError message={errors.references?.[index]?.name?.message} />
-                </div>
-                <div>
-                  <Label htmlFor={`ref-${index}-phone`}>Phone</Label>
-                  <Input id={`ref-${index}-phone`} {...register(`references.${index}.phone` as const)} />
-                  <FieldError message={errors.references?.[index]?.phone?.message} />
-                </div>
+                </FormField>
+                <FormField
+                  label="Phone"
+                  htmlFor={`ref-${index}-phone`}
+                  error={errors.references?.[index]?.phone?.message}
+                >
+                  <Input
+                    id={`ref-${index}-phone`}
+                    type="tel"
+                    inputMode="tel"
+                    {...register(`references.${index}.phone` as const)}
+                  />
+                </FormField>
               </div>
             ))}
           </div>

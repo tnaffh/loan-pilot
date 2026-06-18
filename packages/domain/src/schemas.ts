@@ -1,11 +1,15 @@
 import { z } from 'zod';
 import { ApplicationStatus, EmploymentType, ExpenseKind, LoanType, PaymentMethod, PlanId } from './enums';
+import { ageOnDate, isAdult, isPlausibleId, isPlausiblePhone, parseNamibianId } from './identity';
 import { MAX_TERM_MONTHS } from './loan-math';
 
 /** A personal reference, as required by the loan agreement (minimum two). */
 export const referenceSchema = z.object({
   name: z.string().min(2, 'Reference name is required'),
-  phone: z.string().min(6, 'Reference phone is required'),
+  phone: z
+    .string()
+    .min(6, 'Reference phone is required')
+    .refine(isPlausiblePhone, 'Enter a valid phone number'),
 });
 export type ReferenceInput = z.infer<typeof referenceSchema>;
 
@@ -23,9 +27,19 @@ export const createApplicationSchema = z.object({
   // Step 2 — personal
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Surname is required'),
-  idNumber: z.string().min(6, 'A valid ID or passport number is required'),
-  dateOfBirth: z.string().min(4, 'Date of birth is required'),
-  phone: z.string().min(6, 'A contact number is required'),
+  idNumber: z
+    .string()
+    .min(6, 'A valid ID or passport number is required')
+    .refine(isPlausibleId, 'Enter a valid Namibian ID or passport number'),
+  dateOfBirth: z
+    .string()
+    .min(1, 'Date of birth is required')
+    .refine((value) => ageOnDate(value) !== null, 'Enter a valid date of birth')
+    .refine((value) => isAdult(value), 'Applicant must be at least 18 years old'),
+  phone: z
+    .string()
+    .min(6, 'A contact number is required')
+    .refine(isPlausiblePhone, 'Enter a valid phone number'),
   email: z.string().email('A valid email is required'),
   address: z.string().min(4, 'Residential address is required'),
   maritalStatus: z.string().optional().or(z.literal('')),
@@ -43,6 +57,17 @@ export const createApplicationSchema = z.object({
   consent: z.literal(true, {
     errorMap: () => ({ message: 'You must agree to the terms to continue' }),
   }),
+}).superRefine((value, ctx) => {
+  // When the ID is a Namibian national ID, its encoded birth date must agree
+  // with the supplied date of birth. Passports carry no such data, so skip.
+  const parsed = parseNamibianId(value.idNumber);
+  if (parsed.isNamibianId && parsed.dateOfBirth && parsed.dateOfBirth !== value.dateOfBirth) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['dateOfBirth'],
+      message: 'Date of birth does not match the ID number',
+    });
+  }
 });
 export type CreateApplicationInput = z.infer<typeof createApplicationSchema>;
 
@@ -60,8 +85,14 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export const createBorrowerSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Surname is required'),
-  idNumber: z.string().min(6, 'A valid ID or passport number is required'),
-  phone: z.string().min(6, 'A contact number is required'),
+  idNumber: z
+    .string()
+    .min(6, 'A valid ID or passport number is required')
+    .refine(isPlausibleId, 'Enter a valid Namibian ID or passport number'),
+  phone: z
+    .string()
+    .min(6, 'A contact number is required')
+    .refine(isPlausiblePhone, 'Enter a valid phone number'),
   email: z.string().email('A valid email is required'),
   address: z.string().min(4, 'Residential address is required'),
   employer: z.string().min(1, 'Employer is required'),

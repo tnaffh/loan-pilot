@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -22,11 +22,20 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { DatePicker } from '@/components/ui/date-picker';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
 import { bumpRevalidation } from '@/lib/revalidate';
-import { FieldError, selectClass } from '@/components/form-field';
+import { FormField } from '@/components/form-field';
 import type { LoanRow } from '@/lib/types';
 
 const METHOD_LABELS: Record<PaymentMethod, string> = {
@@ -63,6 +72,7 @@ export const RecordPaymentDialog = ({ open, onOpenChange, loanId, loanLabel }: P
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setError,
@@ -111,51 +121,80 @@ export const RecordPaymentDialog = ({ open, onOpenChange, loanId, loanLabel }: P
           {loanId ? (
             <input type="hidden" {...register('loanId')} />
           ) : (
-            <div>
-              <Label htmlFor="loanId">Loan</Label>
-              <select id="loanId" className={selectClass} {...register('loanId')}>
-                <option value="">Select an open loan…</option>
-                {openLoans.map((loan) => (
-                  <option key={loan.id} value={loan.id}>
-                    {loan.borrower.firstName} {loan.borrower.lastName} — {formatNad(loan.balance)} due
-                  </option>
-                ))}
-              </select>
-              <FieldError message={errors.loanId?.message} />
-            </div>
+            <FormField label="Loan" htmlFor="loanId" error={errors.loanId?.message}>
+              <Controller
+                control={control}
+                name="loanId"
+                render={({ field }) => (
+                  <Select value={field.value || undefined} onValueChange={field.onChange}>
+                    <SelectTrigger id="loanId" className="w-full">
+                      <SelectValue placeholder="Select an open loan…" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {openLoans.map((loan) => (
+                        <SelectItem key={loan.id} value={loan.id}>
+                          {loan.borrower.firstName} {loan.borrower.lastName} — {formatNad(loan.balance)} due
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </FormField>
           )}
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="amount">Amount (N$)</Label>
+            <FormField label="Amount (N$)" htmlFor="amount" error={errors.amount?.message}>
               <Input id="amount" type="number" step="0.01" inputMode="decimal" {...register('amount')} />
-              <FieldError message={errors.amount?.message} />
-            </div>
-            <div>
-              <Label htmlFor="paidAt">Date</Label>
-              <Input id="paidAt" type="date" {...register('paidAt')} />
-              <FieldError message={errors.paidAt?.message} />
-            </div>
-            <div>
-              <Label htmlFor="method">Method</Label>
-              <select id="method" className={selectClass} {...register('method')}>
-                {Object.values(PaymentMethod).map((value) => (
-                  <option key={value} value={value}>
-                    {METHOD_LABELS[value]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-end gap-2 pb-1">
-              <input id="badDebt" type="checkbox" className="size-4" {...register('badDebt')} />
+            </FormField>
+            <FormField label="Date" htmlFor="paidAt" error={errors.paidAt?.message}>
+              <Controller
+                control={control}
+                name="paidAt"
+                render={({ field }) => (
+                  <DatePicker id="paidAt" value={field.value} onChange={field.onChange} disableFuture />
+                )}
+              />
+            </FormField>
+            <FormField label="Method" htmlFor="method">
+              <Controller
+                control={control}
+                name="method"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="method" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(PaymentMethod).map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {METHOD_LABELS[value]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </FormField>
+            <div className="flex items-end gap-2 pb-1.5">
+              <Controller
+                control={control}
+                name="badDebt"
+                render={({ field }) => (
+                  <Checkbox
+                    id="badDebt"
+                    checked={field.value ?? false}
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                  />
+                )}
+              />
               <Label htmlFor="badDebt" className="font-normal">
                 Flag as bad debt
               </Label>
             </div>
           </div>
-          <div>
-            <Label htmlFor="note">Note (optional)</Label>
+          <FormField label="Note" htmlFor="note" optional>
             <Input id="note" {...register('note')} />
-          </div>
+          </FormField>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancel

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -23,12 +23,18 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
 import { bumpRevalidation } from '@/lib/revalidate';
-import { FieldError, selectClass } from '@/components/form-field';
+import { FormField } from '@/components/form-field';
 import type { BorrowerRow } from '@/lib/types';
 
 const TYPE_LABELS: Record<LoanType, string> = {
@@ -54,6 +60,7 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     watch,
@@ -141,43 +148,56 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
           </SheetDescription>
         </SheetHeader>
         <form onSubmit={onSubmit} className="space-y-4 px-4" noValidate>
-          <div>
-            <Label htmlFor="borrowerId">Borrower</Label>
-            <select id="borrowerId" className={selectClass} {...register('borrowerId')}>
-              <option value="">Select a borrower…</option>
-              {(borrowers ?? []).map((borrower) => (
-                <option key={borrower.id} value={borrower.id}>
-                  {borrower.firstName} {borrower.lastName} — {borrower.idNumber}
-                </option>
-              ))}
-            </select>
-            <FieldError message={errors.borrowerId?.message} />
-          </div>
+          <FormField label="Borrower" htmlFor="borrowerId" error={errors.borrowerId?.message}>
+            <Controller
+              control={control}
+              name="borrowerId"
+              render={({ field }) => (
+                <Select value={field.value || undefined} onValueChange={field.onChange}>
+                  <SelectTrigger id="borrowerId" className="w-full">
+                    <SelectValue placeholder="Select a borrower…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {(borrowers ?? []).map((borrower) => (
+                      <SelectItem key={borrower.id} value={borrower.id}>
+                        {borrower.firstName} {borrower.lastName} — {borrower.idNumber}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
+          </FormField>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="loanType">Type</Label>
-              <select id="loanType" className={selectClass} {...register('loanType')}>
-                {Object.values(LoanType).map((value) => (
-                  <option key={value} value={value}>
-                    {TYPE_LABELS[value]}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <Label htmlFor="termMonths">Term (months)</Label>
+            <FormField label="Type" htmlFor="loanType">
+              <Controller
+                control={control}
+                name="loanType"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="loanType" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(LoanType).map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {TYPE_LABELS[value]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </FormField>
+            <FormField label="Term (months)" htmlFor="termMonths" error={errors.termMonths?.message}>
               <Input id="termMonths" type="number" inputMode="numeric" {...register('termMonths')} />
-              <FieldError message={errors.termMonths?.message} />
-            </div>
-            <div>
-              <Label htmlFor="amount">Amount (N$)</Label>
+            </FormField>
+            <FormField label="Amount (N$)" htmlFor="amount" error={errors.amount?.message}>
               <Input id="amount" type="number" inputMode="numeric" {...register('amount')} />
-              <FieldError message={errors.amount?.message} />
-            </div>
-            <div>
-              <Label htmlFor="collateral">Collateral (optional)</Label>
+            </FormField>
+            <FormField label="Collateral" htmlFor="collateral" optional>
               <Input id="collateral" {...register('collateral')} />
-            </div>
+            </FormField>
           </div>
 
           <div className="rounded-lg border bg-muted/40 p-4 text-sm">

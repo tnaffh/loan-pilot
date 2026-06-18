@@ -1,5 +1,6 @@
 export * from './enums';
 export * from './dates';
+export * from './identity';
 export * from './money';
 export * from './loan-math';
 export * from './affordability';

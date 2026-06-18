@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { Activity, FileText, Wallet } from 'lucide-react';
 import { LoanStatus, formatNad } from '@loan-pilot/domain';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -15,6 +16,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
+import { StatStrip } from '@/components/stat-strip';
 import { TypeChip } from '@/components/type-chip';
 import { InitialsAvatar } from '@/components/initials-avatar';
 import { Kv } from '@/components/kv';
@@ -45,6 +47,15 @@ const BorrowerDetailPage = () => {
     (loan) => loan.status === LoanStatus.Active || loan.status === LoanStatus.Arrears,
   );
 
+  const summary = (() => {
+    const open = data.loans.filter(
+      (loan) => loan.status === LoanStatus.Active || loan.status === LoanStatus.Arrears,
+    );
+    const outstanding = open.reduce((sum, loan) => sum + loan.balance, 0);
+    const lifetime = data.loans.reduce((sum, loan) => sum + loan.principal, 0);
+    return { active: open.length, outstanding, lifetime, total: data.loans.length };
+  })();
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-3">
@@ -56,6 +67,20 @@ const BorrowerDetailPage = () => {
           <p className="text-sm text-muted-foreground">Borrower since {formatDate(data.since)}</p>
         </div>
       </div>
+
+      <StatStrip
+        items={[
+          {
+            label: 'Active loans',
+            value: String(summary.active),
+            icon: Activity,
+            tone: summary.active > 0 ? 'green' : 'default',
+          },
+          { label: 'Outstanding', value: formatNad(summary.outstanding), icon: Wallet },
+          { label: 'Lifetime borrowed', value: formatNad(summary.lifetime), icon: FileText },
+          { label: 'Total loans', value: String(summary.total), icon: FileText },
+        ]}
+      />
 
       <Card>
         <CardHeader>

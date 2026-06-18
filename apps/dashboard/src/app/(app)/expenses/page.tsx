@@ -5,11 +5,13 @@ import { ArrowDownCircle, ArrowUpCircle, Scale } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ExpenseKind, formatNad } from '@loan-pilot/domain';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
+import { StatusBadge } from '@/components/status-badge';
 import { FilterSegments } from '@/components/filter-segments';
+import { MonthFilter, toMonthKey, useMonthOptions, ALL_MONTHS } from '@/components/month-filter';
+import { DateRangeFilter, isInRange, type IsoRange } from '@/components/date-range-filter';
 import { DataTable } from '@/components/data-table';
 import { ExpenseBar } from '@/components/charts/expense-bar';
 import { useApi } from '@/lib/use-api';
@@ -32,11 +34,7 @@ const columns: ColumnDef<ExpenseRow>[] = [
     id: 'type',
     header: 'Type',
     accessorKey: 'kind',
-    cell: ({ row }) => (
-      <Badge variant={row.original.kind === ExpenseKind.Drawing ? 'secondary' : 'outline'} className="capitalize">
-        {row.original.kind}
-      </Badge>
-    ),
+    cell: ({ row }) => <StatusBadge value={row.original.kind} />,
   },
   {
     id: 'amount',
@@ -50,10 +48,21 @@ const ExpensesPage = () => {
   const { data, loading, error } = useApi<ExpenseRow[]>('/expenses');
   const { data: totals } = useApi<ExpenseTotals>('/expenses/totals');
   const [kindFilter, setKindFilter] = useState<KindFilter>('all');
+  const [range, setRange] = useState<IsoRange>({});
+
+  const { months, latest } = useMonthOptions((data ?? []).map((row) => row.incurredAt));
+  const [month, setMonth] = useState<string>('');
+  const activeMonth = month || latest;
 
   const rows = useMemo(
-    () => (data ?? []).filter((row) => kindFilter === 'all' || row.kind === kindFilter),
-    [data, kindFilter],
+    () =>
+      (data ?? []).filter(
+        (row) =>
+          (kindFilter === 'all' || row.kind === kindFilter) &&
+          (activeMonth === ALL_MONTHS || toMonthKey(row.incurredAt) === activeMonth) &&
+          isInRange(row.incurredAt, range),
+      ),
+    [data, kindFilter, activeMonth, range],
   );
 
   const topCategories = useMemo(() => {
@@ -104,7 +113,13 @@ const ExpensesPage = () => {
           columns={columns}
           data={rows}
           searchPlaceholder="Search category…"
-          toolbar={<FilterSegments value={kindFilter} onChange={setKindFilter} options={KIND_OPTIONS} />}
+          toolbar={
+            <div className="flex flex-wrap items-center gap-2">
+              <FilterSegments value={kindFilter} onChange={setKindFilter} options={KIND_OPTIONS} />
+              <MonthFilter months={months} value={activeMonth} onChange={setMonth} />
+              <DateRangeFilter value={range} onChange={setRange} />
+            </div>
+          }
         />
       )}
     </div>

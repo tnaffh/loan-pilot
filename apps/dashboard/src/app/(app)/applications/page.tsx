@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
-import { FilePlus2 } from 'lucide-react';
+import { CheckCircle2, FilePlus2, Hourglass, Search, Wallet } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ApplicationStatus, formatNad } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
@@ -10,9 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
+import { StatStrip } from '@/components/stat-strip';
 import { TypeChip } from '@/components/type-chip';
 import { InitialsAvatar } from '@/components/initials-avatar';
 import { DataTable } from '@/components/data-table';
+import { MonthFilter, toMonthKey, useMonthOptions, ALL_MONTHS } from '@/components/month-filter';
 import { useCommand } from '@/components/command-provider';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -36,6 +38,30 @@ const ApplicationsPage = () => {
   const command = useCommand();
   const { data, loading, error } = useApi<ApplicationRow[]>('/applications');
   const [movingId, setMovingId] = useState<string | null>(null);
+
+  const { months, latest } = useMonthOptions((data ?? []).map((row) => row.submittedAt));
+  const [month, setMonth] = useState<string>('');
+  const activeMonth = month || latest;
+
+  const tableRows = useMemo(
+    () =>
+      (data ?? []).filter(
+        (row) => activeMonth === ALL_MONTHS || toMonthKey(row.submittedAt) === activeMonth,
+      ),
+    [data, activeMonth],
+  );
+
+  const summary = useMemo(() => {
+    const all = data ?? [];
+    const pending = all.filter((a) => a.status === ApplicationStatus.Pending).length;
+    const review = all.filter((a) => a.status === ApplicationStatus.Review).length;
+    const approved = all.filter((a) => a.status === ApplicationStatus.Approved).length;
+    const declined = all.filter((a) => a.status === ApplicationStatus.Declined).length;
+    const decided = approved + declined;
+    const rate = decided ? Math.round((approved / decided) * 100) : 0;
+    const requested = all.reduce((sum, a) => sum + a.amount, 0);
+    return { pending, review, rate, requested };
+  }, [data]);
 
   const move = async (id: string, status: ApplicationStatus) => {
     setMovingId(id);
@@ -134,6 +160,21 @@ const ApplicationsPage = () => {
         <p className="text-sm text-destructive">{error}</p>
       ) : (
         <Tabs defaultValue="board">
+          <div className="mb-4">
+            <StatStrip
+              items={[
+                { label: 'Pending', value: String(summary.pending), icon: Hourglass, tone: 'amber' },
+                { label: 'In review', value: String(summary.review), icon: Search, tone: 'blue' },
+                {
+                  label: 'Approval rate',
+                  value: `${summary.rate}%`,
+                  icon: CheckCircle2,
+                  tone: 'green',
+                },
+                { label: 'Total requested', value: formatNad(summary.requested), icon: Wallet },
+              ]}
+            />
+          </div>
           <TabsList>
             <TabsTrigger value="board">Board</TabsTrigger>
             <TabsTrigger value="table">Table</TabsTrigger>
@@ -222,9 +263,10 @@ const ApplicationsPage = () => {
           <TabsContent value="table">
             <DataTable
               columns={columns}
-              data={data ?? []}
+              data={tableRows}
               searchPlaceholder="Search applicants…"
               onRowClick={(application) => command.openReview(application.id)}
+              toolbar={<MonthFilter months={months} value={activeMonth} onChange={setMonth} />}
             />
           </TabsContent>
         </Tabs>

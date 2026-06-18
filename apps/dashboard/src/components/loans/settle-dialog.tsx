@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
@@ -21,11 +21,18 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { DatePicker } from '@/components/ui/date-picker';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { bumpRevalidation } from '@/lib/revalidate';
-import { selectClass } from '@/components/form-field';
+import { FormField } from '@/components/form-field';
 
 const METHOD_LABELS: Record<PaymentMethod, string> = {
   [PaymentMethod.Cash]: 'Cash',
@@ -51,6 +58,7 @@ export const SettleDialog = ({ open, onOpenChange, loanId, balance, loanLabel }:
   const { token } = useAuth();
   const {
     register,
+    control,
     handleSubmit,
     reset,
     formState: { isSubmitting },
@@ -87,25 +95,39 @@ export const SettleDialog = ({ open, onOpenChange, loanId, balance, loanLabel }:
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
           <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <Label htmlFor="paidAt">Date</Label>
-              <Input id="paidAt" type="date" {...register('paidAt')} />
-            </div>
-            <div>
-              <Label htmlFor="method">Method</Label>
-              <select id="method" className={selectClass} {...register('method')}>
-                {Object.values(PaymentMethod).map((value) => (
-                  <option key={value} value={value}>
-                    {METHOD_LABELS[value]}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <FormField label="Date" htmlFor="paidAt">
+              <Controller
+                control={control}
+                name="paidAt"
+                render={({ field }) => (
+                  <DatePicker id="paidAt" value={field.value} onChange={field.onChange} disableFuture />
+                )}
+              />
+            </FormField>
+            <FormField label="Method" htmlFor="method">
+              <Controller
+                control={control}
+                name="method"
+                render={({ field }) => (
+                  <Select value={field.value} onValueChange={field.onChange}>
+                    <SelectTrigger id="method" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.values(PaymentMethod).map((value) => (
+                        <SelectItem key={value} value={value}>
+                          {METHOD_LABELS[value]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+            </FormField>
           </div>
-          <div>
-            <Label htmlFor="note">Note (optional)</Label>
+          <FormField label="Note" htmlFor="note" optional>
             <Input id="note" {...register('note')} />
-          </div>
+          </FormField>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancel

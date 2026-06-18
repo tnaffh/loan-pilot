@@ -1,6 +1,6 @@
 'use client';
 
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, CartesianGrid, LabelList, XAxis, YAxis } from 'recharts';
 import { fromCents, formatNad } from '@loan-pilot/domain';
 import {
   ChartContainer,
@@ -42,7 +42,16 @@ export const ExpenseBar = ({ data }: { data: { category: string; amount: number 
             />
           }
         />
-        <Bar dataKey="amount" fill="var(--color-amount)" radius={4} isAnimationActive={false} />
+        <Bar dataKey="amount" fill="var(--color-amount)" radius={4} isAnimationActive={false}>
+          <LabelList
+            dataKey="amount"
+            position="right"
+            offset={8}
+            className="fill-muted-foreground"
+            fontSize={11}
+            formatter={(value) => formatNad(Math.round(Number(value) * 100))}
+          />
+        </Bar>
       </BarChart>
     </ChartContainer>
   );

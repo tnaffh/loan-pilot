@@ -61,7 +61,7 @@ describe('ApplicationsService', () => {
     firstName: 'Selma',
     lastName: 'Nghidinwa',
     idNumber: '98031500412',
-    dateOfBirth: '15/03/1998',
+    dateOfBirth: '1998-03-15',
     phone: '+264811112222',
     email: 'selma@example.na',
     address: '12 Acacia St, Windhoek',

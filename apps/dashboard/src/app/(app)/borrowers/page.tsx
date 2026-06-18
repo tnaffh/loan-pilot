@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useForm } from 'react-hook-form';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Eye, Loader2, Plus } from 'lucide-react';
+import { Eye, Loader2, Plus, Users, Wallet, FileText } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
   EmploymentType,
@@ -23,11 +23,19 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/page-header';
 import { InitialsAvatar } from '@/components/initials-avatar';
 import { DataTable } from '@/components/data-table';
+import { StatStrip } from '@/components/stat-strip';
+import { FormField } from '@/components/form-field';
 import { useCommand } from '@/components/command-provider';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -42,9 +50,7 @@ const EMPLOYMENT_LABELS: Record<EmploymentType, string> = {
   [EmploymentType.Contract]: 'Contract',
   [EmploymentType.Pensioner]: 'Pensioner',
 };
-
-const FieldError = ({ message }: { message?: string }) =>
-  message ? <p className="mt-1 text-xs text-destructive">{message}</p> : null;
+const ACCOUNT_TYPES = ['Savings', 'Cheque', 'Transmission'];
 
 const isBorrowerField = (path: string): path is keyof CreateBorrowerInput =>
   path in createBorrowerSchema.shape;
@@ -106,13 +112,14 @@ const NewBorrowerSheet = ({ onCreated }: { onCreated: () => void }) => {
 
   const {
     register,
+    control,
     handleSubmit,
     reset,
     setError,
     formState: { errors, isSubmitting },
   } = useForm<CreateBorrowerInput>({
     resolver: zodResolver(createBorrowerSchema),
-    defaultValues: { employmentType: EmploymentType.PermanentlyEmployed },
+    defaultValues: { employmentType: EmploymentType.PermanentlyEmployed, accountType: 'Savings' },
   });
 
   const onSubmit = handleSubmit(async (values) => {
@@ -150,81 +157,95 @@ const NewBorrowerSheet = ({ onCreated }: { onCreated: () => void }) => {
           </SheetHeader>
           <form onSubmit={onSubmit} className="space-y-4 px-4" noValidate>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <Label htmlFor="firstName">First name</Label>
+              <FormField label="First name" htmlFor="firstName" error={errors.firstName?.message}>
                 <Input id="firstName" {...register('firstName')} />
-                <FieldError message={errors.firstName?.message} />
-              </div>
-              <div>
-                <Label htmlFor="lastName">Surname</Label>
+              </FormField>
+              <FormField label="Surname" htmlFor="lastName" error={errors.lastName?.message}>
                 <Input id="lastName" {...register('lastName')} />
-                <FieldError message={errors.lastName?.message} />
-              </div>
-              <div>
-                <Label htmlFor="idNumber">ID number</Label>
-                <Input id="idNumber" {...register('idNumber')} />
-                <FieldError message={errors.idNumber?.message} />
-              </div>
-              <div>
-                <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" {...register('phone')} />
-                <FieldError message={errors.phone?.message} />
-              </div>
-              <div className="sm:col-span-2">
-                <Label htmlFor="email">Email</Label>
+              </FormField>
+              <FormField
+                label="ID number"
+                htmlFor="idNumber"
+                error={errors.idNumber?.message}
+                description="Namibian 11-digit ID or passport"
+              >
+                <Input id="idNumber" inputMode="numeric" {...register('idNumber')} />
+              </FormField>
+              <FormField label="Phone" htmlFor="phone" error={errors.phone?.message}>
+                <Input id="phone" type="tel" inputMode="tel" {...register('phone')} />
+              </FormField>
+              <FormField
+                label="Email"
+                htmlFor="email"
+                error={errors.email?.message}
+                className="sm:col-span-2"
+              >
                 <Input id="email" type="email" {...register('email')} />
-                <FieldError message={errors.email?.message} />
-              </div>
-              <div className="sm:col-span-2">
-                <Label htmlFor="address">Address</Label>
+              </FormField>
+              <FormField
+                label="Address"
+                htmlFor="address"
+                error={errors.address?.message}
+                className="sm:col-span-2"
+              >
                 <Input id="address" {...register('address')} />
-                <FieldError message={errors.address?.message} />
-              </div>
-              <div>
-                <Label htmlFor="employer">Employer</Label>
+              </FormField>
+              <FormField label="Employer" htmlFor="employer" error={errors.employer?.message}>
                 <Input id="employer" {...register('employer')} />
-                <FieldError message={errors.employer?.message} />
-              </div>
-              <div>
-                <Label htmlFor="occupation">Occupation</Label>
+              </FormField>
+              <FormField label="Occupation" htmlFor="occupation" error={errors.occupation?.message}>
                 <Input id="occupation" {...register('occupation')} />
-                <FieldError message={errors.occupation?.message} />
-              </div>
-              <div>
-                <Label htmlFor="monthlyIncome">Monthly income (N$)</Label>
-                <Input
-                  id="monthlyIncome"
-                  type="number"
-                  inputMode="numeric"
-                  {...register('monthlyIncome')}
+              </FormField>
+              <FormField
+                label="Monthly income (N$)"
+                htmlFor="monthlyIncome"
+                error={errors.monthlyIncome?.message}
+              >
+                <Input id="monthlyIncome" type="number" inputMode="numeric" {...register('monthlyIncome')} />
+              </FormField>
+              <FormField label="Employment type" htmlFor="employmentType">
+                <Controller
+                  control={control}
+                  name="employmentType"
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="employmentType" className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.values(EmploymentType).map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {EMPLOYMENT_LABELS[value]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 />
-                <FieldError message={errors.monthlyIncome?.message} />
-              </div>
-              <div>
-                <Label htmlFor="employmentType">Employment type</Label>
-                <select
-                  id="employmentType"
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30"
-                  {...register('employmentType')}
-                >
-                  {Object.values(EmploymentType).map((value) => (
-                    <option key={value} value={value}>
-                      {EMPLOYMENT_LABELS[value]}
-                    </option>
-                  ))}
-                </select>
-                <FieldError message={errors.employmentType?.message} />
-              </div>
-              <div>
-                <Label htmlFor="bank">Bank</Label>
+              </FormField>
+              <FormField label="Bank" htmlFor="bank" error={errors.bank?.message}>
                 <Input id="bank" {...register('bank')} />
-                <FieldError message={errors.bank?.message} />
-              </div>
-              <div>
-                <Label htmlFor="accountType">Account type</Label>
-                <Input id="accountType" {...register('accountType')} />
-                <FieldError message={errors.accountType?.message} />
-              </div>
+              </FormField>
+              <FormField label="Account type" htmlFor="accountType" error={errors.accountType?.message}>
+                <Controller
+                  control={control}
+                  name="accountType"
+                  render={({ field }) => (
+                    <Select value={field.value || undefined} onValueChange={field.onChange}>
+                      <SelectTrigger id="accountType" className="w-full">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {ACCOUNT_TYPES.map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </FormField>
             </div>
             <SheetFooter className="px-0">
               <Button type="submit" disabled={isSubmitting}>
@@ -246,6 +267,17 @@ const BorrowersPage = () => {
   const router = useRouter();
   const command = useCommand();
   const { data, loading, error, refresh } = useApi<BorrowerRow[]>('/borrowers');
+
+  const summary = useMemo(() => {
+    const rows = data ?? [];
+    const loans = rows.reduce((sum, b) => sum + b._count.loans, 0);
+    const withIncome = rows.filter((b) => b.monthlyIncome > 0);
+    const avgIncome = withIncome.length
+      ? Math.round(withIncome.reduce((s, b) => s + b.monthlyIncome, 0) / withIncome.length)
+      : 0;
+    const withLoans = rows.filter((b) => b._count.loans > 0).length;
+    return { borrowers: rows.length, loans, avgIncome, withLoans };
+  }, [data]);
 
   const columns = useMemo<ColumnDef<BorrowerRow>[]>(
     () => [
@@ -293,6 +325,16 @@ const BorrowersPage = () => {
           data={data ?? []}
           searchPlaceholder="Search name, ID or phone…"
           onRowClick={(borrower) => router.push(`/borrowers/${borrower.id}`)}
+          summary={
+            <StatStrip
+              items={[
+                { label: 'Borrowers', value: String(summary.borrowers), icon: Users },
+                { label: 'Total loans', value: String(summary.loans), icon: FileText },
+                { label: 'Avg monthly income', value: formatNad(summary.avgIncome), icon: Wallet },
+                { label: 'With loans', value: String(summary.withLoans), icon: Users },
+              ]}
+            />
+          }
         />
       )}
     </div>

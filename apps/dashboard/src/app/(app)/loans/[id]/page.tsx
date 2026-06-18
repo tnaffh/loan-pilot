@@ -4,7 +4,15 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { AlertTriangle, Banknote, CalendarClock, Loader2, Wallet } from 'lucide-react';
+import {
+  AlertTriangle,
+  Banknote,
+  CalendarClock,
+  FileText,
+  Loader2,
+  PieChart,
+  Wallet,
+} from 'lucide-react';
 import { LoanStatus, RepaymentStatus, formatNad, isLender } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -167,145 +175,151 @@ const LoanDetailPage = () => {
         />
       </div>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Loan details</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-3 lg:grid-cols-6">
-            <Detail label="Register month" value={data.originMonth ?? '—'} />
-            <Detail label="Disbursed" value={formatDate(data.disbursedAt)} />
-            <Detail label="Due" value={formatDate(data.nextDueAt)} />
-            <Detail
-              label="Term"
-              value={`${data.termMonths} ${data.termMonths === 1 ? 'month' : 'months'}`}
-            />
-            <Detail label="Finance rate" value={`${Math.round(data.interestRate * 100)}%`} />
-            <Detail
-              label="Instalment"
-              value={formatNad(data.instalment)}
-            />
-          </dl>
-        </CardContent>
-      </Card>
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <FileText className="size-4 text-muted-foreground" /> Loan details
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-3">
+                <Detail label="Register month" value={data.originMonth ?? '—'} />
+                <Detail label="Disbursed" value={formatDate(data.disbursedAt)} />
+                <Detail label="Due" value={formatDate(data.nextDueAt)} />
+                <Detail
+                  label="Term"
+                  value={`${data.termMonths} ${data.termMonths === 1 ? 'month' : 'months'}`}
+                />
+                <Detail label="Finance rate" value={`${Math.round(data.interestRate * 100)}%`} />
+                <Detail label="Instalment" value={formatNad(data.instalment)} />
+              </dl>
+              {data.bankCharges > 0 || data.namfisaLevy > 0 || data.stampDuty > 0 ? (
+                <p className="mt-4 border-t pt-3 text-xs text-muted-foreground">
+                  Fees: bank charges {formatNad(data.bankCharges)} · NAMFISA levy{' '}
+                  {formatNad(data.namfisaLevy)} · stamp duty {formatNad(data.stampDuty)}
+                </p>
+              ) : null}
+              {data.collateral ? (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Collateral: <span className="font-medium text-foreground">{data.collateral}</span>
+                </p>
+              ) : null}
+              {data.note ? (
+                <p className="mt-2 text-xs text-muted-foreground italic">{data.note}</p>
+              ) : null}
+            </CardContent>
+          </Card>
 
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Repayment progress</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <Progress
-            value={
-              data.instalmentsTotal > 0
-                ? (data.instalmentsPaid / data.instalmentsTotal) * 100
-                : 0
-            }
-            className="h-[7px]"
-          />
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>
-              {data.instalmentsPaid} of {data.instalmentsTotal} instalments paid
-            </span>
-            <span className="flex items-center gap-2">
-              <TypeChip type={data.type} />
-              Finance charge {formatNad(data.financeCharge)}
-            </span>
-          </div>
-          {data.bankCharges > 0 || data.namfisaLevy > 0 || data.stampDuty > 0 ? (
-            <p className="pt-1 text-xs text-muted-foreground">
-              Fees: bank charges {formatNad(data.bankCharges)} · NAMFISA levy{' '}
-              {formatNad(data.namfisaLevy)} · stamp duty {formatNad(data.stampDuty)}
-            </p>
-          ) : null}
-          {data.collateral ? (
-            <p className="pt-1 text-xs text-muted-foreground">
-              Collateral: <span className="font-medium text-foreground">{data.collateral}</span>
-            </p>
-          ) : null}
-          {data.note ? (
-            <p className="pt-1 text-xs text-muted-foreground italic">{data.note}</p>
-          ) : null}
-        </CardContent>
-      </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="flex items-center gap-2 text-base">
+                <PieChart className="size-4 text-muted-foreground" /> Repayment progress
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Progress
+                value={
+                  data.instalmentsTotal > 0
+                    ? (data.instalmentsPaid / data.instalmentsTotal) * 100
+                    : 0
+                }
+                className="h-2"
+              />
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span>
+                  {data.instalmentsPaid} of {data.instalmentsTotal} instalments paid ·{' '}
+                  <span className="font-medium text-foreground">{formatNad(data.balance)}</span>{' '}
+                  remaining
+                </span>
+                <span className="flex items-center gap-2">
+                  <TypeChip type={data.type} />
+                  Finance charge {formatNad(data.financeCharge)}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
 
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ActivityTimeline events={data.activity} />
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Payments received</CardTitle>
-        </CardHeader>
-        <CardContent className="px-2">
-          {data.payments.length === 0 ? (
-            <p className="px-4 py-3 text-sm text-muted-foreground">No payments recorded yet.</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Amount</TableHead>
-                  <TableHead>Method</TableHead>
-                  <TableHead>Flags</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {data.payments.map((payment) => (
-                  <TableRow key={payment.id}>
-                    <TableCell>{formatDate(payment.paidAt)}</TableCell>
-                    <TableCell className="text-right tabular-nums">
-                      {formatNad(payment.amount)}
-                    </TableCell>
-                    <TableCell className="capitalize">{payment.method.replace('_', ' ')}</TableCell>
-                    <TableCell>
-                      {payment.badDebt ? (
-                        <span className="text-xs font-medium text-destructive">Bad debt</span>
-                      ) : null}
-                    </TableCell>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Repayment schedule</CardTitle>
+            </CardHeader>
+            <CardContent className="px-2">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>#</TableHead>
+                    <TableHead>Due</TableHead>
+                    <TableHead className="text-right">Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Paid</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {data.schedule.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell>{item.number}</TableCell>
+                      <TableCell>{formatDate(item.dueAt)}</TableCell>
+                      <TableCell className="text-right tabular-nums">{formatNad(item.amount)}</TableCell>
+                      <TableCell>
+                        <StatusBadge value={item.status} />
+                      </TableCell>
+                      <TableCell>{formatDate(item.paidAt)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Repayment schedule</CardTitle>
-        </CardHeader>
-        <CardContent className="px-2">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>#</TableHead>
-                <TableHead>Due</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Paid</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.schedule.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.number}</TableCell>
-                  <TableCell>{formatDate(item.dueAt)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatNad(item.amount)}</TableCell>
-                  <TableCell>
-                    <StatusBadge value={item.status} />
-                  </TableCell>
-                  <TableCell>{formatDate(item.paidAt)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">Payments received</CardTitle>
+            </CardHeader>
+            <CardContent className="px-2">
+              {data.payments.length === 0 ? (
+                <p className="px-4 py-3 text-sm text-muted-foreground">No payments recorded yet.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead>Method</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {data.payments.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell className="whitespace-nowrap">{formatDate(payment.paidAt)}</TableCell>
+                        <TableCell className="text-right tabular-nums">
+                          {formatNad(payment.amount)}
+                          {payment.badDebt ? (
+                            <span className="ml-1 text-xs font-medium text-destructive">(bad debt)</span>
+                          ) : null}
+                        </TableCell>
+                        <TableCell className="capitalize">{payment.method.replace('_', ' ')}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">Activity</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ActivityTimeline events={data.activity} />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
 
       <p className="text-xs text-muted-foreground">
         Borrower:{' '}

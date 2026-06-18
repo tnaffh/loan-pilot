@@ -15,12 +15,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { bumpRevalidation } from '@/lib/revalidate';
-import { FieldError } from '@/components/form-field';
+import { FormField } from '@/components/form-field';
 
 interface Props {
   open: boolean;
@@ -64,11 +63,9 @@ export const WriteOffDialog = ({ open, onOpenChange, loanId, loanLabel }: Props)
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
-          <div>
-            <Label htmlFor="reason">Reason</Label>
+          <FormField label="Reason" htmlFor="reason" error={errors.reason?.message}>
             <Textarea id="reason" rows={3} {...register('reason')} />
-            <FieldError message={errors.reason?.message} />
-          </div>
+          </FormField>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
               Cancel
