@@ -139,11 +139,38 @@ export const createInvestmentSchema = z.object({
 });
 export type CreateInvestmentInput = z.infer<typeof createInvestmentSchema>;
 
-/** Approve or decline a pending loan application. */
+/**
+ * Move a loan application along its lifecycle: into Review (triage), Approved
+ * (disburses the loan) or Declined. `reason` is captured on a decline and shown
+ * in the application's activity timeline.
+ */
 export const updateApplicationStatusSchema = z.object({
-  status: z.union([z.literal(ApplicationStatus.Approved), z.literal(ApplicationStatus.Declined)]),
+  status: z.union([
+    z.literal(ApplicationStatus.Review),
+    z.literal(ApplicationStatus.Approved),
+    z.literal(ApplicationStatus.Declined),
+  ]),
+  reason: z.string().max(500).optional().or(z.literal('')),
 });
 export type UpdateApplicationStatusInput = z.infer<typeof updateApplicationStatusSchema>;
+
+/**
+ * Settle a loan early by clearing the full outstanding balance in one payment.
+ * The amount is the server-held balance (cents), so it is never sent by the
+ * client — only how and when the payoff was made.
+ */
+export const settleLoanSchema = z.object({
+  method: z.nativeEnum(PaymentMethod).default(PaymentMethod.Cash),
+  paidAt: z.string().min(4, 'A payment date is required'),
+  note: z.string().max(280).optional().or(z.literal('')),
+});
+export type SettleLoanInput = z.infer<typeof settleLoanSchema>;
+
+/** Write off an unrecoverable loan as bad debt; the reason is required. */
+export const writeOffLoanSchema = z.object({
+  reason: z.string().min(3, 'A reason is required').max(500),
+});
+export type WriteOffLoanInput = z.infer<typeof writeOffLoanSchema>;
 
 /** White-label branding returned by GET /api/tenants/me; bridges the Prisma row to the domain shape. */
 export const tenantBrandingSchema = z.object({

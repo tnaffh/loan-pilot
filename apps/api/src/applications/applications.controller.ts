@@ -29,6 +29,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import {
   ApplicationsService,
   type ApplicationDecision,
+  type ApplicationDetail,
   type ApplicationWithReferences,
 } from './applications.service';
 
@@ -70,11 +71,39 @@ export class ApplicationsController {
     };
   }
 
+  /** Loan-officer-captured application — the tenant comes from the session. */
+  @Post('internal')
+  @HttpCode(HttpStatus.CREATED)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  async createInternal(
+    @CurrentUser() user: SessionUser,
+    @Body(new ZodValidationPipe(createApplicationSchema)) body: CreateApplicationInput,
+  ): Promise<ApplicationResultDto> {
+    const application = await this.applications.create(requireTenantId(user), body);
+    return {
+      id: application.id,
+      status: application.status,
+      affordability: application.affordability,
+      affordabilityRatio: application.affordabilityRatio,
+      quotedTotal: fromCents(application.quotedTotal),
+      quotedInstalment: fromCents(application.quotedInstalment),
+      submittedAt: application.submittedAt.toISOString(),
+    };
+  }
+
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
   list(@CurrentUser() user: SessionUser): Promise<ApplicationWithReferences[]> {
     return this.applications.findAllForTenant(requireTenantId(user));
+  }
+
+  @Get(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  detail(@CurrentUser() user: SessionUser, @Param('id') id: string): Promise<ApplicationDetail> {
+    return this.applications.findOneForTenant(requireTenantId(user), id);
   }
 
   @Patch(':id/status')

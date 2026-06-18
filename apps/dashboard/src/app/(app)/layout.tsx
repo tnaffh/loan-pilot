@@ -7,6 +7,7 @@ import { isBorrower, isLender } from '@loan-pilot/domain';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppTopbar } from '@/components/app-topbar';
+import { CommandProvider } from '@/components/command-provider';
 import { PortalShell } from '@/components/borrower/portal-shell';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
@@ -39,13 +40,15 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
   }
 
   return (
-    <SidebarProvider>
-      <AppSidebar user={user} pendingCount={pendingCount} />
-      <SidebarInset>
-        <AppTopbar />
-        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">{children}</main>
-      </SidebarInset>
-    </SidebarProvider>
+    <CommandProvider>
+      <SidebarProvider>
+        <AppSidebar user={user} pendingCount={pendingCount} />
+        <SidebarInset>
+          <AppTopbar />
+          <main className="flex flex-1 flex-col gap-4 p-4 md:gap-6 md:p-6">{children}</main>
+        </SidebarInset>
+      </SidebarProvider>
+    </CommandProvider>
   );
 };
 

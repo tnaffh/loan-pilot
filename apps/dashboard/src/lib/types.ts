@@ -1,4 +1,5 @@
 import type {
+  ActivityEvent,
   AffordabilityResult,
   ApplicationStatus,
   EmploymentType,
@@ -34,6 +35,24 @@ export interface ApplicationRow {
 export interface ApplicationDecision {
   application: ApplicationRow;
   loanId: string | null;
+}
+
+export interface ApplicationDetail extends ApplicationRow {
+  idNumber: string;
+  dateOfBirth: string;
+  phone: string;
+  email: string;
+  address: string;
+  maritalStatus: string | null;
+  employmentType: EmploymentType;
+  employer: string;
+  occupation: string;
+  bank: string;
+  accountType: string;
+  purpose: string | null;
+  declineReason: string | null;
+  decidedAt: string | null;
+  activity: ActivityEvent[];
 }
 
 export interface BorrowerRow {
@@ -100,8 +119,11 @@ export interface LoanRow {
 
 export interface LoanDetail extends LoanRow {
   borrower: { id: string; firstName: string; lastName: string; idNumber: string };
+  writeOffReason: string | null;
+  closedAt: string | null;
   schedule: ScheduleItem[];
   payments: PaymentRow[];
+  activity: ActivityEvent[];
 }
 
 export interface ExpenseRow {

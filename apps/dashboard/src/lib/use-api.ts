@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useRevalidation } from '@/lib/revalidate';
 
 interface UseApiResult<T> {
   data: T | null;
@@ -23,10 +24,11 @@ interface Settled<T> {
  */
 export const useApi = <T>(path: string | null): UseApiResult<T> => {
   const { token } = useAuth();
+  const globalVersion = useRevalidation();
   const [refreshKey, setRefreshKey] = useState(0);
   const [settled, setSettled] = useState<Settled<T>>({ key: '', data: null, error: null });
 
-  const requestKey = `${path ?? ''}|${refreshKey}|${token ?? ''}`;
+  const requestKey = `${path ?? ''}|${refreshKey}|${globalVersion}|${token ?? ''}`;
 
   useEffect(() => {
     if (!path || !token) {

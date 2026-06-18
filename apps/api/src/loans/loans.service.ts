@@ -5,14 +5,18 @@ import {
   LoanType,
   RepaymentStatus,
   addMonths,
+  buildLoanActivity,
   daysBetween,
   penaltyInterest,
   quote,
   toCents,
+  type ActivityEvent,
   type CreateLoanInput,
   type LoanQuote,
   type LoanQuoteInput,
   type RecordRepaymentInput,
+  type SettleLoanInput,
+  type WriteOffLoanInput,
 } from '@loan-pilot/domain';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -26,7 +30,7 @@ export type LoanWithDetails = Prisma.LoanGetPayload<{
     schedule: true;
     payments: true;
   };
-}>;
+}> & { activity: ActivityEvent[] };
 
 export interface StatementLine {
   date: string;
@@ -106,7 +110,7 @@ export class LoansService {
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
-    return loan;
+    return { ...loan, activity: buildLoanActivity(loan, loan.payments) };
   }
 
   async findOneForBorrowerUser(userId: string, id: string): Promise<LoanWithDetails> {
@@ -122,7 +126,7 @@ export class LoansService {
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
-    return loan;
+    return { ...loan, activity: buildLoanActivity(loan, loan.payments) };
   }
 
   /** Disburse a new loan to an existing borrower of the tenant. */
@@ -265,6 +269,74 @@ export class LoansService {
           status,
         },
       });
+    });
+  }
+
+  /**
+   * Settle a loan early: clear the full outstanding balance in one payment, mark
+   * every remaining instalment paid, and close the loan as settled.
+   */
+  settle(tenantId: string, loanId: string, input: SettleLoanInput): Promise<Loan> {
+    return this.prisma.$transaction(async (tx) => {
+      const loan = await tx.loan.findFirst({ where: { id: loanId, tenantId } });
+      if (!loan) {
+        throw new NotFoundException('Loan not found');
+      }
+      if (loan.status === LoanStatus.Settled || loan.status === LoanStatus.Closed) {
+        throw new BadRequestException('This loan is already settled');
+      }
+      if (loan.status === LoanStatus.WrittenOff) {
+        throw new BadRequestException('This loan has been written off');
+      }
+      if (loan.balance <= 0) {
+        throw new BadRequestException('This loan has no outstanding balance');
+      }
+
+      const paidAt = new Date(input.paidAt);
+      await tx.payment.create({
+        data: {
+          tenant: { connect: { id: tenantId } },
+          loan: { connect: { id: loan.id } },
+          paidAt,
+          amount: loan.balance,
+          method: input.method,
+          note: input.note || 'Early settlement',
+        },
+      });
+      await tx.repaymentScheduleItem.updateMany({
+        where: { loanId: loan.id, status: { not: RepaymentStatus.Paid } },
+        data: { status: RepaymentStatus.Paid, paidAt },
+      });
+
+      return tx.loan.update({
+        where: { id: loan.id },
+        data: {
+          balance: 0,
+          status: LoanStatus.Settled,
+          instalmentsPaid: loan.instalmentsTotal,
+          daysLate: 0,
+          nextDueAt: null,
+          closedAt: paidAt,
+        },
+      });
+    });
+  }
+
+  /** Write off an unrecoverable loan as bad debt; it leaves the active book. */
+  async writeOff(tenantId: string, loanId: string, input: WriteOffLoanInput): Promise<Loan> {
+    const loan = await this.prisma.loan.findFirst({ where: { id: loanId, tenantId } });
+    if (!loan) {
+      throw new NotFoundException('Loan not found');
+    }
+    if (loan.status === LoanStatus.WrittenOff) {
+      throw new BadRequestException('This loan is already written off');
+    }
+    if (loan.status === LoanStatus.Settled || loan.status === LoanStatus.Closed) {
+      throw new BadRequestException('A settled loan cannot be written off');
+    }
+    return this.prisma.loan.update({
+      where: { id: loan.id },
+      data: { status: LoanStatus.WrittenOff, writeOffReason: input.reason, closedAt: new Date() },
     });
   }
 

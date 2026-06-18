@@ -1,6 +1,6 @@
 import { Test } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
-import { LoanStatus, LoanType, RepaymentStatus } from '@loan-pilot/domain';
+import { LoanStatus, LoanType, PaymentMethod, RepaymentStatus } from '@loan-pilot/domain';
 import { LoansService } from './loans.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -11,11 +11,14 @@ describe('LoansService', () => {
   const borrowerFindFirst = jest.fn();
   const borrowerUpsert = jest.fn();
   const scheduleItemUpdate = jest.fn();
+  const scheduleItemUpdateMany = jest.fn();
+  const paymentCreate = jest.fn();
 
   const txMock = {
     loan: { create: loanCreate, findFirst: loanFindFirst, update: loanUpdate },
     borrower: { upsert: borrowerUpsert },
-    repaymentScheduleItem: { update: scheduleItemUpdate },
+    repaymentScheduleItem: { update: scheduleItemUpdate, updateMany: scheduleItemUpdateMany },
+    payment: { create: paymentCreate },
   };
 
   const prismaMock = {
@@ -168,5 +171,60 @@ describe('LoansService', () => {
       BadRequestException,
     );
     expect(loanUpdate).not.toHaveBeenCalled();
+  });
+
+  it('settles early: pays off the balance, clears the schedule and closes the loan', async () => {
+    loanFindFirst.mockResolvedValue({
+      id: 'loan_1',
+      tenantId: 'tenant_1',
+      status: LoanStatus.Active,
+      balance: 520000,
+      instalmentsTotal: 2,
+    });
+
+    await service.settle('tenant_1', 'loan_1', { method: PaymentMethod.Cash, paidAt: '2026-06-18' });
+
+    expect(paymentCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ amount: 520000 }) }),
+    );
+    expect(scheduleItemUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: RepaymentStatus.Paid }) }),
+    );
+    const data = loanUpdate.mock.calls[0][0].data;
+    expect(data.balance).toBe(0);
+    expect(data.status).toBe(LoanStatus.Settled);
+    expect(data.instalmentsPaid).toBe(2);
+    expect(data.closedAt).toBeInstanceOf(Date);
+  });
+
+  it('rejects settling a loan with no balance', async () => {
+    loanFindFirst.mockResolvedValue({
+      id: 'loan_1',
+      tenantId: 'tenant_1',
+      status: LoanStatus.Active,
+      balance: 0,
+      instalmentsTotal: 1,
+    });
+
+    await expect(
+      service.settle('tenant_1', 'loan_1', { method: PaymentMethod.Cash, paidAt: '2026-06-18' }),
+    ).rejects.toThrow(BadRequestException);
+    expect(paymentCreate).not.toHaveBeenCalled();
+  });
+
+  it('writes off a loan with a reason', async () => {
+    loanFindFirst.mockResolvedValue({
+      id: 'loan_1',
+      tenantId: 'tenant_1',
+      status: LoanStatus.Arrears,
+      balance: 520000,
+    });
+
+    await service.writeOff('tenant_1', 'loan_1', { reason: 'Borrower unreachable' });
+
+    const data = loanUpdate.mock.calls[0][0].data;
+    expect(data.status).toBe(LoanStatus.WrittenOff);
+    expect(data.writeOffReason).toBe('Borrower unreachable');
+    expect(data.closedAt).toBeInstanceOf(Date);
   });
 });

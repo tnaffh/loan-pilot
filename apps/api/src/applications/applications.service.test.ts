@@ -137,21 +137,46 @@ describe('ApplicationsService', () => {
     expect(loanData.instalment).toBe(390000);
     expect(loanData.schedule.create).toHaveLength(2);
     expect(applicationUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ data: { status: ApplicationStatus.Approved } }),
+      expect.objectContaining({
+        data: expect.objectContaining({ status: ApplicationStatus.Approved, declineReason: null }),
+      }),
     );
     expect(result.loanId).toBe('loan_new');
   });
 
-  it('declining flips the status without creating a loan', async () => {
+  it('declining flips the status without creating a loan and stores the reason', async () => {
     applicationFindFirst.mockResolvedValue(pendingApplication);
 
     const result = await service.updateStatus('tenant_1', 'app_1', {
       status: ApplicationStatus.Declined,
+      reason: 'Affordability too tight',
     });
 
     expect(borrowerUpsert).not.toHaveBeenCalled();
     expect(loanCreate).not.toHaveBeenCalled();
     expect(result.loanId).toBeNull();
+    expect(applicationUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: ApplicationStatus.Declined,
+          declineReason: 'Affordability too tight',
+        }),
+      }),
+    );
+  });
+
+  it('moving to review keeps it open with no loan', async () => {
+    applicationFindFirst.mockResolvedValue(pendingApplication);
+
+    const result = await service.updateStatus('tenant_1', 'app_1', {
+      status: ApplicationStatus.Review,
+    });
+
+    expect(loanCreate).not.toHaveBeenCalled();
+    expect(result.loanId).toBeNull();
+    expect(applicationUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ data: expect.objectContaining({ status: ApplicationStatus.Review }) }),
+    );
   });
 
   it('rejects deciding an application twice', async () => {

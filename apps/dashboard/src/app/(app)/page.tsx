@@ -33,6 +33,7 @@ import { CashFlowChart } from '@/components/charts/cash-flow-chart';
 import { StatusDonut } from '@/components/charts/status-donut';
 import { ExpenseBar } from '@/components/charts/expense-bar';
 import { BorrowerHome } from '@/components/borrower/home';
+import { useCommand } from '@/components/command-provider';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
 import { useTenantBranding } from '@/lib/tenant-theme';
@@ -64,6 +65,7 @@ const LenderOverview = ({
   stats: Extract<OverviewStats, { kind: 'lender' }>;
 }) => {
   const router = useRouter();
+  const command = useCommand();
   const { user } = useAuth();
   const branding = useTenantBranding();
   const { data: loans } = useApi<LoanRow[]>('/loans');
@@ -226,7 +228,7 @@ const LenderOverview = ({
                   <li key={loan.id}>
                     <button
                       type="button"
-                      onClick={() => router.push(`/loans/${loan.id}`)}
+                      onClick={() => command.openLoanQuickView(loan.id)}
                       className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-muted"
                     >
                       <InitialsAvatar name={`${loan.borrower.firstName} ${loan.borrower.lastName}`} />
@@ -271,9 +273,10 @@ const LenderOverview = ({
               <ul>
                 {latestApplications.map((application) => (
                   <li key={application.id}>
-                    <Link
-                      href="/applications"
-                      className="flex items-center gap-3 rounded-lg px-2 py-2.5 hover:bg-muted"
+                    <button
+                      type="button"
+                      onClick={() => command.openReview(application.id)}
+                      className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-muted"
                     >
                       <InitialsAvatar
                         name={`${application.firstName} ${application.lastName}`}
@@ -287,7 +290,7 @@ const LenderOverview = ({
                         </div>
                       </div>
                       <StatusBadge value={application.status} />
-                    </Link>
+                    </button>
                   </li>
                 ))}
               </ul>

@@ -14,11 +14,15 @@ import {
   isBorrower,
   loanQuoteSchema,
   recordRepaymentSchema,
+  settleLoanSchema,
+  writeOffLoanSchema,
   type CreateLoanInput,
   type LoanQuote,
   type LoanQuoteInput,
   type RecordRepaymentInput,
   type SessionUser,
+  type SettleLoanInput,
+  type WriteOffLoanInput,
 } from '@loan-pilot/domain';
 import type { Loan } from '@prisma/client';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
@@ -83,6 +87,28 @@ export class LoansController {
     @Body(new ZodValidationPipe(recordRepaymentSchema)) body: RecordRepaymentInput,
   ): Promise<Loan> {
     return this.loans.recordRepayment(requireTenantId(user), id, body);
+  }
+
+  @Post(':id/settle')
+  @HttpCode(HttpStatus.CREATED)
+  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  settle(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(settleLoanSchema)) body: SettleLoanInput,
+  ): Promise<Loan> {
+    return this.loans.settle(requireTenantId(user), id, body);
+  }
+
+  @Post(':id/write-off')
+  @HttpCode(HttpStatus.CREATED)
+  @Roles(UserRole.LenderAdmin)
+  writeOff(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(writeOffLoanSchema)) body: WriteOffLoanInput,
+  ): Promise<Loan> {
+    return this.loans.writeOff(requireTenantId(user), id, body);
   }
 
   @Get(':id/statement')

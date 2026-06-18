@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2, Plus } from 'lucide-react';
+import { Eye, Loader2, Plus } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
   EmploymentType,
@@ -28,6 +28,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/page-header';
 import { InitialsAvatar } from '@/components/initials-avatar';
 import { DataTable } from '@/components/data-table';
+import { useCommand } from '@/components/command-provider';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
@@ -48,7 +49,7 @@ const FieldError = ({ message }: { message?: string }) =>
 const isBorrowerField = (path: string): path is keyof CreateBorrowerInput =>
   path in createBorrowerSchema.shape;
 
-const columns: ColumnDef<BorrowerRow>[] = [
+const baseColumns: ColumnDef<BorrowerRow>[] = [
   {
     id: 'borrower',
     header: 'Borrower',
@@ -243,7 +244,36 @@ const NewBorrowerSheet = ({ onCreated }: { onCreated: () => void }) => {
 
 const BorrowersPage = () => {
   const router = useRouter();
+  const command = useCommand();
   const { data, loading, error, refresh } = useApi<BorrowerRow[]>('/borrowers');
+
+  const columns = useMemo<ColumnDef<BorrowerRow>[]>(
+    () => [
+      ...baseColumns,
+      {
+        id: 'quickview',
+        header: () => <span className="sr-only">Quick view</span>,
+        enableHiding: false,
+        cell: ({ row }) => (
+          <div className="flex justify-end">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-8"
+              title="Quick view"
+              onClick={(event) => {
+                event.stopPropagation();
+                command.openBorrowerQuickView(row.original.id);
+              }}
+            >
+              <Eye className="size-4" />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [command],
+  );
 
   return (
     <div>

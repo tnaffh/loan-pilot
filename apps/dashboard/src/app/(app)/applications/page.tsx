@@ -2,47 +2,30 @@
 
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
+import { FilePlus2 } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ApplicationStatus, formatNad } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
 import { TypeChip } from '@/components/type-chip';
 import { InitialsAvatar } from '@/components/initials-avatar';
-import { FilterSegments } from '@/components/filter-segments';
 import { DataTable } from '@/components/data-table';
+import { useCommand } from '@/components/command-provider';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
+import { bumpRevalidation } from '@/lib/revalidate';
 import { formatDate } from '@/lib/format';
-import type { ApplicationDecision, ApplicationRow } from '@/lib/types';
+import type { ApplicationRow } from '@/lib/types';
 
-type Decision = ApplicationStatus.Approved | ApplicationStatus.Declined;
-
-interface PendingDecision {
-  application: ApplicationRow;
-  decision: Decision;
-}
-
-type StatusFilter = 'all' | ApplicationStatus;
-
-const FILTER_OPTIONS: { value: StatusFilter; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: ApplicationStatus.Pending, label: 'Pending' },
-  { value: ApplicationStatus.Review, label: 'Review' },
-  { value: ApplicationStatus.Approved, label: 'Approved' },
-  { value: ApplicationStatus.Declined, label: 'Declined' },
+const COLUMNS: { status: ApplicationStatus; label: string }[] = [
+  { status: ApplicationStatus.Pending, label: 'Pending' },
+  { status: ApplicationStatus.Review, label: 'Review' },
+  { status: ApplicationStatus.Approved, label: 'Approved' },
+  { status: ApplicationStatus.Declined, label: 'Declined' },
 ];
 
 const isOpen = (status: ApplicationStatus): boolean =>
@@ -50,15 +33,39 @@ const isOpen = (status: ApplicationStatus): boolean =>
 
 const ApplicationsPage = () => {
   const { token } = useAuth();
-  const { data, loading, error, refresh } = useApi<ApplicationRow[]>('/applications');
-  const [pending, setPending] = useState<PendingDecision | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [filter, setFilter] = useState<StatusFilter>('all');
+  const command = useCommand();
+  const { data, loading, error } = useApi<ApplicationRow[]>('/applications');
+  const [movingId, setMovingId] = useState<string | null>(null);
 
-  const rows = useMemo(
-    () => (data ?? []).filter((row) => filter === 'all' || row.status === filter),
-    [data, filter],
-  );
+  const move = async (id: string, status: ApplicationStatus) => {
+    setMovingId(id);
+    try {
+      await apiFetch(`/applications/${id}/status`, { method: 'PATCH', body: { status }, token });
+      toast.success(
+        status === ApplicationStatus.Approved
+          ? 'Approved & loan disbursed'
+          : status === ApplicationStatus.Declined
+            ? 'Application declined'
+            : 'Moved to review',
+      );
+      bumpRevalidation();
+    } catch (moveError) {
+      toast.error(moveError instanceof ApiError ? moveError.message : 'Something went wrong');
+    } finally {
+      setMovingId(null);
+    }
+  };
+
+  const byStatus = useMemo(() => {
+    const groups: Record<ApplicationStatus, ApplicationRow[]> = {
+      [ApplicationStatus.Pending]: [],
+      [ApplicationStatus.Review]: [],
+      [ApplicationStatus.Approved]: [],
+      [ApplicationStatus.Declined]: [],
+    };
+    for (const row of data ?? []) groups[row.status]?.push(row);
+    return groups;
+  }, [data]);
 
   const columns = useMemo<ColumnDef<ApplicationRow>[]>(
     () => [
@@ -73,9 +80,7 @@ const ApplicationsPage = () => {
               <div className="font-medium">
                 {row.original.firstName} {row.original.lastName}
               </div>
-              <div className="text-xs text-muted-foreground">
-                {formatDate(row.original.submittedAt)}
-              </div>
+              <div className="text-xs text-muted-foreground">{formatDate(row.original.submittedAt)}</div>
             </div>
           </div>
         ),
@@ -98,106 +103,132 @@ const ApplicationsPage = () => {
         id: 'actions',
         header: () => <div className="text-right">Actions</div>,
         enableHiding: false,
-        cell: ({ row }) =>
-          isOpen(row.original.status) ? (
-            <div className="flex justify-end gap-2">
-              <Button
-                size="sm"
-                onClick={() => setPending({ application: row.original, decision: ApplicationStatus.Approved })}
-              >
-                Approve
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => setPending({ application: row.original, decision: ApplicationStatus.Declined })}
-              >
-                Decline
-              </Button>
-            </div>
-          ) : (
-            <div className="text-right text-muted-foreground">—</div>
-          ),
+        cell: ({ row }) => (
+          <div className="flex justify-end">
+            <Button size="sm" variant="outline" onClick={() => command.openReview(row.original.id)}>
+              Review
+            </Button>
+          </div>
+        ),
       },
     ],
-    [],
+    [command],
   );
-
-  const confirmDecision = async () => {
-    if (!pending) {
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const result = await apiFetch<ApplicationDecision>(
-        `/applications/${pending.application.id}/status`,
-        { method: 'PATCH', body: { status: pending.decision }, token },
-      );
-      if (result.loanId) {
-        toast.success('Application approved', {
-          description: `A ${pending.application.termMonths}-month loan of ${formatNad(
-            pending.application.amount,
-          )} was disbursed.`,
-        });
-      } else {
-        toast.success('Application declined');
-      }
-      setPending(null);
-      refresh();
-    } catch (decisionError) {
-      toast.error(decisionError instanceof ApiError ? decisionError.message : 'Something went wrong');
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   return (
     <div>
-      <PageHeader title="Applications" description="Review and decide incoming loan applications" />
+      <PageHeader
+        title="Applications"
+        description="Review and decide incoming loan applications"
+        action={
+          <Button onClick={() => command.openNewApplication()}>
+            <FilePlus2 />
+            New application
+          </Button>
+        }
+      />
 
       {loading ? (
         <Skeleton className="h-64 w-full rounded-xl" />
       ) : error ? (
         <p className="text-sm text-destructive">{error}</p>
       ) : (
-        <DataTable
-          columns={columns}
-          data={rows}
-          searchPlaceholder="Search applicants…"
-          toolbar={<FilterSegments value={filter} onChange={setFilter} options={FILTER_OPTIONS} />}
-        />
-      )}
+        <Tabs defaultValue="board">
+          <TabsList>
+            <TabsTrigger value="board">Board</TabsTrigger>
+            <TabsTrigger value="table">Table</TabsTrigger>
+          </TabsList>
 
-      <AlertDialog open={pending !== null} onOpenChange={(open) => (open ? null : setPending(null))}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {pending?.decision === ApplicationStatus.Approved ? 'Approve application' : 'Decline application'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {pending
-                ? pending.decision === ApplicationStatus.Approved
-                  ? `Approve ${pending.application.firstName} ${pending.application.lastName}'s ` +
-                    `${pending.application.type} loan of ${formatNad(pending.application.amount)} ` +
-                    `over ${pending.application.termMonths} month(s)? This disburses the loan ` +
-                    `immediately (total repayable ${formatNad(pending.application.quotedTotal)}).`
-                  : `Decline ${pending.application.firstName} ${pending.application.lastName}'s ` +
-                    `application for ${formatNad(pending.application.amount)}? This cannot be undone.`
-                : null}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={submitting}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDecision}
-              disabled={submitting}
-              variant={pending?.decision === ApplicationStatus.Declined ? 'destructive' : 'default'}
-            >
-              {pending?.decision === ApplicationStatus.Approved ? 'Approve & disburse' : 'Decline'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          <TabsContent value="board">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {COLUMNS.map((column) => (
+                <div key={column.status} className="rounded-xl border bg-muted/30 p-3">
+                  <div className="mb-3 flex items-center justify-between px-1">
+                    <span className="text-sm font-semibold">{column.label}</span>
+                    <span className="rounded-full bg-background px-2 text-xs text-muted-foreground tabular-nums">
+                      {byStatus[column.status].length}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {byStatus[column.status].map((app) => (
+                      <button
+                        key={app.id}
+                        type="button"
+                        onClick={() => command.openReview(app.id)}
+                        className="w-full rounded-lg border bg-background p-3 text-left shadow-xs transition-colors hover:border-ring"
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate text-sm font-medium">
+                            {app.firstName} {app.lastName}
+                          </span>
+                          <TypeChip type={app.type} />
+                        </div>
+                        <div className="mt-1 flex items-center justify-between">
+                          <span className="text-sm tabular-nums">{formatNad(app.amount)}</span>
+                          <StatusBadge value={app.affordability} />
+                        </div>
+                        {isOpen(app.status) ? (
+                          <div className="mt-2 flex flex-wrap gap-1.5">
+                            <Button
+                              size="sm"
+                              className="h-7 px-2"
+                              disabled={movingId === app.id}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                move(app.id, ApplicationStatus.Approved);
+                              }}
+                            >
+                              Approve
+                            </Button>
+                            {app.status === ApplicationStatus.Pending ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-7 px-2"
+                                disabled={movingId === app.id}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  move(app.id, ApplicationStatus.Review);
+                                }}
+                              >
+                                Review
+                              </Button>
+                            ) : null}
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-destructive"
+                              disabled={movingId === app.id}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                move(app.id, ApplicationStatus.Declined);
+                              }}
+                            >
+                              Decline
+                            </Button>
+                          </div>
+                        ) : null}
+                      </button>
+                    ))}
+                    {byStatus[column.status].length === 0 ? (
+                      <p className="px-1 py-6 text-center text-xs text-muted-foreground">Nothing here</p>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="table">
+            <DataTable
+              columns={columns}
+              data={data ?? []}
+              searchPlaceholder="Search applicants…"
+              onRowClick={(application) => command.openReview(application.id)}
+            />
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 };

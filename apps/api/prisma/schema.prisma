@@ -197,8 +197,12 @@ model Loan {
   externalRef      String?
   // Free-text provenance/admin note (e.g. marks reconstructed historical loans).
   note             String?
+  // Reason captured when a loan is written off as bad debt.
+  writeOffReason   String?
   disbursedAt      DateTime?
   nextDueAt        DateTime?
+  // When the loan left the active book (settled or written off).
+  closedAt         DateTime?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
@@ -252,6 +256,10 @@ model LoanApplication {
   affordabilityRatio Float
   status         ApplicationStatus   @default(pending)
   affordability  AffordabilityResult @default(review)
+  // Reason captured when an application is declined; shown in its activity timeline.
+  declineReason  String?
+  // When the application was last moved (to review / approved / declined).
+  decidedAt      DateTime?
   submittedAt    DateTime            @default(now())
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt

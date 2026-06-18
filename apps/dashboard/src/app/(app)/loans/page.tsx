@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Eye, Plus } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import { LoanStatus, formatNad } from '@loan-pilot/domain';
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/page-header';
 import { StatusBadge } from '@/components/status-badge';
@@ -11,11 +13,12 @@ import { TypeChip } from '@/components/type-chip';
 import { InitialsAvatar } from '@/components/initials-avatar';
 import { FilterSegments } from '@/components/filter-segments';
 import { DataTable } from '@/components/data-table';
+import { useCommand } from '@/components/command-provider';
 import { useApi } from '@/lib/use-api';
 import { formatDate } from '@/lib/format';
 import type { LoanRow } from '@/lib/types';
 
-const columns: ColumnDef<LoanRow>[] = [
+const baseColumns: ColumnDef<LoanRow>[] = [
   {
     id: 'borrower',
     header: 'Borrower',
@@ -99,8 +102,37 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
 
 const LoansPage = () => {
   const router = useRouter();
+  const command = useCommand();
   const { data, loading, error } = useApi<LoanRow[]>('/loans');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+
+  const columns = useMemo<ColumnDef<LoanRow>[]>(
+    () => [
+      ...baseColumns,
+      {
+        id: 'quickview',
+        header: () => <span className="sr-only">Quick view</span>,
+        enableHiding: false,
+        cell: ({ row }) => (
+          <div className="flex justify-end">
+            <Button
+              size="icon"
+              variant="ghost"
+              className="size-8"
+              title="Quick view"
+              onClick={(event) => {
+                event.stopPropagation();
+                command.openLoanQuickView(row.original.id);
+              }}
+            >
+              <Eye className="size-4" />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [command],
+  );
 
   const rows = useMemo(
     () => (data ?? []).filter((loan) => statusFilter === 'all' || loan.status === statusFilter),
@@ -115,6 +147,12 @@ const LoansPage = () => {
         title="Loans"
         description={
           data ? `${data.length} loans · ${formatNad(outstanding)} outstanding` : 'The full loan book'
+        }
+        action={
+          <Button onClick={() => command.openNewLoan()}>
+            <Plus />
+            New loan
+          </Button>
         }
       />
 

@@ -30,6 +30,8 @@ import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
 import { StatusBadge } from '@/components/status-badge';
 import { TypeChip } from '@/components/type-chip';
+import { ActivityTimeline } from '@/components/activity-timeline';
+import { useCommand } from '@/components/command-provider';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
@@ -46,6 +48,7 @@ const Detail = ({ label, value }: { label: string; value: string }) => (
 const LoanDetailPage = () => {
   const params = useParams<{ id: string }>();
   const { user, token } = useAuth();
+  const command = useCommand();
   const { data, loading, error, refresh } = useApi<LoanDetail>(
     params.id ? `/loans/${params.id}` : null,
   );
@@ -66,8 +69,14 @@ const LoanDetailPage = () => {
   }
 
   const open = data.status === LoanStatus.Active || data.status === LoanStatus.Arrears;
+  const lender = Boolean(user && isLender(user.role));
+  const payable =
+    lender &&
+    (open || data.status === LoanStatus.PartlyPaid) &&
+    data.balance > 0;
   const nextInstalment = data.schedule.find((item) => item.status !== RepaymentStatus.Paid);
-  const canCapture = Boolean(user && isLender(user.role)) && open && nextInstalment;
+  const canCapture = lender && open && Boolean(nextInstalment);
+  const loanLabel = `${data.borrower.firstName} ${data.borrower.lastName}'s loan`;
 
   const captureRepayment = async () => {
     setSubmitting(true);
@@ -91,10 +100,43 @@ const LoanDetailPage = () => {
         title={`${data.type[0]?.toUpperCase()}${data.type.slice(1)} loan`}
         description={`${data.borrower.firstName} ${data.borrower.lastName} · disbursed ${formatDate(data.disbursedAt)}`}
         action={
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <StatusBadge value={data.status} />
+            {payable ? (
+              <Button
+                size="sm"
+                onClick={() =>
+                  command.openRecordPayment({ loanId: data.id, loanLabel })
+                }
+              >
+                Record payment
+              </Button>
+            ) : null}
             {canCapture ? (
-              <Button onClick={() => setConfirming(true)}>Capture repayment</Button>
+              <Button size="sm" variant="outline" onClick={() => setConfirming(true)}>
+                Capture instalment
+              </Button>
+            ) : null}
+            {payable ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  command.openSettle({ loanId: data.id, balance: data.balance, loanLabel })
+                }
+              >
+                Settle
+              </Button>
+            ) : null}
+            {payable ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-destructive"
+                onClick={() => command.openWriteOff({ loanId: data.id, loanLabel })}
+              >
+                Write off
+              </Button>
             ) : null}
           </div>
         }
@@ -183,6 +225,15 @@ const LoanDetailPage = () => {
           {data.note ? (
             <p className="pt-1 text-xs text-muted-foreground italic">{data.note}</p>
           ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Activity</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ActivityTimeline events={data.activity} />
         </CardContent>
       </Card>
 

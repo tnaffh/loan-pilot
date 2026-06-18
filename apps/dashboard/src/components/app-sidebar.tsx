@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronRight } from 'lucide-react';
@@ -28,6 +29,64 @@ import {
 import { NavUser } from '@/components/nav-user';
 import { navForRole, type NavItem } from '@/lib/nav';
 import { useTenantBranding } from '@/lib/tenant-theme';
+
+/**
+ * One expandable nav group. Controlled (not `defaultOpen`) so the open state can
+ * follow the active route without Base UI warning about a changing default —
+ * the group is forced open while one of its routes is active, and the user can
+ * toggle it otherwise.
+ */
+const CollapsibleNavItem = ({
+  item,
+  active,
+  pendingCount,
+  isActive,
+}: {
+  item: NavItem;
+  active: boolean;
+  pendingCount: number;
+  isActive: (href: string) => boolean;
+}) => {
+  const [open, setOpen] = useState(active);
+  const subItems = item.items ?? [];
+
+  return (
+    <Collapsible
+      open={open || active}
+      onOpenChange={setOpen}
+      className="group/collapsible"
+      render={<SidebarMenuItem />}
+    >
+      <CollapsibleTrigger
+        render={
+          <SidebarMenuButton tooltip={item.label} className="h-9 text-[15px] [&>svg]:size-[18px]" />
+        }
+      >
+        <item.icon />
+        <span>{item.label}</span>
+        {subItems.some((sub) => sub.withBadge) && pendingCount > 0 ? (
+          <SidebarMenuBadge className="mr-5">{pendingCount}</SidebarMenuBadge>
+        ) : null}
+        <ChevronRight className="ml-auto transition-transform duration-200 group-data-open/collapsible:rotate-90" />
+      </CollapsibleTrigger>
+      <CollapsibleContent>
+        <SidebarMenuSub>
+          {subItems.map((sub) => (
+            <SidebarMenuSubItem key={sub.href}>
+              <SidebarMenuSubButton
+                isActive={isActive(sub.href)}
+                className="h-8 text-[14px]"
+                render={<Link href={sub.href} />}
+              >
+                <span>{sub.label}</span>
+              </SidebarMenuSubButton>
+            </SidebarMenuSubItem>
+          ))}
+        </SidebarMenuSub>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+};
 
 export const AppSidebar = ({ user, pendingCount }: { user: SessionUser; pendingCount: number }) => {
   const pathname = usePathname();
@@ -65,43 +124,13 @@ export const AppSidebar = ({ user, pendingCount }: { user: SessionUser; pendingC
             <SidebarMenu>
               {group.items.map((item) =>
                 item.items ? (
-                  <Collapsible
+                  <CollapsibleNavItem
                     key={item.label}
-                    defaultOpen={itemActive(item)}
-                    className="group/collapsible"
-                    render={<SidebarMenuItem />}
-                  >
-                    <CollapsibleTrigger
-                      render={
-                        <SidebarMenuButton
-                          tooltip={item.label}
-                          className="h-9 text-[15px] [&>svg]:size-[18px]"
-                        />
-                      }
-                    >
-                      <item.icon />
-                      <span>{item.label}</span>
-                      {item.items.some((sub) => sub.withBadge) && pendingCount > 0 ? (
-                        <SidebarMenuBadge className="mr-5">{pendingCount}</SidebarMenuBadge>
-                      ) : null}
-                      <ChevronRight className="ml-auto transition-transform duration-200 group-data-open/collapsible:rotate-90" />
-                    </CollapsibleTrigger>
-                    <CollapsibleContent>
-                      <SidebarMenuSub>
-                        {item.items.map((sub) => (
-                          <SidebarMenuSubItem key={sub.href}>
-                            <SidebarMenuSubButton
-                              isActive={isActive(sub.href)}
-                              className="h-8 text-[14px]"
-                              render={<Link href={sub.href} />}
-                            >
-                              <span>{sub.label}</span>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        ))}
-                      </SidebarMenuSub>
-                    </CollapsibleContent>
-                  </Collapsible>
+                    item={item}
+                    active={itemActive(item)}
+                    pendingCount={pendingCount}
+                    isActive={isActive}
+                  />
                 ) : (
                   <SidebarMenuItem key={item.label}>
                     <SidebarMenuButton

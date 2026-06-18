@@ -3,8 +3,10 @@ import type { LoanApplication, Prisma } from '@prisma/client';
 import {
   ApplicationStatus,
   assessAffordability,
+  buildApplicationActivity,
   quote,
   toCents,
+  type ActivityEvent,
   type CreateApplicationInput,
   type UpdateApplicationStatusInput,
 } from '@loan-pilot/domain';
@@ -14,6 +16,8 @@ import { LoansService } from '../loans/loans.service';
 export type ApplicationWithReferences = Prisma.LoanApplicationGetPayload<{
   include: { references: true };
 }>;
+
+export type ApplicationDetail = ApplicationWithReferences & { activity: ActivityEvent[] };
 
 export interface ApplicationDecision {
   application: LoanApplication;
@@ -89,9 +93,22 @@ export class ApplicationsService {
     });
   }
 
+  /** Full application for the review sheet/detail, with a derived activity timeline. */
+  async findOneForTenant(tenantId: string, id: string): Promise<ApplicationDetail> {
+    const application = await this.prisma.loanApplication.findFirst({
+      where: { id, tenantId },
+      include: { references: true },
+    });
+    if (!application) {
+      throw new NotFoundException('Application not found');
+    }
+    return { ...application, activity: buildApplicationActivity(application) };
+  }
+
   /**
-   * Decide a pending application. Approval creates the borrower (if new) and
-   * disburses the quoted loan atomically with the status change.
+   * Move an application along its lifecycle. Approval creates the borrower (if
+   * new) and disburses the quoted loan atomically with the status change;
+   * Review is a triage step; Decline records the reason.
    */
   updateStatus(
     tenantId: string,
@@ -117,7 +134,12 @@ export class ApplicationsService {
 
       const updated = await tx.loanApplication.update({
         where: { id },
-        data: { status: input.status },
+        data: {
+          status: input.status,
+          decidedAt: new Date(),
+          declineReason:
+            input.status === ApplicationStatus.Declined ? input.reason || null : null,
+        },
       });
 
       return { application: updated, loanId: loan?.id ?? null };
