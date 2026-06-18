@@ -12,6 +12,7 @@ import {
 } from '@loan-pilot/domain';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoansService } from '../loans/loans.service';
+import { StorageService } from '../documents/storage.service';
 
 export type ApplicationWithReferences = Prisma.LoanApplicationGetPayload<{
   include: { references: true };
@@ -33,6 +34,7 @@ export class ApplicationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly loans: LoansService,
+    private readonly storage: StorageService,
   ) {}
 
   /**
@@ -114,7 +116,14 @@ export class ApplicationsService {
     if (!application) {
       throw new NotFoundException('Application not found');
     }
-    return { ...application, activity: buildApplicationActivity(application) };
+    // Resolve each document's storage key to a browser-openable URL.
+    const documents = await Promise.all(
+      application.documents.map(async (document) => ({
+        ...document,
+        url: await this.storage.accessUrl(document.url),
+      })),
+    );
+    return { ...application, documents, activity: buildApplicationActivity(application) };
   }
 
   /**

@@ -9,6 +9,7 @@ import {
 import { ApplicationsService } from './applications.service';
 import { LoansService } from '../loans/loans.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../documents/storage.service';
 
 describe('ApplicationsService', () => {
   const create = jest.fn();
@@ -50,6 +51,7 @@ describe('ApplicationsService', () => {
         ApplicationsService,
         LoansService,
         { provide: PrismaService, useValue: prismaMock },
+        { provide: StorageService, useValue: { accessUrl: jest.fn(), save: jest.fn() } },
       ],
     }).compile();
 

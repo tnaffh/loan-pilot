@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import type { Document } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from './storage.service';
 
 @Injectable()
 export class DocumentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   /** Attach an uploaded file to an application owned by the resolved tenant. */
   async createForApplication(
@@ -21,11 +25,18 @@ export class DocumentsService {
       throw new NotFoundException('Application not found');
     }
 
+    const { key } = await this.storage.save({
+      buffer: file.buffer,
+      contentType: file.mimetype,
+      originalName: file.originalname,
+    });
+
     return this.prisma.document.create({
       data: {
         applicationId,
         kind,
-        url: `/uploads/${file.filename}`,
+        // The storage key; resolved to an openable URL when read back.
+        url: key,
         fileName: file.originalname,
         mimeType: file.mimetype,
         sizeBytes: file.size,

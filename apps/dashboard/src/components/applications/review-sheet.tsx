@@ -28,12 +28,6 @@ import type { ApplicationDecision, ApplicationDetail } from '@/lib/types';
 const isOpen = (status: ApplicationStatus): boolean =>
   status === ApplicationStatus.Pending || status === ApplicationStatus.Review;
 
-/** Origin that serves uploaded files (the API URL without its /api suffix). */
-const FILE_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api').replace(
-  /\/api\/?$/,
-  '',
-);
-
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -163,7 +157,7 @@ export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Pr
                           {doc.kind.replace(/_/g, ' ')}
                         </span>
                         <a
-                          href={`${FILE_BASE}${doc.url}`}
+                          href={doc.url}
                           target="_blank"
                           rel="noreferrer"
                           className="flex items-center gap-1 truncate font-medium hover:underline"
