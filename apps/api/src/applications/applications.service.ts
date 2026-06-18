@@ -17,7 +17,11 @@ export type ApplicationWithReferences = Prisma.LoanApplicationGetPayload<{
   include: { references: true };
 }>;
 
-export type ApplicationDetail = ApplicationWithReferences & { activity: ActivityEvent[] };
+export type ApplicationWithDetail = Prisma.LoanApplicationGetPayload<{
+  include: { references: true; documents: true };
+}>;
+
+export type ApplicationDetail = ApplicationWithDetail & { activity: ActivityEvent[] };
 
 export interface ApplicationDecision {
   application: LoanApplication;
@@ -58,7 +62,11 @@ export class ApplicationsService {
       dateOfBirth: input.dateOfBirth,
       phone: input.phone,
       email: input.email,
-      address: input.address,
+      addrStreet: input.address.street,
+      addrSuburb: input.address.suburb || null,
+      addrCity: input.address.city,
+      addrRegion: input.address.region || null,
+      addrCountry: input.address.country,
       maritalStatus: input.maritalStatus || null,
       type: input.loanType,
       amount: principalCents,
@@ -68,8 +76,12 @@ export class ApplicationsService {
       employmentType: input.employmentType,
       employer: input.employer,
       occupation: input.occupation,
-      bank: input.bank,
-      accountType: input.accountType,
+      bankName: input.bankAccount.bankName,
+      bankAccountNumber: input.bankAccount.accountNumber,
+      bankBranchName: input.bankAccount.branchName || null,
+      bankBranchCode: input.bankAccount.branchCode || null,
+      bankAccountHolder: input.bankAccount.accountHolderName,
+      accountType: input.bankAccount.accountType,
       quotedTotal: loanQuote.totalCents,
       quotedInstalment: loanQuote.instalmentCents,
       affordabilityRatio: assessment.ratio,
@@ -97,7 +109,7 @@ export class ApplicationsService {
   async findOneForTenant(tenantId: string, id: string): Promise<ApplicationDetail> {
     const application = await this.prisma.loanApplication.findFirst({
       where: { id, tenantId },
-      include: { references: true },
+      include: { references: true, documents: { orderBy: { uploadedAt: 'desc' } } },
     });
     if (!application) {
       throw new NotFoundException('Application not found');

@@ -144,13 +144,10 @@ model Borrower {
   idNumber       String
   phone          String
   email          String
-  address        String
   employer       String
   occupation     String
   monthlyIncome  Int
   employmentType EmploymentType
-  bank           String
-  accountType    String
   gender         String?
   // Salary pay day; kept as the raw sheet value (e.g. "25" or "25/10/23").
   payDay         String?
@@ -159,11 +156,50 @@ model Borrower {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
-  loans Loan[]
-  user  User?
+  loans        Loan[]
+  user         User?
+  addresses    BorrowerAddress[]
+  bankAccounts BorrowerBankAccount[]
 
   @@unique([tenantId, idNumber])
   @@index([tenantId])
+}
+
+model BorrowerAddress {
+  id         String   @id @default(cuid())
+  borrowerId String
+  borrower   Borrower @relation(fields: [borrowerId], references: [id], onDelete: Cascade)
+  // Optional label, e.g. "Residential" / "Postal" / "Work".
+  label      String?
+  street     String
+  suburb     String?
+  city       String
+  region     String?
+  country    String   @default("Namibia")
+  // Exactly one active address per borrower (enforced by a partial unique index).
+  isActive   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([borrowerId])
+}
+
+model BorrowerBankAccount {
+  id                String   @id @default(cuid())
+  borrowerId        String
+  borrower          Borrower @relation(fields: [borrowerId], references: [id], onDelete: Cascade)
+  bankName          String
+  accountNumber     String
+  branchName        String?
+  branchCode        String?
+  accountHolderName String
+  accountType       String
+  // Exactly one active account per borrower (enforced by a partial unique index).
+  isActive          Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([borrowerId])
 }
 
 model Loan {
@@ -238,7 +274,12 @@ model LoanApplication {
   dateOfBirth    String
   phone          String
   email          String
-  address        String
+  // Structured residential address snapshot (becomes the borrower's active address on approval).
+  addrStreet     String
+  addrSuburb     String?
+  addrCity       String
+  addrRegion     String?
+  addrCountry    String              @default("Namibia")
   maritalStatus  String?
   type           LoanType
   amount         Int
@@ -248,8 +289,13 @@ model LoanApplication {
   employmentType EmploymentType
   employer       String
   occupation     String
-  bank           String
-  accountType    String
+  // Full bank-account snapshot (becomes the borrower's active account on approval).
+  bankName          String
+  bankAccountNumber String
+  bankBranchName    String?
+  bankBranchCode    String?
+  bankAccountHolder String
+  accountType       String
   // server-computed quote + assessment
   quotedTotal       Int
   quotedInstalment  Int
@@ -287,6 +333,9 @@ model Document {
   application   LoanApplication? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   kind          String
   url           String
+  fileName      String
+  mimeType      String?
+  sizeBytes     Int?
   uploadedAt    DateTime         @default(now())
 
   @@index([applicationId])

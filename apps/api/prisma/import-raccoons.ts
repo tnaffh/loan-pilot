@@ -267,13 +267,11 @@ const main = async (): Promise<void> => {
         idNumber,
         phone: input.phone?.trim() ?? '',
         email: '',
-        address: '',
         employer,
         occupation: '',
         monthlyIncome: input.monthlyIncome ?? 0, // net salary from the register, when recorded
         employmentType: employmentFor(employer),
-        bank: '',
-        accountType: '',
+        // Address & bank details are not in the register; captured later in the dashboard.
       },
     });
     borrowersCreated += 1;

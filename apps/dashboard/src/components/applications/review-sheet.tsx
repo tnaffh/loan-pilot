@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { FileText, Loader2 } from 'lucide-react';
 import { ApplicationStatus, formatNad } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,6 +27,12 @@ import type { ApplicationDecision, ApplicationDetail } from '@/lib/types';
 
 const isOpen = (status: ApplicationStatus): boolean =>
   status === ApplicationStatus.Pending || status === ApplicationStatus.Review;
+
+/** Origin that serves uploaded files (the API URL without its /api suffix). */
+const FILE_BASE = (process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api').replace(
+  /\/api\/?$/,
+  '',
+);
 
 interface Props {
   open: boolean;
@@ -111,10 +117,24 @@ export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Pr
               <div className="grid grid-cols-2 gap-3">
                 <Kv label="Phone" value={data.phone} />
                 <Kv label="Email" value={data.email} />
-                <Kv label="Employer" value={data.employer} />
-                <Kv label="Occupation" value={data.occupation} />
-                <Kv label="Bank" value={`${data.bank} · ${data.accountType}`} />
                 <Kv label="ID number" value={data.idNumber} />
+                <Kv label="Occupation" value={data.occupation} />
+                <Kv label="Employer" value={data.employer} />
+                <Kv
+                  label="Address"
+                  value={
+                    [data.addrStreet, data.addrSuburb, data.addrCity, data.addrRegion, data.addrCountry]
+                      .filter(Boolean)
+                      .join(', ') || '—'
+                  }
+                />
+                <Kv label="Bank" value={`${data.bankName} · ${data.accountType}`} />
+                <Kv
+                  label="Account"
+                  value={
+                    `${data.bankAccountNumber || '—'}${data.bankBranchCode ? ` · ${data.bankBranchCode}` : ''}`
+                  }
+                />
               </div>
 
               {data.references.length > 0 ? (
@@ -130,6 +150,32 @@ export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Pr
                   </ul>
                 </div>
               ) : null}
+
+              <div>
+                <div className="mb-1 text-xs font-medium text-muted-foreground">Documents</div>
+                {data.documents.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No documents uploaded.</p>
+                ) : (
+                  <ul className="space-y-1 text-sm">
+                    {data.documents.map((doc) => (
+                      <li key={doc.id} className="flex items-center justify-between gap-3">
+                        <span className="capitalize text-muted-foreground">
+                          {doc.kind.replace(/_/g, ' ')}
+                        </span>
+                        <a
+                          href={`${FILE_BASE}${doc.url}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-1 truncate font-medium hover:underline"
+                        >
+                          <FileText className="size-3.5 shrink-0" />
+                          {doc.fileName}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
 
               <div>
                 <div className="mb-2 text-xs font-medium text-muted-foreground">Activity</div>

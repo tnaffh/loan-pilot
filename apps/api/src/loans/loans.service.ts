@@ -67,6 +67,20 @@ const LOAN_TYPE_FROM_DB: Record<$Enums.LoanType, LoanType> = {
   collateral: LoanType.Collateral,
 };
 
+/** Join a structured borrower address into a single statement line. */
+const formatAddressLine = (address?: {
+  street: string;
+  suburb: string | null;
+  city: string;
+  region: string | null;
+  country: string;
+}): string =>
+  address
+    ? [address.street, address.suburb, address.city, address.region, address.country]
+        .filter(Boolean)
+        .join(', ')
+    : '';
+
 @Injectable()
 export class LoansService {
   constructor(private readonly prisma: PrismaService) {}
@@ -174,13 +188,10 @@ export class LoansService {
       update: {
         phone: application.phone,
         email: application.email,
-        address: application.address,
         employer: application.employer,
         occupation: application.occupation,
         monthlyIncome: application.declaredIncome,
         employmentType: application.employmentType,
-        bank: application.bank,
-        accountType: application.accountType,
       },
       create: {
         tenant: { connect: { id: application.tenantId } },
@@ -189,13 +200,45 @@ export class LoansService {
         idNumber: application.idNumber,
         phone: application.phone,
         email: application.email,
-        address: application.address,
         employer: application.employer,
         occupation: application.occupation,
         monthlyIncome: application.declaredIncome,
         employmentType: application.employmentType,
-        bank: application.bank,
+      },
+    });
+
+    // Carry the application's address + bank snapshot onto the borrower as the
+    // new active records (deactivating any previous active ones first).
+    await tx.borrowerAddress.updateMany({
+      where: { borrowerId: borrower.id, isActive: true },
+      data: { isActive: false },
+    });
+    await tx.borrowerAddress.create({
+      data: {
+        borrowerId: borrower.id,
+        label: 'Residential',
+        street: application.addrStreet,
+        suburb: application.addrSuburb,
+        city: application.addrCity,
+        region: application.addrRegion,
+        country: application.addrCountry,
+        isActive: true,
+      },
+    });
+    await tx.borrowerBankAccount.updateMany({
+      where: { borrowerId: borrower.id, isActive: true },
+      data: { isActive: false },
+    });
+    await tx.borrowerBankAccount.create({
+      data: {
+        borrowerId: borrower.id,
+        bankName: application.bankName,
+        accountNumber: application.bankAccountNumber,
+        branchName: application.bankBranchName,
+        branchCode: application.bankBranchCode,
+        accountHolderName: application.bankAccountHolder,
         accountType: application.accountType,
+        isActive: true,
       },
     });
 
@@ -345,7 +388,7 @@ export class LoansService {
     const loan = await this.prisma.loan.findFirst({
       where: { id: loanId, tenantId },
       include: {
-        borrower: true,
+        borrower: { include: { addresses: { where: { isActive: true }, take: 1 } } },
         tenant: { select: { name: true, town: true } },
         schedule: { orderBy: { number: 'asc' } },
       },
@@ -361,7 +404,7 @@ export class LoansService {
     const loan = await this.prisma.loan.findFirst({
       where: { id: loanId, borrowerId },
       include: {
-        borrower: true,
+        borrower: { include: { addresses: { where: { isActive: true }, take: 1 } } },
         tenant: { select: { name: true, town: true } },
         schedule: { orderBy: { number: 'asc' } },
       },
@@ -375,7 +418,7 @@ export class LoansService {
   private buildStatement(
     loan: Prisma.LoanGetPayload<{
       include: {
-        borrower: true;
+        borrower: { include: { addresses: true } };
         tenant: { select: { name: true; town: true } };
         schedule: true;
       };
@@ -425,7 +468,7 @@ export class LoansService {
       borrower: {
         name: `${loan.borrower.firstName} ${loan.borrower.lastName}`,
         idNumber: loan.borrower.idNumber,
-        address: loan.borrower.address,
+        address: formatAddressLine(loan.borrower.addresses[0]),
       },
       loan: {
         id: loan.id,

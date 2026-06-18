@@ -20,13 +20,14 @@ import { StatStrip } from '@/components/stat-strip';
 import { TypeChip } from '@/components/type-chip';
 import { InitialsAvatar } from '@/components/initials-avatar';
 import { Kv } from '@/components/kv';
+import { ContactCards } from '@/components/borrowers/contact-cards';
 import { useApi } from '@/lib/use-api';
 import { formatDate } from '@/lib/format';
 import type { BorrowerDetail } from '@/lib/types';
 
 const BorrowerDetailPage = () => {
   const params = useParams<{ id: string }>();
-  const { data, loading, error } = useApi<BorrowerDetail>(
+  const { data, loading, error, refresh } = useApi<BorrowerDetail>(
     params.id ? `/borrowers/${params.id}` : null,
   );
 
@@ -91,14 +92,19 @@ const BorrowerDetailPage = () => {
             <Kv label="ID number" value={data.idNumber} />
             <Kv label="Phone" value={data.phone} />
             <Kv label="Email" value={data.email} />
-            <Kv label="Address" value={data.address} />
             <Kv label="Employer" value={data.employer} />
             <Kv label="Occupation" value={data.occupation} />
             <Kv label="Monthly income" value={formatNad(data.monthlyIncome)} />
-            <Kv label="Bank" value={`${data.bank} (${data.accountType})`} />
           </dl>
         </CardContent>
       </Card>
+
+      <ContactCards
+        borrowerId={data.id}
+        addresses={data.addresses}
+        bankAccounts={data.bankAccounts}
+        onChanged={refresh}
+      />
 
       <Card>
         <CardHeader>

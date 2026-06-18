@@ -83,9 +83,13 @@ const main = async (): Promise<void> => {
   await prisma.applicationReference.deleteMany();
   await prisma.document.deleteMany();
   await prisma.loanApplication.deleteMany();
+  await prisma.payment.deleteMany();
   await prisma.loan.deleteMany();
   await prisma.invoice.deleteMany();
+  await prisma.expense.deleteMany();
+  await prisma.investment.deleteMany();
   await prisma.user.deleteMany();
+  // Borrower delete cascades to its addresses + bank accounts.
   await prisma.borrower.deleteMany();
   await prisma.tenant.deleteMany();
 
@@ -205,16 +209,33 @@ const main = async (): Promise<void> => {
   ];
 
   const borrowers = await Promise.all(
-    borrowerSeeds.map((data) =>
-      prisma.borrower.create({
+    borrowerSeeds.map((data) => {
+      const { address, bank, accountType, monthlyIncome, ...rest } = data;
+      return prisma.borrower.create({
         data: {
-          ...data,
+          ...rest,
           // Seed incomes above are in major N$; the column stores cents.
-          monthlyIncome: toCents(data.monthlyIncome),
+          monthlyIncome: toCents(monthlyIncome),
           tenant: { connect: { id: rfs.id } },
+          addresses: {
+            create: [
+              { label: 'Residential', street: address, city: 'Windhoek', country: 'Namibia', isActive: true },
+            ],
+          },
+          bankAccounts: {
+            create: [
+              {
+                bankName: bank,
+                accountNumber: '62000000000',
+                accountHolderName: `${data.firstName} ${data.lastName}`,
+                accountType,
+                isActive: true,
+              },
+            ],
+          },
         },
-      }),
-    ),
+      });
+    }),
   );
 
   // Borrower portal login, linked to the first seeded borrower.
@@ -332,7 +353,9 @@ const main = async (): Promise<void> => {
           dateOfBirth: '1990-01-01',
           phone: '+264 81 000 0000',
           email: `${seed.firstName.toLowerCase()}@email.na`,
-          address: 'Windhoek, Namibia',
+          addrStreet: '1 Independence Ave',
+          addrCity: 'Windhoek',
+          addrCountry: 'Namibia',
           type: seed.type,
           amount: toCents(seed.amount),
           termMonths: seed.termMonths,
@@ -340,7 +363,9 @@ const main = async (): Promise<void> => {
           employmentType: seed.employmentType,
           employer: 'Various',
           occupation: 'Applicant',
-          bank: 'Bank Windhoek',
+          bankName: 'Bank Windhoek',
+          bankAccountNumber: '62000000000',
+          bankAccountHolder: `${seed.firstName} ${seed.lastName}`,
           accountType: 'Savings',
           quotedTotal: loanQuote.totalCents,
           quotedInstalment: loanQuote.instalmentCents,

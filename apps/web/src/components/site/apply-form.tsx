@@ -6,6 +6,7 @@ import { Controller, useFieldArray, useForm, useWatch, type FieldPath } from 're
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckCircle2, ChevronLeft, ChevronRight, Loader2, Plus, Trash2, XCircle } from 'lucide-react';
 import {
+  DocumentKind,
   EmploymentType,
   LoanType,
   createApplicationSchema,
@@ -18,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DatePicker } from '@/components/ui/date-picker';
+import { FileUpload } from '@/components/ui/file-upload';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
@@ -29,16 +31,48 @@ import {
 } from '@/components/ui/select';
 import { FormField } from '@/components/site/form-field';
 import { cn } from '@/lib/utils';
-import { ApiError, submitApplication, type ApplicationResult } from '@/lib/api';
+import {
+  ApiError,
+  submitApplication,
+  uploadApplicationDocument,
+  type ApplicationResult,
+} from '@/lib/api';
 import { PRODUCTS } from '@/lib/site-data';
 
 const STEPS = ['Your loan', 'Personal', 'Employment & bank', 'References & docs'] as const;
 
 const STEP_FIELDS: FieldPath<CreateApplicationInput>[][] = [
   ['loanType', 'amount', 'termMonths', 'purpose'],
-  ['firstName', 'lastName', 'idNumber', 'dateOfBirth', 'phone', 'email', 'address', 'maritalStatus'],
-  ['employmentType', 'employer', 'occupation', 'monthlyIncome', 'bank', 'accountType'],
+  [
+    'firstName',
+    'lastName',
+    'idNumber',
+    'dateOfBirth',
+    'phone',
+    'email',
+    'address.street',
+    'address.city',
+    'address.country',
+    'maritalStatus',
+  ],
+  [
+    'employmentType',
+    'employer',
+    'occupation',
+    'monthlyIncome',
+    'bankAccount.bankName',
+    'bankAccount.accountNumber',
+    'bankAccount.accountHolderName',
+    'bankAccount.accountType',
+  ],
   ['references', 'consent'],
+];
+
+const DOCUMENT_SLOTS: { kind: DocumentKind; label: string }[] = [
+  { kind: DocumentKind.ProofOfResidence, label: 'Proof of residence' },
+  { kind: DocumentKind.IdDocument, label: 'ID / passport copy' },
+  { kind: DocumentKind.Payslip, label: 'Latest payslip' },
+  { kind: DocumentKind.BankStatement, label: 'Bank statement' },
 ];
 
 const EMPLOYMENT_OPTIONS: { value: EmploymentType; label: string }[] = [
@@ -62,6 +96,7 @@ const AFFORDABILITY_COPY: Record<ApplicationResult['affordability'], string> = {
 export const ApplyForm = () => {
   const [step, setStep] = useState(0);
   const [result, setResult] = useState<ApplicationResult | null>(null);
+  const [docs, setDocs] = useState<Partial<Record<DocumentKind, File>>>({});
 
   const form = useForm<CreateApplicationInput>({
     resolver: zodResolver(createApplicationSchema),
@@ -77,18 +112,21 @@ export const ApplyForm = () => {
       dateOfBirth: '',
       phone: '',
       email: '',
-      address: '',
+      address: { label: 'Residential', street: '', suburb: '', city: '', region: '', country: 'Namibia' },
       maritalStatus: '',
       employmentType: EmploymentType.PermanentlyEmployed,
       employer: '',
       occupation: '',
       monthlyIncome: 0,
-      bank: '',
-      accountType: 'Savings',
-      references: [
-        { name: '', phone: '' },
-        { name: '', phone: '' },
-      ],
+      bankAccount: {
+        bankName: '',
+        accountNumber: '',
+        branchName: '',
+        branchCode: '',
+        accountHolderName: '',
+        accountType: 'Savings',
+      },
+      references: [{ name: '', phone: '' }],
       // consent intentionally omitted — defaults to unchecked so the gate is real.
     },
   });
@@ -126,6 +164,21 @@ export const ApplyForm = () => {
   const onSubmit = handleSubmit(async (values) => {
     try {
       const response = await submitApplication(values);
+
+      // Best-effort: upload any chosen documents against the new application.
+      const chosen = Object.entries(docs).filter(([, file]) => file) as [DocumentKind, File][];
+      if (chosen.length > 0) {
+        const outcomes = await Promise.allSettled(
+          chosen.map(([kind, file]) => uploadApplicationDocument(response.id, kind, file)),
+        );
+        if (outcomes.some((outcome) => outcome.status === 'rejected')) {
+          const { toast } = await import('sonner');
+          toast.warning('Application submitted, but some documents failed to upload.', {
+            description: 'You can re-send them later — our team will follow up.',
+          });
+        }
+      }
+
       setResult(response);
     } catch (error) {
       const { toast } = await import('sonner');
@@ -370,14 +423,35 @@ export const ApplyForm = () => {
                     <Input id="email" type="email" autoComplete="email" {...register('email')} />
                   </FormField>
                   <FormField
-                    label="Residential address"
-                    htmlFor="address"
-                    error={errors.address?.message}
+                    label="Street address"
+                    htmlFor="address.street"
+                    error={errors.address?.street?.message}
                     className="sm:col-span-2"
                   >
-                    <Input id="address" autoComplete="street-address" {...register('address')} />
+                    <Input
+                      id="address.street"
+                      autoComplete="street-address"
+                      placeholder="e.g. 12 Acacia Street"
+                      {...register('address.street')}
+                    />
                   </FormField>
-                  <FormField label="Marital status" htmlFor="maritalStatus" optional>
+                  <FormField label="Suburb" htmlFor="address.suburb" optional>
+                    <Input id="address.suburb" {...register('address.suburb')} />
+                  </FormField>
+                  <FormField label="City / town" htmlFor="address.city" error={errors.address?.city?.message}>
+                    <Input id="address.city" {...register('address.city')} />
+                  </FormField>
+                  <FormField label="Region" htmlFor="address.region" optional>
+                    <Input id="address.region" {...register('address.region')} />
+                  </FormField>
+                  <FormField
+                    label="Country"
+                    htmlFor="address.country"
+                    error={errors.address?.country?.message}
+                  >
+                    <Input id="address.country" {...register('address.country')} />
+                  </FormField>
+                  <FormField label="Marital status" htmlFor="maritalStatus" optional className="sm:col-span-2">
                     <Controller
                       control={control}
                       name="maritalStatus"
@@ -454,20 +528,52 @@ export const ApplyForm = () => {
                   <FormField label="Occupation" htmlFor="occupation" error={errors.occupation?.message}>
                     <Input id="occupation" {...register('occupation')} />
                   </FormField>
-                  <FormField label="Bank" htmlFor="bank" error={errors.bank?.message}>
-                    <Input id="bank" {...register('bank')} />
+                </div>
+
+                <div className="space-y-1 pt-2">
+                  <h3 className="font-heading text-lg font-medium">Bank account</h3>
+                  <p className="text-sm text-muted-foreground">Where we will pay out and collect.</p>
+                </div>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <FormField
+                    label="Bank name"
+                    htmlFor="bankAccount.bankName"
+                    error={errors.bankAccount?.bankName?.message}
+                  >
+                    <Input id="bankAccount.bankName" {...register('bankAccount.bankName')} />
+                  </FormField>
+                  <FormField
+                    label="Account holder name"
+                    htmlFor="bankAccount.accountHolderName"
+                    error={errors.bankAccount?.accountHolderName?.message}
+                  >
+                    <Input
+                      id="bankAccount.accountHolderName"
+                      {...register('bankAccount.accountHolderName')}
+                    />
+                  </FormField>
+                  <FormField
+                    label="Account number"
+                    htmlFor="bankAccount.accountNumber"
+                    error={errors.bankAccount?.accountNumber?.message}
+                  >
+                    <Input
+                      id="bankAccount.accountNumber"
+                      inputMode="numeric"
+                      {...register('bankAccount.accountNumber')}
+                    />
                   </FormField>
                   <FormField
                     label="Account type"
-                    htmlFor="accountType"
-                    error={errors.accountType?.message}
+                    htmlFor="bankAccount.accountType"
+                    error={errors.bankAccount?.accountType?.message}
                   >
                     <Controller
                       control={control}
-                      name="accountType"
+                      name="bankAccount.accountType"
                       render={({ field }) => (
                         <Select value={field.value} onValueChange={field.onChange}>
-                          <SelectTrigger id="accountType" className="w-full">
+                          <SelectTrigger id="bankAccount.accountType" className="w-full">
                             <SelectValue placeholder="Select" />
                           </SelectTrigger>
                           <SelectContent>
@@ -481,6 +587,12 @@ export const ApplyForm = () => {
                       )}
                     />
                   </FormField>
+                  <FormField label="Branch name" htmlFor="bankAccount.branchName" optional>
+                    <Input id="bankAccount.branchName" {...register('bankAccount.branchName')} />
+                  </FormField>
+                  <FormField label="Branch code" htmlFor="bankAccount.branchCode" optional>
+                    <Input id="bankAccount.branchCode" {...register('bankAccount.branchCode')} />
+                  </FormField>
                 </div>
               </div>
             )}
@@ -488,10 +600,10 @@ export const ApplyForm = () => {
             {step === 3 && (
               <div className="space-y-6">
                 <div className="space-y-1">
-                  <h2 className="text-2xl tracking-tight">References &amp; consent</h2>
+                  <h2 className="text-2xl tracking-tight">References &amp; documents</h2>
                   <p className="text-muted-foreground">
-                    Provide at least two people we may contact. You will upload your payslip, ID and
-                    bank statements after submitting.
+                    Give us at least one person we may contact, and attach your supporting documents
+                    if you have them handy.
                   </p>
                 </div>
 
@@ -518,7 +630,7 @@ export const ApplyForm = () => {
                         />
                       </FormField>
                       <div className="flex items-end pb-0.5">
-                        {fields.length > 2 && (
+                        {fields.length > 1 && (
                           <Button
                             type="button"
                             variant="ghost"
@@ -545,6 +657,30 @@ export const ApplyForm = () => {
                   {typeof errors.references?.message === 'string' && (
                     <p className="text-xs text-destructive">{errors.references.message}</p>
                   )}
+                </div>
+
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <h3 className="font-heading text-lg font-medium">
+                      Supporting documents{' '}
+                      <span className="text-sm font-normal text-muted-foreground">(optional)</span>
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      PDF, JPG or PNG. You can also send these later if you don&apos;t have them now.
+                    </p>
+                  </div>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    {DOCUMENT_SLOTS.map((slot) => (
+                      <FormField key={slot.kind} label={slot.label}>
+                        <FileUpload
+                          value={docs[slot.kind] ?? null}
+                          onChange={(file) =>
+                            setDocs((current) => ({ ...current, [slot.kind]: file ?? undefined }))
+                          }
+                        />
+                      </FormField>
+                    ))}
+                  </div>
                 </div>
 
                 <Controller

@@ -87,3 +87,10 @@ export enum UserRole {
   LenderStaff = 'lender_staff',
   Borrower = 'borrower',
 }
+
+export enum DocumentKind {
+  ProofOfResidence = 'proof_of_residence',
+  IdDocument = 'id_document',
+  Payslip = 'payslip',
+  BankStatement = 'bank_statement',
+}

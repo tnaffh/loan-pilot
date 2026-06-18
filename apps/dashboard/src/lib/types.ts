@@ -37,22 +37,63 @@ export interface ApplicationDecision {
   loanId: string | null;
 }
 
+export interface ApplicationDocument {
+  id: string;
+  kind: string;
+  url: string;
+  fileName: string;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  uploadedAt: string;
+}
+
 export interface ApplicationDetail extends ApplicationRow {
   idNumber: string;
   dateOfBirth: string;
   phone: string;
   email: string;
-  address: string;
+  addrStreet: string;
+  addrSuburb: string | null;
+  addrCity: string;
+  addrRegion: string | null;
+  addrCountry: string;
   maritalStatus: string | null;
   employmentType: EmploymentType;
   employer: string;
   occupation: string;
-  bank: string;
+  bankName: string;
+  bankAccountNumber: string;
+  bankBranchName: string | null;
+  bankBranchCode: string | null;
+  bankAccountHolder: string;
   accountType: string;
   purpose: string | null;
   declineReason: string | null;
   decidedAt: string | null;
+  documents: ApplicationDocument[];
   activity: ActivityEvent[];
+}
+
+export interface BorrowerAddress {
+  id: string;
+  label: string | null;
+  street: string;
+  suburb: string | null;
+  city: string;
+  region: string | null;
+  country: string;
+  isActive: boolean;
+}
+
+export interface BorrowerBankAccount {
+  id: string;
+  bankName: string;
+  accountNumber: string;
+  branchName: string | null;
+  branchCode: string | null;
+  accountHolderName: string;
+  accountType: string;
+  isActive: boolean;
 }
 
 export interface BorrowerRow {
@@ -66,9 +107,6 @@ export interface BorrowerRow {
   occupation: string;
   monthlyIncome: number;
   employmentType: EmploymentType;
-  bank: string;
-  accountType: string;
-  address: string;
   status: string;
   since: string;
   _count: { loans: number };
@@ -172,6 +210,8 @@ export interface LenderSeries {
 
 export interface BorrowerDetail extends Omit<BorrowerRow, '_count'> {
   loans: (Omit<LoanRow, 'borrower'> & { schedule: ScheduleItem[] })[];
+  addresses: BorrowerAddress[];
+  bankAccounts: BorrowerBankAccount[];
 }
 
 export type OverviewStats =

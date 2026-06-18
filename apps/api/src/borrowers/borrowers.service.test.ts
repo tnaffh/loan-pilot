@@ -35,22 +35,28 @@ describe('BorrowersService', () => {
     idNumber: '98031500412',
     phone: '+264811112222',
     email: 'selma@example.na',
-    address: '12 Acacia St, Windhoek',
+    address: { street: '12 Acacia St', city: 'Windhoek', country: 'Namibia' },
     employer: 'Ministry of Health',
     occupation: 'Nurse',
     monthlyIncome: 18500,
     employmentType: EmploymentType.PermanentlyEmployed,
-    bank: 'Bank Windhoek',
-    accountType: 'Savings',
+    bankAccount: {
+      bankName: 'Bank Windhoek',
+      accountNumber: '62001234567',
+      accountHolderName: 'Selma Nghidinwa',
+      accountType: 'Savings',
+    },
   };
 
-  it('stores monthly income in cents and connects the tenant', async () => {
+  it('stores monthly income in cents, connects the tenant, and seeds an active address + account', async () => {
     await service.create('tenant_1', baseInput);
 
     expect(create).toHaveBeenCalledTimes(1);
     const data = create.mock.calls[0][0].data;
     expect(data.monthlyIncome).toBe(1850000); // N$ 18,500 in cents
     expect(data.tenant.connect.id).toBe('tenant_1');
+    expect(data.addresses.create[0]).toMatchObject({ street: '12 Acacia St', isActive: true });
+    expect(data.bankAccounts.create[0]).toMatchObject({ bankName: 'Bank Windhoek', isActive: true });
   });
 
   it('maps a duplicate ID number to a ConflictException', async () => {

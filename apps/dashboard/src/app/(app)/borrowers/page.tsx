@@ -119,7 +119,11 @@ const NewBorrowerSheet = ({ onCreated }: { onCreated: () => void }) => {
     formState: { errors, isSubmitting },
   } = useForm<CreateBorrowerInput>({
     resolver: zodResolver(createBorrowerSchema),
-    defaultValues: { employmentType: EmploymentType.PermanentlyEmployed, accountType: 'Savings' },
+    defaultValues: {
+      employmentType: EmploymentType.PermanentlyEmployed,
+      address: { label: 'Residential', country: 'Namibia' },
+      bankAccount: { accountType: 'Savings' },
+    },
   });
 
   const onSubmit = handleSubmit(async (values) => {
@@ -183,12 +187,24 @@ const NewBorrowerSheet = ({ onCreated }: { onCreated: () => void }) => {
                 <Input id="email" type="email" {...register('email')} />
               </FormField>
               <FormField
-                label="Address"
-                htmlFor="address"
-                error={errors.address?.message}
+                label="Street address"
+                htmlFor="addr-street"
+                error={errors.address?.street?.message}
                 className="sm:col-span-2"
               >
-                <Input id="address" {...register('address')} />
+                <Input id="addr-street" {...register('address.street')} />
+              </FormField>
+              <FormField label="City / town" htmlFor="addr-city" error={errors.address?.city?.message}>
+                <Input id="addr-city" {...register('address.city')} />
+              </FormField>
+              <FormField label="Suburb" htmlFor="addr-suburb" optional>
+                <Input id="addr-suburb" {...register('address.suburb')} />
+              </FormField>
+              <FormField label="Region" htmlFor="addr-region" optional>
+                <Input id="addr-region" {...register('address.region')} />
+              </FormField>
+              <FormField label="Country" htmlFor="addr-country" error={errors.address?.country?.message}>
+                <Input id="addr-country" {...register('address.country')} />
               </FormField>
               <FormField label="Employer" htmlFor="employer" error={errors.employer?.message}>
                 <Input id="employer" {...register('employer')} />
@@ -223,13 +239,31 @@ const NewBorrowerSheet = ({ onCreated }: { onCreated: () => void }) => {
                   )}
                 />
               </FormField>
-              <FormField label="Bank" htmlFor="bank" error={errors.bank?.message}>
-                <Input id="bank" {...register('bank')} />
+              <FormField label="Bank name" htmlFor="bankName" error={errors.bankAccount?.bankName?.message}>
+                <Input id="bankName" {...register('bankAccount.bankName')} />
               </FormField>
-              <FormField label="Account type" htmlFor="accountType" error={errors.accountType?.message}>
+              <FormField
+                label="Account holder"
+                htmlFor="bankHolder"
+                error={errors.bankAccount?.accountHolderName?.message}
+              >
+                <Input id="bankHolder" {...register('bankAccount.accountHolderName')} />
+              </FormField>
+              <FormField
+                label="Account number"
+                htmlFor="bankNumber"
+                error={errors.bankAccount?.accountNumber?.message}
+              >
+                <Input id="bankNumber" inputMode="numeric" {...register('bankAccount.accountNumber')} />
+              </FormField>
+              <FormField
+                label="Account type"
+                htmlFor="accountType"
+                error={errors.bankAccount?.accountType?.message}
+              >
                 <Controller
                   control={control}
-                  name="accountType"
+                  name="bankAccount.accountType"
                   render={({ field }) => (
                     <Select value={field.value || undefined} onValueChange={field.onChange}>
                       <SelectTrigger id="accountType" className="w-full">
@@ -245,6 +279,12 @@ const NewBorrowerSheet = ({ onCreated }: { onCreated: () => void }) => {
                     </Select>
                   )}
                 />
+              </FormField>
+              <FormField label="Branch name" htmlFor="branchName" optional>
+                <Input id="branchName" {...register('bankAccount.branchName')} />
+              </FormField>
+              <FormField label="Branch code" htmlFor="branchCode" optional>
+                <Input id="branchCode" {...register('bankAccount.branchCode')} />
               </FormField>
             </div>
             <SheetFooter className="px-0">

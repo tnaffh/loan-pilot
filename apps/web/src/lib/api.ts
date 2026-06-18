@@ -48,3 +48,30 @@ export const submitApplication = async (
 
   return data;
 };
+
+/**
+ * Upload a single application document (multipart). Called after the JSON
+ * application is created, so it carries the new application id.
+ */
+export const uploadApplicationDocument = async (
+  applicationId: string,
+  kind: string,
+  file: File,
+): Promise<{ id: string; kind: string; url: string; fileName: string }> => {
+  const form = new FormData();
+  form.append('kind', kind);
+  form.append('file', file);
+
+  const response = await fetch(`${API_URL}/applications/${applicationId}/documents`, {
+    method: 'POST',
+    body: form,
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message =
+      data && typeof data.message === 'string' ? data.message : 'Could not upload document';
+    throw new ApiError(message);
+  }
+  return data;
+};

@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect } from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Plus, Trash2 } from 'lucide-react';
 import {
   EmploymentType,
   LoanType,
@@ -55,11 +55,16 @@ const DEFAULTS: Partial<CreateApplicationInput> = {
   purpose: '',
   dateOfBirth: '',
   employmentType: EmploymentType.PermanentlyEmployed,
-  accountType: 'Savings',
-  references: [
-    { name: '', phone: '' },
-    { name: '', phone: '' },
-  ],
+  address: { label: 'Residential', street: '', suburb: '', city: '', region: '', country: 'Namibia' },
+  bankAccount: {
+    bankName: '',
+    accountNumber: '',
+    branchName: '',
+    branchCode: '',
+    accountHolderName: '',
+    accountType: 'Savings',
+  },
+  references: [{ name: '', phone: '' }],
   consent: true,
 };
 
@@ -88,6 +93,8 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
     resolver: zodResolver(createApplicationSchema),
     defaultValues: DEFAULTS,
   });
+
+  const { fields, append, remove } = useFieldArray({ control, name: 'references' });
 
   useEffect(() => {
     if (open) reset(DEFAULTS);
@@ -197,18 +204,30 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
                 <Input id="email" type="email" {...register('email')} />
               </FormField>
               <FormField
-                label="Address"
-                htmlFor="address"
-                error={errors.address?.message}
+                label="Street address"
+                htmlFor="addr-street"
+                error={errors.address?.street?.message}
                 className="sm:col-span-2"
               >
-                <Input id="address" {...register('address')} />
+                <Input id="addr-street" {...register('address.street')} />
+              </FormField>
+              <FormField label="City / town" htmlFor="addr-city" error={errors.address?.city?.message}>
+                <Input id="addr-city" {...register('address.city')} />
+              </FormField>
+              <FormField label="Suburb" htmlFor="addr-suburb" optional>
+                <Input id="addr-suburb" {...register('address.suburb')} />
+              </FormField>
+              <FormField label="Region" htmlFor="addr-region" optional>
+                <Input id="addr-region" {...register('address.region')} />
+              </FormField>
+              <FormField label="Country" htmlFor="addr-country" error={errors.address?.country?.message}>
+                <Input id="addr-country" {...register('address.country')} />
               </FormField>
             </div>
           </div>
 
           <div className="space-y-4">
-            <SectionTitle>Employment &amp; bank</SectionTitle>
+            <SectionTitle>Employment</SectionTitle>
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField label="Employment type" htmlFor="employmentType">
                 <Controller
@@ -243,13 +262,37 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
               <FormField label="Occupation" htmlFor="occupation" error={errors.occupation?.message}>
                 <Input id="occupation" {...register('occupation')} />
               </FormField>
-              <FormField label="Bank" htmlFor="bank" error={errors.bank?.message}>
-                <Input id="bank" {...register('bank')} />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <SectionTitle>Bank account</SectionTitle>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField label="Bank name" htmlFor="bankName" error={errors.bankAccount?.bankName?.message}>
+                <Input id="bankName" {...register('bankAccount.bankName')} />
               </FormField>
-              <FormField label="Account type" htmlFor="accountType" error={errors.accountType?.message}>
+              <FormField
+                label="Account holder"
+                htmlFor="bankHolder"
+                error={errors.bankAccount?.accountHolderName?.message}
+              >
+                <Input id="bankHolder" {...register('bankAccount.accountHolderName')} />
+              </FormField>
+              <FormField
+                label="Account number"
+                htmlFor="bankNumber"
+                error={errors.bankAccount?.accountNumber?.message}
+              >
+                <Input id="bankNumber" inputMode="numeric" {...register('bankAccount.accountNumber')} />
+              </FormField>
+              <FormField
+                label="Account type"
+                htmlFor="accountType"
+                error={errors.bankAccount?.accountType?.message}
+              >
                 <Controller
                   control={control}
-                  name="accountType"
+                  name="bankAccount.accountType"
                   render={({ field }) => (
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger id="accountType" className="w-full">
@@ -266,13 +309,19 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
                   )}
                 />
               </FormField>
+              <FormField label="Branch name" htmlFor="branchName" optional>
+                <Input id="branchName" {...register('bankAccount.branchName')} />
+              </FormField>
+              <FormField label="Branch code" htmlFor="branchCode" optional>
+                <Input id="branchCode" {...register('bankAccount.branchCode')} />
+              </FormField>
             </div>
           </div>
 
           <div className="space-y-4">
             <SectionTitle>References</SectionTitle>
-            {[0, 1].map((index) => (
-              <div key={index} className="grid gap-4 sm:grid-cols-2">
+            {fields.map((fieldItem, index) => (
+              <div key={fieldItem.id} className="grid gap-4 sm:grid-cols-[1fr_1fr_auto]">
                 <FormField
                   label="Name"
                   htmlFor={`ref-${index}-name`}
@@ -292,8 +341,31 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
                     {...register(`references.${index}.phone` as const)}
                   />
                 </FormField>
+                <div className="flex items-end pb-0.5">
+                  {fields.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      aria-label={`Remove reference ${index + 1}`}
+                      onClick={() => remove(index)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
+            {fields.length < 4 && (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => append({ name: '', phone: '' })}
+              >
+                <Plus className="size-4" /> Add reference
+              </Button>
+            )}
           </div>
 
           <SheetFooter className="px-0">

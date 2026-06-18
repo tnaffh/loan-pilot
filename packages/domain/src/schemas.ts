@@ -3,7 +3,7 @@ import { ApplicationStatus, EmploymentType, ExpenseKind, LoanType, PaymentMethod
 import { ageOnDate, isAdult, isPlausibleId, isPlausiblePhone, parseNamibianId } from './identity';
 import { MAX_TERM_MONTHS } from './loan-math';
 
-/** A personal reference, as required by the loan agreement (minimum two). */
+/** A personal reference, as required by the loan agreement (minimum one). */
 export const referenceSchema = z.object({
   name: z.string().min(2, 'Reference name is required'),
   phone: z
@@ -12,6 +12,31 @@ export const referenceSchema = z.object({
     .refine(isPlausiblePhone, 'Enter a valid phone number'),
 });
 export type ReferenceInput = z.infer<typeof referenceSchema>;
+
+/**
+ * Full bank-account details. A borrower may hold several of these (with one
+ * active); an application captures the one the applicant submits.
+ */
+export const bankAccountSchema = z.object({
+  bankName: z.string().min(1, 'Bank name is required'),
+  accountNumber: z.string().min(4, 'A valid account number is required'),
+  branchName: z.string().max(120).optional().or(z.literal('')),
+  branchCode: z.string().max(40).optional().or(z.literal('')),
+  accountHolderName: z.string().min(1, 'Account holder name is required'),
+  accountType: z.string().min(1, 'Account type is required'),
+});
+export type BankAccountInput = z.infer<typeof bankAccountSchema>;
+
+/** A structured postal/residential address. Borrowers may hold several (one active). */
+export const addressSchema = z.object({
+  label: z.string().max(40).optional().or(z.literal('')),
+  street: z.string().min(3, 'Street address is required'),
+  suburb: z.string().max(120).optional().or(z.literal('')),
+  city: z.string().min(1, 'City is required'),
+  region: z.string().max(120).optional().or(z.literal('')),
+  country: z.string().min(1).default('Namibia'),
+});
+export type AddressInput = z.infer<typeof addressSchema>;
 
 /**
  * The public loan-application payload. Monetary values are submitted in
@@ -41,7 +66,7 @@ export const createApplicationSchema = z.object({
     .min(6, 'A contact number is required')
     .refine(isPlausiblePhone, 'Enter a valid phone number'),
   email: z.string().email('A valid email is required'),
-  address: z.string().min(4, 'Residential address is required'),
+  address: addressSchema,
   maritalStatus: z.string().optional().or(z.literal('')),
 
   // Step 3 — employment & bank
@@ -49,11 +74,10 @@ export const createApplicationSchema = z.object({
   employer: z.string().min(1, 'Employer is required'),
   occupation: z.string().min(1, 'Occupation is required'),
   monthlyIncome: z.coerce.number().int().min(1, 'Monthly income is required'),
-  bank: z.string().min(1, 'Bank is required'),
-  accountType: z.string().min(1, 'Account type is required'),
+  bankAccount: bankAccountSchema,
 
   // Step 4 — references & consent
-  references: z.array(referenceSchema).min(2, 'Two references are required').max(4),
+  references: z.array(referenceSchema).min(1, 'At least one reference is required').max(4),
   consent: z.literal(true, {
     errorMap: () => ({ message: 'You must agree to the terms to continue' }),
   }),
@@ -94,18 +118,26 @@ export const createBorrowerSchema = z.object({
     .min(6, 'A contact number is required')
     .refine(isPlausiblePhone, 'Enter a valid phone number'),
   email: z.string().email('A valid email is required'),
-  address: z.string().min(4, 'Residential address is required'),
+  address: addressSchema,
   employer: z.string().min(1, 'Employer is required'),
   occupation: z.string().min(1, 'Occupation is required'),
   monthlyIncome: z.coerce.number().int().min(1, 'Monthly income is required'),
   employmentType: z.nativeEnum(EmploymentType),
-  bank: z.string().min(1, 'Bank is required'),
-  accountType: z.string().min(1, 'Account type is required'),
+  bankAccount: bankAccountSchema,
 });
 export type CreateBorrowerInput = z.infer<typeof createBorrowerSchema>;
 
-export const updateBorrowerSchema = createBorrowerSchema.partial();
+// Bank account / address are managed via their own endpoints; omit them here.
+export const updateBorrowerSchema = createBorrowerSchema
+  .omit({ address: true, bankAccount: true })
+  .partial();
 export type UpdateBorrowerInput = z.infer<typeof updateBorrowerSchema>;
+
+/** Add or replace a borrower address / bank account from the dashboard. */
+export const createBorrowerAddressSchema = addressSchema;
+export type CreateBorrowerAddressInput = z.infer<typeof createBorrowerAddressSchema>;
+export const createBorrowerBankAccountSchema = bankAccountSchema;
+export type CreateBorrowerBankAccountInput = z.infer<typeof createBorrowerBankAccountSchema>;
 
 /** Inputs for a loan quote preview. `amount` is in major N$ units. */
 export const loanQuoteSchema = z.object({
