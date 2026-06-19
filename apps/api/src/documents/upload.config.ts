@@ -12,7 +12,11 @@ export const uploadsDir = (() => {
       ? configured
       : join(process.cwd(), configured)
     : join(process.cwd(), 'uploads');
-  if (!existsSync(dir)) {
+  // Only create the directory for the local driver. On Cloud Run the working
+  // directory is read-only (only /tmp is writable), so creating it eagerly when
+  // documents live in GCS/S3 would crash the API on boot.
+  const driver = (process.env.STORAGE_DRIVER ?? 'local').toLowerCase();
+  if (driver === 'local' && !existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
   return dir;

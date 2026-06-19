@@ -1,0 +1,161 @@
+# Cloud Build pipeline for LoanPilot: build + push 3 images to Artifact Registry,
+# run DB migrations as a Cloud Run Job, then deploy the api / web / dashboard
+# Cloud Run services. Run after deploy/gcp/setup.sh (which prints the substitutions).
+#
+#   gcloud builds submit --config deploy/gcp/cloudbuild.yaml \
+#     --substitutions=_RUNTIME_SA=...,_INSTANCE=...,_BUCKET=...
+#
+# Front-end images bake NEXT_PUBLIC_API_URL at build time, so _API_DOMAIN must be
+# the API's final public host.
+
+substitutions:
+  _REGION: africa-south1
+  _REPO: loanpilot
+  _API_DOMAIN: api.raccoonsfinance.com
+  _CORS_ORIGINS: 'https://raccoonsfinance.com,https://www.raccoonsfinance.com,https://pilot.raccoonsfinance.com'
+  _RUNTIME_SA: '' # loanpilot-api@PROJECT.iam.gserviceaccount.com  (required)
+  _INSTANCE: '' # PROJECT:REGION:loanpilot-db  (required)
+  _BUCKET: '' # PROJECT-loanpilot-documents  (required)
+
+options:
+  machineType: E2_HIGHCPU_8
+  dynamicSubstitutions: true
+  substitutionOption: ALLOW_LOOSE
+
+images:
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/api:${BUILD_ID}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/web:${BUILD_ID}'
+  - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/dashboard:${BUILD_ID}'
+
+steps:
+  # --- 1. Build images (api first; web+dashboard in parallel after) -----------
+  - id: build-api
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['-']
+    args:
+      - build
+      - -f
+      - apps/api/Dockerfile
+      - -t
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/api:${BUILD_ID}'
+      - -t
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/api:latest'
+      - .
+
+  - id: build-web
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['-']
+    args:
+      - build
+      - -f
+      - apps/web/Dockerfile
+      - --build-arg
+      - 'NEXT_PUBLIC_API_URL=https://${_API_DOMAIN}/api'
+      - -t
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/web:${BUILD_ID}'
+      - -t
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/web:latest'
+      - .
+
+  - id: build-dashboard
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['-']
+    args:
+      - build
+      - -f
+      - apps/dashboard/Dockerfile
+      - --build-arg
+      - 'NEXT_PUBLIC_API_URL=https://${_API_DOMAIN}/api'
+      - -t
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/dashboard:${BUILD_ID}'
+      - -t
+      - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/dashboard:latest'
+      - .
+
+  # --- 2. Push the api image early (migrate + deploy need it before run end) ---
+  - id: push-api
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['build-api']
+    args: ['push', '--all-tags', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/api']
+
+  - id: push-web
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['build-web']
+    args: ['push', '--all-tags', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/web']
+
+  - id: push-dashboard
+    name: gcr.io/cloud-builders/docker
+    waitFor: ['build-dashboard']
+    args: ['push', '--all-tags', '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/dashboard']
+
+  # --- 3. Run DB migrations as a one-off Cloud Run Job ------------------------
+  - id: migrate
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: bash
+    waitFor: ['push-api']
+    args:
+      - -c
+      - |
+        set -e
+        gcloud run jobs deploy loanpilot-migrate \
+          --image "${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/api:${BUILD_ID}" \
+          --region "${_REGION}" \
+          --service-account "${_RUNTIME_SA}" \
+          --set-cloudsql-instances "${_INSTANCE}" \
+          --set-secrets "DATABASE_URL=loanpilot-db-url:latest" \
+          --command pnpm \
+          --args "exec,prisma,migrate,deploy" \
+          --max-retries 1 --task-timeout 600s
+        gcloud run jobs execute loanpilot-migrate --region "${_REGION}" --wait
+
+  # --- 4. Deploy the API service ---------------------------------------------
+  - id: deploy-api
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    waitFor: ['migrate']
+    args:
+      - run
+      - deploy
+      - loanpilot-api
+      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/api:${BUILD_ID}
+      - --region=${_REGION}
+      - --service-account=${_RUNTIME_SA}
+      - --add-cloudsql-instances=${_INSTANCE}
+      - --min-instances=1
+      - --port=4000
+      - --allow-unauthenticated
+      - --set-secrets=JWT_SECRET=loanpilot-jwt-secret:latest,DATABASE_URL=loanpilot-db-url:latest
+      # Custom ^##^ delimiter so the commas in CORS_ORIGINS survive parsing.
+      - >-
+        --set-env-vars=^##^NODE_ENV=production##CORS_ORIGINS=${_CORS_ORIGINS}##PUBLIC_API_ORIGIN=https://${_API_DOMAIN}##DEFAULT_TENANT_SLUG=rfs##STORAGE_DRIVER=gcs##GCS_BUCKET=${_BUCKET}##UPLOAD_DIR=/tmp/uploads
+
+  # --- 5. Deploy the front-end services --------------------------------------
+  - id: deploy-web
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    waitFor: ['push-web', 'deploy-api']
+    args:
+      - run
+      - deploy
+      - loanpilot-web
+      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/web:${BUILD_ID}
+      - --region=${_REGION}
+      - --min-instances=0
+      - --port=3000
+      - --allow-unauthenticated
+
+  - id: deploy-dashboard
+    name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    waitFor: ['push-dashboard', 'deploy-api']
+    args:
+      - run
+      - deploy
+      - loanpilot-dashboard
+      - --image=${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/dashboard:${BUILD_ID}
+      - --region=${_REGION}
+      - --min-instances=0
+      - --port=3001
+      - --allow-unauthenticated
+
+timeout: 2400s
