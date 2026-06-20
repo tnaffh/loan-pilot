@@ -5,6 +5,7 @@ import { HealthModule } from './health/health.module';
 import { ApplicationsModule } from './applications/applications.module';
 import { TenantsModule } from './tenants/tenants.module';
 import { AuthModule } from './auth/auth.module';
+import { UsersModule } from './users/users.module';
 import { BorrowersModule } from './borrowers/borrowers.module';
 import { LoansModule } from './loans/loans.module';
 import { PaymentsModule } from './payments/payments.module';
@@ -21,6 +22,7 @@ import { DocumentsModule } from './documents/documents.module';
     ApplicationsModule,
     TenantsModule,
     AuthModule,
+    UsersModule,
     BorrowersModule,
     LoansModule,
     PaymentsModule,

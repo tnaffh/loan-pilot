@@ -137,6 +137,11 @@ echo "==> Secrets"
 ensure_secret() { gcloud secrets describe "$1" >/dev/null 2>&1 || gcloud secrets create "$1" --replication-policy=automatic; }
 ensure_secret loanpilot-jwt-secret
 ensure_secret loanpilot-db-url
+# Auth/email secrets — set their values manually (see docs/DEPLOYMENT-GCP.md):
+#   printf '%s' "<google client secret>" | gcloud secrets versions add loanpilot-google-client-secret --data-file=-
+#   printf '%s' "<resend api key>"       | gcloud secrets versions add loanpilot-resend-key --data-file=-
+ensure_secret loanpilot-google-client-secret
+ensure_secret loanpilot-resend-key
 
 # Seed jwt-secret with a strong random value if it has no versions yet.
 if [ -z "$(gcloud secrets versions list loanpilot-jwt-secret --format='value(name)' 2>/dev/null)" ]; then

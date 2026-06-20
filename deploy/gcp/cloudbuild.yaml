@@ -12,7 +12,11 @@ substitutions:
   _REGION: africa-south1
   _REPO: loanpilot
   _API_DOMAIN: api.raccoonsfinance.com
+  _DASHBOARD_URL: https://pilot.raccoonsfinance.com
   _CORS_ORIGINS: 'https://raccoonsfinance.com,https://www.raccoonsfinance.com,https://pilot.raccoonsfinance.com'
+  _OAUTH_ALLOWED_DOMAINS: 'raccoonsfinance.com,alphanumeric.com.na'
+  _GOOGLE_CLIENT_ID: '' # set once the Google OAuth client exists (empty = Google login disabled)
+  _MAIL_FROM: 'LoanPilot <no-reply@raccoonsfinance.com>'
   _RUNTIME_SA: '' # loanpilot-api@PROJECT.iam.gserviceaccount.com  (required)
   _INSTANCE: '' # PROJECT:REGION:loanpilot-db  (required)
   _BUCKET: '' # PROJECT-loanpilot-documents  (required)
@@ -124,10 +128,10 @@ steps:
       - --min-instances=1
       - --port=4000
       - --allow-unauthenticated
-      - --set-secrets=JWT_SECRET=loanpilot-jwt-secret:latest,DATABASE_URL=loanpilot-db-url:latest
-      # Custom ^##^ delimiter so the commas in CORS_ORIGINS survive parsing.
+      - --set-secrets=JWT_SECRET=loanpilot-jwt-secret:latest,DATABASE_URL=loanpilot-db-url:latest,GOOGLE_CLIENT_SECRET=loanpilot-google-client-secret:latest,RESEND_API_KEY=loanpilot-resend-key:latest
+      # Custom ^##^ delimiter so the commas in CORS_ORIGINS / domains survive parsing.
       - >-
-        --set-env-vars=^##^NODE_ENV=production##CORS_ORIGINS=${_CORS_ORIGINS}##PUBLIC_API_ORIGIN=https://${_API_DOMAIN}##DEFAULT_TENANT_SLUG=rfs##STORAGE_DRIVER=gcs##GCS_BUCKET=${_BUCKET}##UPLOAD_DIR=/tmp/uploads
+        --set-env-vars=^##^NODE_ENV=production##CORS_ORIGINS=${_CORS_ORIGINS}##PUBLIC_API_ORIGIN=https://${_API_DOMAIN}##DEFAULT_TENANT_SLUG=rfs##STORAGE_DRIVER=gcs##GCS_BUCKET=${_BUCKET}##UPLOAD_DIR=/tmp/uploads##DASHBOARD_URL=${_DASHBOARD_URL}##OAUTH_ALLOWED_DOMAINS=${_OAUTH_ALLOWED_DOMAINS}##GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID}##MAIL_FROM=${_MAIL_FROM}
 
   # --- 5. Deploy the front-end services --------------------------------------
   - id: deploy-web

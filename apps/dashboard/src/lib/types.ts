@@ -8,12 +8,27 @@ import type {
   LoanType,
   PaymentMethod,
   RepaymentStatus,
+  UserRole,
+  UserStatus,
 } from '@loan-pilot/domain';
 
 /**
  * Shapes of authenticated API responses. All monetary fields are integer
  * N$ cents — display with formatNad() from @loan-pilot/domain.
  */
+
+export interface UserRow {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  image: string | null;
+  hasPassword: boolean;
+  providers: string[];
+  lastLoginAt: string | null;
+  createdAt: string;
+}
 
 export interface ApplicationRow {
   id: string;

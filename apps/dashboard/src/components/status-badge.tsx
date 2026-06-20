@@ -55,6 +55,9 @@ const STATUS: Record<string, StatusMeta> = {
   // ExpenseKind
   expense: { label: 'Expense', tone: 'zinc', icon: HandCoins },
   drawing: { label: 'Drawing', tone: 'amber', icon: HandCoins },
+  // UserStatus (active is shared with LoanStatus above)
+  invited: { label: 'Invited', tone: 'amber', icon: Hourglass },
+  disabled: { label: 'Disabled', tone: 'zinc', icon: Ban },
 };
 
 interface StatusBadgeProps {

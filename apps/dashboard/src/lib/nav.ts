@@ -5,6 +5,7 @@ import {
   CreditCard,
   LayoutDashboard,
   Receipt,
+  ShieldCheck,
   Users,
   Wallet,
   type LucideIcon,
@@ -38,10 +39,17 @@ const PLATFORM_NAV: NavGroup[] = [
     items: [
       { href: '/', label: 'Overview', icon: LayoutDashboard },
       { href: '/tenants', label: 'Tenants', icon: Building2 },
+      { href: '/users', label: 'Users', icon: ShieldCheck },
       { href: '/billing', label: 'Billing', icon: Receipt },
     ],
   },
 ];
+
+/** Admin tools shown only to lender admins (appended in navForRole). */
+const LENDER_ADMIN_NAV: NavGroup = {
+  label: 'Admin',
+  items: [{ href: '/users', label: 'Users', icon: ShieldCheck }],
+};
 
 const LENDER_NAV: NavGroup[] = [
   {
@@ -81,7 +89,8 @@ export const navForRole = (role: UserRole): NavGroup[] => {
   if (role === UserRole.Borrower) {
     return BORROWER_NAV;
   }
-  return LENDER_NAV;
+  // Lender admins also get the Admin (Users) group.
+  return role === UserRole.LenderAdmin ? [...LENDER_NAV, LENDER_ADMIN_NAV] : LENDER_NAV;
 };
 
 const TITLES: { prefix: string; title: string }[] = [
@@ -91,6 +100,7 @@ const TITLES: { prefix: string; title: string }[] = [
   { prefix: '/calendar', title: 'Calendar' },
   { prefix: '/expenses', title: 'Expenses' },
   { prefix: '/tenants', title: 'Tenants' },
+  { prefix: '/users', title: 'Users' },
   { prefix: '/billing', title: 'Billing' },
   { prefix: '/statements', title: 'Statements' },
   { prefix: '/', title: 'Overview' },

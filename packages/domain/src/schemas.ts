@@ -1,5 +1,14 @@
 import { z } from 'zod';
-import { ApplicationStatus, EmploymentType, ExpenseKind, LoanType, PaymentMethod, PlanId } from './enums';
+import {
+  ApplicationStatus,
+  EmploymentType,
+  ExpenseKind,
+  LoanType,
+  PaymentMethod,
+  PlanId,
+  UserRole,
+  UserStatus,
+} from './enums';
 import { ageOnDate, isAdult, isPlausibleId, isPlausiblePhone, parseNamibianId } from './identity';
 import { MAX_TERM_MONTHS } from './loan-math';
 
@@ -101,6 +110,59 @@ export const loginSchema = z.object({
   password: z.string().min(8, 'Password must be at least 8 characters'),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
+
+/** A new password — shared minimum used by invite-accept and reset. */
+const passwordField = z.string().min(8, 'Password must be at least 8 characters');
+
+/**
+ * Invite a staff user. `role` is constrained to the staff roles here; the API
+ * re-validates that the acting admin may actually assign it (see assignableRoles).
+ */
+export const inviteUserSchema = z.object({
+  name: z.string().min(1, 'A name is required'),
+  email: z.string().email('A valid email is required'),
+  role: z.union([
+    z.literal(UserRole.LenderAdmin),
+    z.literal(UserRole.LenderStaff),
+    z.literal(UserRole.Platform),
+  ]),
+});
+export type InviteUserInput = z.infer<typeof inviteUserSchema>;
+
+/** Update a user's name, role, and/or status. */
+export const updateUserSchema = z.object({
+  name: z.string().min(1).optional(),
+  role: z.nativeEnum(UserRole).optional(),
+  status: z.nativeEnum(UserStatus).optional(),
+});
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+
+/** Accept an invitation by setting an initial password. */
+export const acceptInviteSchema = z.object({
+  token: z.string().min(10),
+  password: passwordField,
+});
+export type AcceptInviteInput = z.infer<typeof acceptInviteSchema>;
+
+/** Change your own password while signed in. */
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, 'Your current password is required'),
+  newPassword: passwordField,
+});
+export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
+/** Request a password-reset email. */
+export const forgotPasswordSchema = z.object({
+  email: z.string().email('A valid email is required'),
+});
+export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
+
+/** Set a new password from a reset link. */
+export const resetPasswordSchema = z.object({
+  token: z.string().min(10),
+  password: passwordField,
+});
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
 /**
  * Lender-captured borrower record. `monthlyIncome` is submitted in major

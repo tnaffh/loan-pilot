@@ -30,6 +30,12 @@ enum UserRole {
   borrower
 }
 
+enum UserStatus {
+  active
+  invited
+  disabled
+}
+
 enum LoanType {
   payday
   business
@@ -118,21 +124,45 @@ model Tenant {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  email        String    @unique
-  passwordHash String
+  id           String     @id @default(cuid())
+  email        String     @unique
+  // Null for OAuth-only users or those who haven't accepted an invite yet.
+  passwordHash String?
   name         String
-  role         UserRole  @default(lender_staff)
+  role         UserRole   @default(lender_staff)
+  status       UserStatus @default(active)
+  image        String?
   // platform-operator users are not tied to a tenant
   tenantId     String?
-  tenant       Tenant?   @relation(fields: [tenantId], references: [id])
+  tenant       Tenant?    @relation(fields: [tenantId], references: [id])
   // when role = borrower, link to the borrower profile
-  borrowerId   String?   @unique
-  borrower     Borrower? @relation(fields: [borrowerId], references: [id])
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  borrowerId   String?    @unique
+  borrower     Borrower?  @relation(fields: [borrowerId], references: [id])
+  invitedById  String?
+  // Single-use, hashed tokens (sha256) for invite acceptance and password reset.
+  inviteTokenHash String?
+  inviteExpiresAt DateTime?
+  resetTokenHash  String?
+  resetExpiresAt  DateTime?
+  lastLoginAt  DateTime?
+  accounts     AuthAccount[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
 
   @@index([tenantId])
+}
+
+/** A linked external identity provider (e.g. Google) for a user. */
+model AuthAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider          String
+  providerAccountId String
+  createdAt         DateTime @default(now())
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
 }
 
 model Borrower {

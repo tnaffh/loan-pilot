@@ -1,6 +1,7 @@
 import type { LoginInput, SessionUser, TenantBranding } from '@loan-pilot/domain';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
+/** Base URL of the API (includes the `/api` prefix). */
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
 
 export const TOKEN_STORAGE_KEY = 'lp_token';
 export const ACCENT_STORAGE_KEY = 'lp_accent';
@@ -64,3 +65,20 @@ export const fetchMe = (token: string): Promise<SessionUser> =>
 
 export const fetchTenantBranding = (token: string): Promise<TenantBranding | null> =>
   apiFetch<TenantBranding | null>('/tenants/me', { token });
+
+// ----- invite / password reset (public) -------------------------------------
+
+export const fetchInvite = (token: string): Promise<{ email: string; name: string }> =>
+  apiFetch(`/auth/invite/${token}`);
+
+export const acceptInvite = (token: string, password: string): Promise<LoginResponse> =>
+  apiFetch<LoginResponse>('/auth/invite/accept', { method: 'POST', body: { token, password } });
+
+export const requestPasswordReset = (email: string): Promise<{ ok: true }> =>
+  apiFetch('/auth/forgot-password', { method: 'POST', body: { email } });
+
+export const fetchReset = (token: string): Promise<{ email: string }> =>
+  apiFetch(`/auth/reset/${token}`);
+
+export const resetPassword = (token: string, password: string): Promise<LoginResponse> =>
+  apiFetch<LoginResponse>('/auth/reset-password', { method: 'POST', body: { token, password } });

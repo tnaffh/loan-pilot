@@ -158,6 +158,42 @@ gcloud run jobs execute loanpilot-import --region $REGION --wait
 
 (Use `--args "run,db:seed"` for the demo seed instead.)
 
+## 5a. Auth: Google sign-in + Resend email
+
+Staff sign in with email/password or **Google** (invite-only + domain-locked); invite
+and password-reset emails go out via **Resend**. Password login works without any of
+this — set it up when you want Google + email.
+
+**Resend**
+1. In Resend, **verify `raccoonsfinance.com`** (adds SPF/DKIM on a sending subdomain
+   like `send.raccoonsfinance.com` — it does **not** touch your apex `MX`).
+2. Create an API key and store it:
+   ```bash
+   printf '%s' "<resend-api-key>" | gcloud secrets versions add loanpilot-resend-key --data-file=-
+   ```
+
+**Google OAuth**
+1. APIs & Services → **OAuth consent screen** → *Internal* (your Workspace org).
+2. **Credentials → Create OAuth client → Web application**:
+   - Authorized redirect URI: `https://api.raccoonsfinance.com/api/auth/google/callback`
+   - Authorized JavaScript origin: `https://pilot.raccoonsfinance.com`
+3. Store the client secret, and pass the client ID as a build substitution:
+   ```bash
+   printf '%s' "<google-client-secret>" | gcloud secrets versions add loanpilot-google-client-secret --data-file=-
+   # then redeploy with _GOOGLE_CLIENT_ID set (see step 6 / the substitutions)
+   ```
+
+> The `cloudbuild.yaml` API deploy wires `GOOGLE_CLIENT_SECRET` and `RESEND_API_KEY`
+> from Secret Manager, so **both secrets must have at least one version before the next
+> deploy** (a placeholder is fine for the Google secret until you enable it — Google
+> login stays off while `_GOOGLE_CLIENT_ID` is empty). `setup.sh` creates the empty
+> secret containers for you.
+
+After setting the values, redeploy (step 2 / the trigger) with
+`--substitutions=…,_GOOGLE_CLIENT_ID=<client-id>`; verify by clicking **Continue with
+Google** on `https://pilot.raccoonsfinance.com/login` and by inviting a user from the
+**Users** admin page.
+
 ## 6. Continuous deployment (Cloud Build trigger)
 
 Point a trigger at this config so pushes to `main` redeploy:

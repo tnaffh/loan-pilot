@@ -11,6 +11,10 @@ interface AuthContextValue {
   token: string | null;
   status: AuthStatus;
   login: (input: LoginInput) => Promise<SessionUser>;
+  /** Adopt a token obtained out-of-band (OAuth callback); fetches the session. */
+  loginWithToken: (token: string) => Promise<SessionUser>;
+  /** Adopt a token + already-known session (invite accept / password reset). */
+  setSession: (token: string, user: SessionUser) => void;
   logout: () => void;
 }
 
@@ -43,14 +47,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
   }, []);
 
-  const login = useCallback(async (input: LoginInput) => {
-    const response = await loginRequest(input);
-    window.localStorage.setItem(TOKEN_STORAGE_KEY, response.accessToken);
-    setToken(response.accessToken);
-    setUser(response.user);
+  const setSession = useCallback((nextToken: string, nextUser: SessionUser) => {
+    window.localStorage.setItem(TOKEN_STORAGE_KEY, nextToken);
+    setToken(nextToken);
+    setUser(nextUser);
     setStatus('authenticated');
-    return response.user;
   }, []);
+
+  const login = useCallback(
+    async (input: LoginInput) => {
+      const response = await loginRequest(input);
+      setSession(response.accessToken, response.user);
+      return response.user;
+    },
+    [setSession],
+  );
+
+  const loginWithToken = useCallback(
+    async (nextToken: string) => {
+      const session = await fetchMe(nextToken);
+      setSession(nextToken, session);
+      return session;
+    },
+    [setSession],
+  );
 
   const logout = useCallback(() => {
     window.localStorage.removeItem(TOKEN_STORAGE_KEY);
@@ -60,8 +80,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, []);
 
   const value = useMemo<AuthContextValue>(
-    () => ({ user, token, status, login, logout }),
-    [user, token, status, login, logout],
+    () => ({ user, token, status, login, loginWithToken, setSession, logout }),
+    [user, token, status, login, loginWithToken, setSession, logout],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -88,6 +88,18 @@ export enum UserRole {
   Borrower = 'borrower',
 }
 
+export enum UserStatus {
+  Active = 'active',
+  // Invited but has not yet accepted (set a password) or signed in via a provider.
+  Invited = 'invited',
+  Disabled = 'disabled',
+}
+
+export enum AuthProvider {
+  Password = 'password',
+  Google = 'google',
+}
+
 export enum DocumentKind {
   ProofOfResidence = 'proof_of_residence',
   IdDocument = 'id_document',

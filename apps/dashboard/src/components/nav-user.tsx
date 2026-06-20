@@ -1,8 +1,9 @@
 'use client';
 
-import { BadgeCheck, ChevronsUpDown, LogOut, Monitor, Moon, Sun } from 'lucide-react';
+import { useState } from 'react';
+import { ChevronsUpDown, KeyRound, LogOut, Monitor, Moon, Sun } from 'lucide-react';
 import { useTheme } from 'next-themes';
-import type { SessionUser } from '@loan-pilot/domain';
+import { isBorrower, type SessionUser } from '@loan-pilot/domain';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,6 +20,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { InitialsAvatar } from '@/components/initials-avatar';
+import { ChangePasswordDialog } from '@/components/auth/change-password-dialog';
 import { useAuth } from '@/lib/auth-context';
 
 const ROLE_LABELS: Record<string, string> = {
@@ -32,6 +34,7 @@ export const NavUser = ({ user }: { user: SessionUser }) => {
   const { isMobile } = useSidebar();
   const { logout } = useAuth();
   const { setTheme } = useTheme();
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   return (
     <SidebarMenu>
@@ -73,9 +76,11 @@ export const NavUser = ({ user }: { user: SessionUser }) => {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
-                <BadgeCheck /> Account
-              </DropdownMenuItem>
+              {isBorrower(user.role) ? null : (
+                <DropdownMenuItem onClick={() => setPasswordOpen(true)}>
+                  <KeyRound /> Change password
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={() => setTheme('light')}>
                 <Sun /> Light
               </DropdownMenuItem>
@@ -93,6 +98,7 @@ export const NavUser = ({ user }: { user: SessionUser }) => {
           </DropdownMenuContent>
         </DropdownMenu>
       </SidebarMenuItem>
+      <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
     </SidebarMenu>
   );
 };
