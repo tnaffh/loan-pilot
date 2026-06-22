@@ -1289,7 +1289,7 @@
   },
   {
     "clientName": "Ms Lelly investment (hangula Immanuel Banda)",
-    "idNumber": "89061601541",
+    "idNumber": "",
     "phone": "814815301",
     "employer": "LELLY INVESTMENT",
     "monthlyIncome": 0
@@ -1363,5 +1363,12 @@
     "phone": "",
     "employer": "",
     "monthlyIncome": 0
+  },
+  {
+    "clientName": "Elizabath Evalistus",
+    "idNumber": "92120401047",
+    "phone": "816620829",
+    "employer": "police",
+    "monthlyIncome": 520130
   }
 ]

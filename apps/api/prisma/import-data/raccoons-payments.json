@@ -202,7 +202,7 @@
   {
     "payRef": "1",
     "loanKey": "2023-11#28",
-    "paidAt": null,
+    "paidAt": "2023-11-25",
     "amount": 65000,
     "method": "cash",
     "badDebt": false
@@ -3873,6 +3873,14 @@
   },
   {
     "payRef": "1",
+    "loanKey": "2026-02#337",
+    "paidAt": "2025-02-25",
+    "amount": 100000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
     "loanKey": "2026-03#358",
     "paidAt": "2026-03-23",
     "amount": 375000,
@@ -4548,6 +4556,30 @@
     "loanKey": "2026-05#429",
     "paidAt": "2026-12-05",
     "amount": 99000,
+    "method": "eft",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-06#457",
+    "paidAt": "2026-06-20",
+    "amount": 130000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-06#463",
+    "paidAt": "2026-06-20",
+    "amount": 195000,
+    "method": "debit_order",
+    "badDebt": false
+  },
+  {
+    "payRef": "1",
+    "loanKey": "2026-06#456",
+    "paidAt": "2026-06-20",
+    "amount": 650000,
     "method": "eft",
     "badDebt": false
   }
