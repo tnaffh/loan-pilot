@@ -25,6 +25,9 @@ options:
   machineType: E2_HIGHCPU_8
   dynamicSubstitutions: true
   substitutionOption: ALLOW_LOOSE
+  # Required when the build runs as a custom service account (manual --service-account
+  # or a trigger): give the logs a project-owned regional bucket.
+  defaultLogsBucketBehavior: REGIONAL_USER_OWNED_BUCKET
 
 images:
   - '${_REGION}-docker.pkg.dev/${PROJECT_ID}/${_REPO}/api:${BUILD_ID}'
