@@ -21,7 +21,8 @@
     "prisma:deploy": "prisma migrate deploy",
     "prisma:studio": "prisma studio",
     "db:seed": "ts-node prisma/seed.ts",
-    "db:import": "ts-node prisma/import-raccoons.ts"
+    "db:import": "ts-node prisma/import-raccoons.ts",
+    "db:create-admin": "ts-node prisma/create-admin.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed.ts"
