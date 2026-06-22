@@ -10,10 +10,11 @@ import {
   CalendarClock,
   FileText,
   Loader2,
+  Pencil,
   PieChart,
   Wallet,
 } from 'lucide-react';
-import { LoanStatus, RepaymentStatus, formatNad, isLender } from '@loan-pilot/domain';
+import { LoanStatus, RepaymentStatus, UserRole, formatNad, isLender } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -39,6 +40,8 @@ import { StatCard } from '@/components/stat-card';
 import { StatusBadge } from '@/components/status-badge';
 import { TypeChip } from '@/components/type-chip';
 import { ActivityTimeline } from '@/components/activity-timeline';
+import { AuditLog } from '@/components/audit-log';
+import { EditLoanSheet } from '@/components/loans/edit-loan-sheet';
 import { useCommand } from '@/components/command-provider';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -62,6 +65,7 @@ const LoanDetailPage = () => {
   );
   const [confirming, setConfirming] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editing, setEditing] = useState(false);
 
   if (loading || !data) {
     return (
@@ -78,6 +82,14 @@ const LoanDetailPage = () => {
 
   const open = data.status === LoanStatus.Active || data.status === LoanStatus.Arrears;
   const lender = Boolean(user && isLender(user.role));
+  const admin = user?.role === UserRole.LenderAdmin;
+  const terminal =
+    data.status === LoanStatus.Settled ||
+    data.status === LoanStatus.WrittenOff ||
+    data.status === LoanStatus.Cancelled ||
+    data.status === LoanStatus.Closed;
+  const canEditLoan = admin && !terminal;
+  const canCancel = admin && !terminal && data.payments.length === 0;
   const payable =
     lender &&
     (open || data.status === LoanStatus.PartlyPaid) &&
@@ -110,6 +122,11 @@ const LoanDetailPage = () => {
         action={
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge value={data.status} />
+            {canEditLoan ? (
+              <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                <Pencil className="size-4" /> Edit
+              </Button>
+            ) : null}
             {payable ? (
               <Button
                 size="sm"
@@ -144,6 +161,16 @@ const LoanDetailPage = () => {
                 onClick={() => command.openWriteOff({ loanId: data.id, loanLabel })}
               >
                 Write off
+              </Button>
+            ) : null}
+            {canCancel ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-destructive"
+                onClick={() => command.openCancel({ loanId: data.id, loanLabel })}
+              >
+                Cancel loan
               </Button>
             ) : null}
           </div>
@@ -208,6 +235,12 @@ const LoanDetailPage = () => {
               ) : null}
               {data.note ? (
                 <p className="mt-2 text-xs text-muted-foreground italic">{data.note}</p>
+              ) : null}
+              {data.cancelReason ? (
+                <p className="mt-2 text-xs text-destructive">Cancelled: {data.cancelReason}</p>
+              ) : null}
+              {data.writeOffReason ? (
+                <p className="mt-2 text-xs text-destructive">Written off: {data.writeOffReason}</p>
               ) : null}
             </CardContent>
           </Card>
@@ -318,6 +351,17 @@ const LoanDetailPage = () => {
               <ActivityTimeline events={data.activity} />
             </CardContent>
           </Card>
+
+          {admin ? (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base">Change history</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <AuditLog entries={data.audit} />
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
       </div>
 
@@ -350,6 +394,10 @@ const LoanDetailPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {canEditLoan ? (
+        <EditLoanSheet loan={data} open={editing} onOpenChange={setEditing} onSaved={refresh} />
+      ) : null}
     </div>
   );
 };

@@ -3,6 +3,7 @@ import {
   ApplicationStatus,
   EmploymentType,
   ExpenseKind,
+  LoanStatus,
   LoanType,
   PaymentMethod,
   PlanId,
@@ -10,7 +11,7 @@ import {
   UserStatus,
 } from './enums';
 import { ageOnDate, isAdult, isPlausibleId, isPlausiblePhone, parseNamibianId } from './identity';
-import { MAX_TERM_MONTHS } from './loan-math';
+import { MAX_FINANCE_CHARGE_RATE, MAX_TERM_MONTHS } from './loan-math';
 
 /** A personal reference, as required by the loan agreement (minimum one). */
 export const referenceSchema = z.object({
@@ -189,9 +190,16 @@ export const createBorrowerSchema = z.object({
 });
 export type CreateBorrowerInput = z.infer<typeof createBorrowerSchema>;
 
-// Bank account / address are managed via their own endpoints; omit them here.
+// Correct a borrower's details. Bank account / address are edited via their own
+// endpoints; omit them here. Adds the audit-only fields the import sets.
 export const updateBorrowerSchema = createBorrowerSchema
   .omit({ address: true, bankAccount: true })
+  .extend({
+    gender: z.string().max(40).optional().or(z.literal('')),
+    payDay: z.string().max(40).optional().or(z.literal('')),
+    status: z.string().max(40).optional().or(z.literal('')),
+    since: z.string().optional().or(z.literal('')),
+  })
   .partial();
 export type UpdateBorrowerInput = z.infer<typeof updateBorrowerSchema>;
 
@@ -200,6 +208,12 @@ export const createBorrowerAddressSchema = addressSchema;
 export type CreateBorrowerAddressInput = z.infer<typeof createBorrowerAddressSchema>;
 export const createBorrowerBankAccountSchema = bankAccountSchema;
 export type CreateBorrowerBankAccountInput = z.infer<typeof createBorrowerBankAccountSchema>;
+
+/** Edit an existing address / bank account in place (audit correction). */
+export const updateAddressSchema = addressSchema.partial();
+export type UpdateAddressInput = z.infer<typeof updateAddressSchema>;
+export const updateBankAccountSchema = bankAccountSchema.partial();
+export type UpdateBankAccountInput = z.infer<typeof updateBankAccountSchema>;
 
 /** Inputs for a loan quote preview. `amount` is in major N$ units. */
 export const loanQuoteSchema = z.object({
@@ -296,6 +310,41 @@ export const writeOffLoanSchema = z.object({
   reason: z.string().min(3, 'A reason is required').max(500),
 });
 export type WriteOffLoanInput = z.infer<typeof writeOffLoanSchema>;
+
+/**
+ * Correct imported loan data. All optional. "Safe" fields apply any time; the
+ * financial core (`amount` = principal in major N$, `termMonths`, `interestRate`)
+ * is only accepted by the server while the loan has no payments, in which case it
+ * re-prices. `status` is limited to the non-terminal book states (closure goes
+ * through settle / write-off / cancel). Money fees are major N$.
+ */
+export const updateLoanSchema = z.object({
+  disbursedAt: z.string().optional().or(z.literal('')),
+  nextDueAt: z.string().optional().or(z.literal('')),
+  status: z
+    .union([
+      z.literal(LoanStatus.Active),
+      z.literal(LoanStatus.Arrears),
+      z.literal(LoanStatus.PartlyPaid),
+    ])
+    .optional(),
+  collateral: z.string().max(200).optional().or(z.literal('')),
+  originMonth: z.string().max(40).optional().or(z.literal('')),
+  note: z.string().max(500).optional().or(z.literal('')),
+  bankCharges: z.coerce.number().min(0).optional(),
+  namfisaLevy: z.coerce.number().min(0).optional(),
+  stampDuty: z.coerce.number().min(0).optional(),
+  amount: z.coerce.number().int().min(500).max(500000).optional(),
+  termMonths: z.coerce.number().int().min(1).max(MAX_TERM_MONTHS).optional(),
+  interestRate: z.coerce.number().min(0).max(MAX_FINANCE_CHARGE_RATE).optional(),
+});
+export type UpdateLoanInput = z.infer<typeof updateLoanSchema>;
+
+/** Cancel a payment-free loan (created in error / fell through); reason required. */
+export const cancelLoanSchema = z.object({
+  reason: z.string().min(3, 'A reason is required').max(500),
+});
+export type CancelLoanInput = z.infer<typeof cancelLoanSchema>;
 
 /** White-label branding returned by GET /api/tenants/me; bridges the Prisma row to the domain shape. */
 export const tenantBrandingSchema = z.object({

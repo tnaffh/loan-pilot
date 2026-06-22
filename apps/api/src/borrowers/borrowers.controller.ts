@@ -14,11 +14,15 @@ import {
   createBorrowerAddressSchema,
   createBorrowerBankAccountSchema,
   createBorrowerSchema,
+  updateAddressSchema,
+  updateBankAccountSchema,
   updateBorrowerSchema,
   type CreateBorrowerAddressInput,
   type CreateBorrowerBankAccountInput,
   type CreateBorrowerInput,
   type SessionUser,
+  type UpdateAddressInput,
+  type UpdateBankAccountInput,
   type UpdateBorrowerInput,
 } from '@loan-pilot/domain';
 import type { Borrower, BorrowerAddress, BorrowerBankAccount } from '@prisma/client';
@@ -65,7 +69,7 @@ export class BorrowersController {
     @Param('id') id: string,
     @Body(new ZodValidationPipe(updateBorrowerSchema)) body: UpdateBorrowerInput,
   ): Promise<Borrower> {
-    return this.borrowers.update(requireTenantId(user), id, body);
+    return this.borrowers.update(requireTenantId(user), user, id, body);
   }
 
   @Post(':id/addresses')
@@ -87,6 +91,16 @@ export class BorrowersController {
     return this.borrowers.activateAddress(requireTenantId(user), id, addressId);
   }
 
+  @Patch(':id/addresses/:addressId')
+  updateAddress(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+    @Param('addressId') addressId: string,
+    @Body(new ZodValidationPipe(updateAddressSchema)) body: UpdateAddressInput,
+  ): Promise<BorrowerAddress> {
+    return this.borrowers.updateAddress(requireTenantId(user), user, id, addressId, body);
+  }
+
   @Post(':id/bank-accounts')
   @HttpCode(HttpStatus.CREATED)
   addBankAccount(
@@ -104,5 +118,15 @@ export class BorrowersController {
     @Param('accountId') accountId: string,
   ): Promise<BorrowerBankAccount> {
     return this.borrowers.activateBankAccount(requireTenantId(user), id, accountId);
+  }
+
+  @Patch(':id/bank-accounts/:accountId')
+  updateBankAccount(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+    @Param('accountId') accountId: string,
+    @Body(new ZodValidationPipe(updateBankAccountSchema)) body: UpdateBankAccountInput,
+  ): Promise<BorrowerBankAccount> {
+    return this.borrowers.updateBankAccount(requireTenantId(user), user, id, accountId, body);
   }
 }

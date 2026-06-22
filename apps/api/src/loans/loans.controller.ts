@@ -5,23 +5,28 @@ import {
   HttpCode,
   HttpStatus,
   Param,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
 import {
   UserRole,
+  cancelLoanSchema,
   createLoanSchema,
   isBorrower,
   loanQuoteSchema,
   recordRepaymentSchema,
   settleLoanSchema,
+  updateLoanSchema,
   writeOffLoanSchema,
+  type CancelLoanInput,
   type CreateLoanInput,
   type LoanQuote,
   type LoanQuoteInput,
   type RecordRepaymentInput,
   type SessionUser,
   type SettleLoanInput,
+  type UpdateLoanInput,
   type WriteOffLoanInput,
 } from '@loan-pilot/domain';
 import type { Loan } from '@prisma/client';
@@ -76,6 +81,27 @@ export class LoansController {
       return this.loans.findOneForBorrowerUser(user.id, id);
     }
     return this.loans.findOne(requireTenantId(user), id);
+  }
+
+  @Patch(':id')
+  @Roles(UserRole.LenderAdmin)
+  update(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(updateLoanSchema)) body: UpdateLoanInput,
+  ): Promise<Loan> {
+    return this.loans.update(requireTenantId(user), user, id, body);
+  }
+
+  @Post(':id/cancel')
+  @HttpCode(HttpStatus.CREATED)
+  @Roles(UserRole.LenderAdmin)
+  cancel(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(cancelLoanSchema)) body: CancelLoanInput,
+  ): Promise<Loan> {
+    return this.loans.cancel(requireTenantId(user), user, id, body);
   }
 
   @Post(':id/repayments')

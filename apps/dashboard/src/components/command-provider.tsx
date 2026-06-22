@@ -28,6 +28,7 @@ import { ApplicationReviewSheet } from '@/components/applications/review-sheet';
 import { RecordPaymentDialog } from '@/components/loans/record-payment-dialog';
 import { SettleDialog } from '@/components/loans/settle-dialog';
 import { WriteOffDialog } from '@/components/loans/write-off-dialog';
+import { CancelDialog } from '@/components/loans/cancel-dialog';
 import { LoanQuickViewSheet } from '@/components/loans/loan-quick-view-sheet';
 import { BorrowerQuickViewSheet } from '@/components/borrowers/borrower-quick-view-sheet';
 import { ShortcutsDialog } from '@/components/shortcuts-dialog';
@@ -46,6 +47,10 @@ interface WriteOffTarget {
   loanId: string;
   loanLabel?: string;
 }
+interface CancelTarget {
+  loanId: string;
+  loanLabel?: string;
+}
 
 interface CommandContextValue {
   openPalette: () => void;
@@ -56,6 +61,7 @@ interface CommandContextValue {
   openRecordPayment: (target?: PaymentTarget) => void;
   openSettle: (target: SettleTarget) => void;
   openWriteOff: (target: WriteOffTarget) => void;
+  openCancel: (target: CancelTarget) => void;
   openLoanQuickView: (loanId: string) => void;
   openBorrowerQuickView: (borrowerId: string) => void;
 }
@@ -90,6 +96,7 @@ export const CommandProvider = ({ children }: { children: React.ReactNode }) => 
   const [recordPayment, setRecordPayment] = useState<PaymentTarget | null>(null);
   const [settle, setSettle] = useState<SettleTarget | null>(null);
   const [writeOff, setWriteOff] = useState<WriteOffTarget | null>(null);
+  const [cancel, setCancel] = useState<CancelTarget | null>(null);
   const [loanQuickView, setLoanQuickView] = useState<string | null>(null);
   const [borrowerQuickView, setBorrowerQuickView] = useState<string | null>(null);
 
@@ -105,6 +112,7 @@ export const CommandProvider = ({ children }: { children: React.ReactNode }) => 
     openRecordPayment,
     openSettle: (target) => setSettle(target),
     openWriteOff: (target) => setWriteOff(target),
+    openCancel: (target) => setCancel(target),
     openLoanQuickView: (loanId) => setLoanQuickView(loanId),
     openBorrowerQuickView: (borrowerId) => setBorrowerQuickView(borrowerId),
   };
@@ -283,6 +291,14 @@ export const CommandProvider = ({ children }: { children: React.ReactNode }) => 
           onOpenChange={(open) => (open ? null : setWriteOff(null))}
           loanId={writeOff.loanId}
           loanLabel={writeOff.loanLabel}
+        />
+      ) : null}
+      {cancel ? (
+        <CancelDialog
+          open
+          onOpenChange={(open) => (open ? null : setCancel(null))}
+          loanId={cancel.loanId}
+          loanLabel={cancel.loanLabel}
         />
       ) : null}
       <LoanQuickViewSheet

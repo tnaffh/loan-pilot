@@ -10,6 +10,7 @@ import { ApplicationsService } from './applications.service';
 import { LoansService } from '../loans/loans.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../documents/storage.service';
+import { AuditService } from '../audit/audit.service';
 
 describe('ApplicationsService', () => {
   const create = jest.fn();
@@ -52,6 +53,10 @@ describe('ApplicationsService', () => {
         LoansService,
         { provide: PrismaService, useValue: prismaMock },
         { provide: StorageService, useValue: { accessUrl: jest.fn(), save: jest.fn() } },
+        {
+          provide: AuditService,
+          useValue: { record: jest.fn(), diff: jest.fn().mockReturnValue([]), listFor: jest.fn() },
+        },
       ],
     }).compile();
 

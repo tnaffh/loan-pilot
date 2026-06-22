@@ -7,18 +7,23 @@ import {
   addMonths,
   buildLoanActivity,
   daysBetween,
+  fromCents,
   penaltyInterest,
   quote,
   toCents,
   type ActivityEvent,
+  type CancelLoanInput,
   type CreateLoanInput,
   type LoanQuote,
   type LoanQuoteInput,
   type RecordRepaymentInput,
+  type SessionUser,
   type SettleLoanInput,
+  type UpdateLoanInput,
   type WriteOffLoanInput,
 } from '@loan-pilot/domain';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService, type AuditEntry } from '../audit/audit.service';
 
 export type LoanWithBorrower = Prisma.LoanGetPayload<{
   include: { borrower: { select: { id: true; firstName: true; lastName: true } } };
@@ -30,7 +35,7 @@ export type LoanWithDetails = Prisma.LoanGetPayload<{
     schedule: true;
     payments: true;
   };
-}> & { activity: ActivityEvent[] };
+}> & { activity: ActivityEvent[]; audit: AuditEntry[] };
 
 export interface StatementLine {
   date: string;
@@ -67,6 +72,26 @@ const LOAN_TYPE_FROM_DB: Record<$Enums.LoanType, LoanType> = {
   collateral: LoanType.Collateral,
 };
 
+/** Loan fields shown in the audit trail, in display form (money major, dates ISO). */
+const loanAuditMap = (loan: Loan): Record<string, unknown> => ({
+  principal: fromCents(loan.principal),
+  financeCharge: fromCents(loan.financeCharge),
+  total: fromCents(loan.total),
+  termMonths: loan.termMonths,
+  interestRate: loan.interestRate,
+  instalment: fromCents(loan.instalment),
+  balance: fromCents(loan.balance),
+  status: loan.status,
+  collateral: loan.collateral,
+  originMonth: loan.originMonth,
+  note: loan.note,
+  bankCharges: fromCents(loan.bankCharges),
+  namfisaLevy: fromCents(loan.namfisaLevy),
+  stampDuty: fromCents(loan.stampDuty),
+  disbursedAt: loan.disbursedAt ? loan.disbursedAt.toISOString().slice(0, 10) : null,
+  nextDueAt: loan.nextDueAt ? loan.nextDueAt.toISOString().slice(0, 10) : null,
+});
+
 /** Join a structured borrower address into a single statement line. */
 const formatAddressLine = (address?: {
   street: string;
@@ -83,7 +108,10 @@ const formatAddressLine = (address?: {
 
 @Injectable()
 export class LoansService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   /** Pure pricing preview — no persistence. All values in cents. */
   quotePreview(input: LoanQuoteInput): LoanQuote {
@@ -124,7 +152,11 @@ export class LoansService {
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
-    return { ...loan, activity: buildLoanActivity(loan, loan.payments) };
+    return {
+      ...loan,
+      activity: buildLoanActivity(loan, loan.payments),
+      audit: await this.audit.listFor(tenantId, 'loan', id),
+    };
   }
 
   async findOneForBorrowerUser(userId: string, id: string): Promise<LoanWithDetails> {
@@ -140,7 +172,8 @@ export class LoansService {
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
-    return { ...loan, activity: buildLoanActivity(loan, loan.payments) };
+    // Borrowers don't see the staff audit trail.
+    return { ...loan, activity: buildLoanActivity(loan, loan.payments), audit: [] };
   }
 
   /** Disburse a new loan to an existing borrower of the tenant. */
@@ -380,6 +413,159 @@ export class LoansService {
     return this.prisma.loan.update({
       where: { id: loan.id },
       data: { status: LoanStatus.WrittenOff, writeOffReason: input.reason, closedAt: new Date() },
+    });
+  }
+
+  /**
+   * Correct imported loan data. Safe fields (dates, status, collateral, origin
+   * month, note, fees) apply any time; the financial core (principal/term/rate)
+   * is only changeable while the loan has no payments, in which case it re-prices
+   * and rebuilds the schedule. All changes are audited.
+   */
+  async update(
+    tenantId: string,
+    actor: SessionUser,
+    id: string,
+    input: UpdateLoanInput,
+  ): Promise<Loan> {
+    return this.prisma.$transaction(async (tx) => {
+      const loan = await tx.loan.findFirst({
+        where: { id, tenantId },
+        include: { _count: { select: { payments: true } } },
+      });
+      if (!loan) {
+        throw new NotFoundException('Loan not found');
+      }
+      if (
+        loan.status === LoanStatus.Settled ||
+        loan.status === LoanStatus.WrittenOff ||
+        loan.status === LoanStatus.Cancelled ||
+        loan.status === LoanStatus.Closed
+      ) {
+        throw new BadRequestException('A closed loan can no longer be edited');
+      }
+
+      const data: Prisma.LoanUpdateInput = {};
+      if (input.disbursedAt) data.disbursedAt = new Date(input.disbursedAt);
+      if (input.nextDueAt) data.nextDueAt = new Date(input.nextDueAt);
+      if (input.status) data.status = input.status;
+      if (input.collateral !== undefined) data.collateral = input.collateral || null;
+      if (input.originMonth !== undefined) data.originMonth = input.originMonth || null;
+      if (input.note !== undefined) data.note = input.note || null;
+      if (input.bankCharges !== undefined) data.bankCharges = toCents(input.bankCharges);
+      if (input.namfisaLevy !== undefined) data.namfisaLevy = toCents(input.namfisaLevy);
+      if (input.stampDuty !== undefined) data.stampDuty = toCents(input.stampDuty);
+
+      // Financial core — re-price only when it actually changes, and only when unpaid.
+      const newPrincipal = input.amount !== undefined ? toCents(input.amount) : loan.principal;
+      const newTerm = input.termMonths ?? loan.termMonths;
+      const newRate = input.interestRate ?? loan.interestRate;
+      const coreChanged =
+        newPrincipal !== loan.principal || newTerm !== loan.termMonths || newRate !== loan.interestRate;
+      if (coreChanged) {
+        if (loan._count.payments > 0) {
+          throw new BadRequestException(
+            'The amount, term or rate of a loan with payments cannot be changed',
+          );
+        }
+        const q = quote({
+          principalCents: newPrincipal,
+          termMonths: newTerm,
+          type: LOAN_TYPE_FROM_DB[loan.type],
+          financeChargeRate: newRate,
+        });
+        const disbursedAt = input.disbursedAt
+          ? new Date(input.disbursedAt)
+          : (loan.disbursedAt ?? loan.createdAt);
+        data.principal = q.principalCents;
+        data.financeCharge = q.financeChargeCents;
+        data.total = q.totalCents;
+        data.termMonths = q.termMonths;
+        data.instalment = q.instalmentCents;
+        data.instalmentsTotal = q.termMonths;
+        data.balance = q.totalCents;
+        data.interestRate = newRate;
+        await tx.repaymentScheduleItem.deleteMany({ where: { loanId: id } });
+        data.schedule = {
+          create: q.schedule.map((item) => ({
+            number: item.number,
+            amount: item.amountCents,
+            dueAt: addMonths(disbursedAt, item.number),
+            status: RepaymentStatus.Due,
+          })),
+        };
+      }
+
+      const before = loanAuditMap(loan);
+      const updated = await tx.loan.update({ where: { id }, data });
+      await this.audit.record(
+        tenantId,
+        actor,
+        {
+          entity: 'loan',
+          entityId: id,
+          action: 'updated',
+          changes: this.audit.diff(before, loanAuditMap(updated), Object.keys(before)),
+        },
+        tx,
+      );
+      return updated;
+    });
+  }
+
+  /** Cancel a payment-free loan (created in error / fell through). Audited. */
+  async cancel(
+    tenantId: string,
+    actor: SessionUser,
+    id: string,
+    input: CancelLoanInput,
+  ): Promise<Loan> {
+    return this.prisma.$transaction(async (tx) => {
+      const loan = await tx.loan.findFirst({
+        where: { id, tenantId },
+        include: { _count: { select: { payments: true } } },
+      });
+      if (!loan) {
+        throw new NotFoundException('Loan not found');
+      }
+      if (
+        loan.status === LoanStatus.Cancelled ||
+        loan.status === LoanStatus.Settled ||
+        loan.status === LoanStatus.WrittenOff
+      ) {
+        throw new BadRequestException('This loan is already closed');
+      }
+      if (loan._count.payments > 0) {
+        throw new BadRequestException(
+          "A loan with payments can't be cancelled — write it off instead",
+        );
+      }
+      const updated = await tx.loan.update({
+        where: { id },
+        data: {
+          status: LoanStatus.Cancelled,
+          balance: 0,
+          daysLate: 0,
+          nextDueAt: null,
+          closedAt: new Date(),
+          cancelReason: input.reason,
+        },
+      });
+      await this.audit.record(
+        tenantId,
+        actor,
+        {
+          entity: 'loan',
+          entityId: id,
+          action: 'cancelled',
+          changes: [
+            { field: 'status', from: loan.status, to: LoanStatus.Cancelled },
+            { field: 'reason', from: null, to: input.reason },
+          ],
+        },
+        tx,
+      );
+      return updated;
     });
   }
 

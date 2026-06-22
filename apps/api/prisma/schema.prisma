@@ -48,6 +48,7 @@ enum LoanStatus {
   partly_paid
   settled
   written_off
+  cancelled
   closed
 }
 
@@ -121,6 +122,24 @@ model Tenant {
   payments     Payment[]
   expenses     Expense[]
   investments  Investment[]
+  auditEvents  AuditEvent[]
+}
+
+/** Append-only change log for data corrections (borrower/loan edits, cancel). */
+model AuditEvent {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  // Denormalised so the trail survives the actor being deleted.
+  actorId   String?
+  actorName String
+  entity    String // 'borrower' | 'loan'
+  entityId  String
+  action    String // 'updated' | 'cancelled' | 'address_updated' | 'bank_updated'
+  changes   Json // [{ field, from, to }]
+  createdAt DateTime @default(now())
+
+  @@index([tenantId, entity, entityId])
 }
 
 model User {
@@ -265,6 +284,8 @@ model Loan {
   note             String?
   // Reason captured when a loan is written off as bad debt.
   writeOffReason   String?
+  // Reason captured when a payment-free loan is cancelled (error / fell through).
+  cancelReason     String?
   disbursedAt      DateTime?
   nextDueAt        DateTime?
   // When the loan left the active book (settled or written off).

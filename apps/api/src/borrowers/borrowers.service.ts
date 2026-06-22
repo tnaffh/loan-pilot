@@ -1,13 +1,18 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Borrower, BorrowerAddress, BorrowerBankAccount, Prisma } from '@prisma/client';
 import {
+  fromCents,
   toCents,
   type CreateBorrowerAddressInput,
   type CreateBorrowerBankAccountInput,
   type CreateBorrowerInput,
+  type SessionUser,
+  type UpdateAddressInput,
+  type UpdateBankAccountInput,
   type UpdateBorrowerInput,
 } from '@loan-pilot/domain';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService, type AuditEntry } from '../audit/audit.service';
 
 export type BorrowerWithLoanCount = Prisma.BorrowerGetPayload<{
   include: { _count: { select: { loans: true } } };
@@ -19,7 +24,42 @@ export type BorrowerWithLoans = Prisma.BorrowerGetPayload<{
     addresses: true;
     bankAccounts: true;
   };
-}>;
+}> & { audit: AuditEntry[] };
+
+/** Borrower fields shown in the audit trail (money/date in display form). */
+const borrowerAuditMap = (b: Borrower): Record<string, unknown> => ({
+  firstName: b.firstName,
+  lastName: b.lastName,
+  idNumber: b.idNumber,
+  phone: b.phone,
+  email: b.email,
+  employer: b.employer,
+  occupation: b.occupation,
+  monthlyIncome: fromCents(b.monthlyIncome),
+  employmentType: b.employmentType,
+  gender: b.gender,
+  payDay: b.payDay,
+  status: b.status,
+  since: b.since.toISOString().slice(0, 10),
+});
+
+const addressAuditMap = (a: BorrowerAddress): Record<string, unknown> => ({
+  label: a.label,
+  street: a.street,
+  suburb: a.suburb,
+  city: a.city,
+  region: a.region,
+  country: a.country,
+});
+
+const bankAuditMap = (a: BorrowerBankAccount): Record<string, unknown> => ({
+  bankName: a.bankName,
+  accountNumber: a.accountNumber,
+  branchName: a.branchName,
+  branchCode: a.branchCode,
+  accountHolderName: a.accountHolderName,
+  accountType: a.accountType,
+});
 
 /** Map a validated address input to the create payload (active by default). */
 const addressData = (input: CreateBorrowerAddressInput) => ({
@@ -51,7 +91,10 @@ const isDuplicateKeyError = (error: unknown): boolean =>
 
 @Injectable()
 export class BorrowersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
   findAllForTenant(tenantId: string): Promise<BorrowerWithLoanCount[]> {
     return this.prisma.borrower.findMany({
@@ -76,7 +119,7 @@ export class BorrowersService {
     if (!borrower) {
       throw new NotFoundException('Borrower not found');
     }
-    return borrower;
+    return { ...borrower, audit: await this.audit.listFor(tenantId, 'borrower', id) };
   }
 
   async create(tenantId: string, input: CreateBorrowerInput): Promise<Borrower> {
@@ -188,19 +231,110 @@ export class BorrowersService {
     });
   }
 
-  async update(tenantId: string, id: string, input: UpdateBorrowerInput): Promise<Borrower> {
+  async update(
+    tenantId: string,
+    actor: SessionUser,
+    id: string,
+    input: UpdateBorrowerInput,
+  ): Promise<Borrower> {
     const existing = await this.prisma.borrower.findFirst({ where: { id, tenantId } });
     if (!existing) {
       throw new NotFoundException('Borrower not found');
     }
 
-    const { monthlyIncome, ...rest } = input;
-    return this.prisma.borrower.update({
-      where: { id },
-      data: {
-        ...rest,
-        ...(monthlyIncome === undefined ? {} : { monthlyIncome: toCents(monthlyIncome) }),
-      },
+    const { monthlyIncome, since, gender, payDay, status, ...rest } = input;
+    const data: Prisma.BorrowerUpdateInput = { ...rest };
+    if (monthlyIncome !== undefined) data.monthlyIncome = toCents(monthlyIncome);
+    if (since) data.since = new Date(since);
+    if (gender !== undefined) data.gender = gender || null;
+    if (payDay !== undefined) data.payDay = payDay || null;
+    if (status) data.status = status;
+
+    let updated: Borrower;
+    try {
+      updated = await this.prisma.borrower.update({ where: { id }, data });
+    } catch (error) {
+      if (isDuplicateKeyError(error)) {
+        throw new ConflictException('A borrower with this ID number already exists');
+      }
+      throw error;
+    }
+
+    const before = borrowerAuditMap(existing);
+    await this.audit.record(tenantId, actor, {
+      entity: 'borrower',
+      entityId: id,
+      action: 'updated',
+      changes: this.audit.diff(before, borrowerAuditMap(updated), Object.keys(before)),
     });
+    return updated;
+  }
+
+  /** Correct an existing address in place (audit trail). */
+  async updateAddress(
+    tenantId: string,
+    actor: SessionUser,
+    borrowerId: string,
+    addressId: string,
+    input: UpdateAddressInput,
+  ): Promise<BorrowerAddress> {
+    await this.ensureBorrower(tenantId, borrowerId);
+    const existing = await this.prisma.borrowerAddress.findFirst({
+      where: { id: addressId, borrowerId },
+    });
+    if (!existing) {
+      throw new NotFoundException('Address not found');
+    }
+    const data: Prisma.BorrowerAddressUpdateInput = {};
+    if (input.label !== undefined) data.label = input.label || null;
+    if (input.street !== undefined) data.street = input.street;
+    if (input.suburb !== undefined) data.suburb = input.suburb || null;
+    if (input.city !== undefined) data.city = input.city;
+    if (input.region !== undefined) data.region = input.region || null;
+    if (input.country !== undefined) data.country = input.country;
+
+    const updated = await this.prisma.borrowerAddress.update({ where: { id: addressId }, data });
+    const before = addressAuditMap(existing);
+    await this.audit.record(tenantId, actor, {
+      entity: 'borrower',
+      entityId: borrowerId,
+      action: 'address_updated',
+      changes: this.audit.diff(before, addressAuditMap(updated), Object.keys(before)),
+    });
+    return updated;
+  }
+
+  /** Correct an existing bank account in place (audit trail). */
+  async updateBankAccount(
+    tenantId: string,
+    actor: SessionUser,
+    borrowerId: string,
+    accountId: string,
+    input: UpdateBankAccountInput,
+  ): Promise<BorrowerBankAccount> {
+    await this.ensureBorrower(tenantId, borrowerId);
+    const existing = await this.prisma.borrowerBankAccount.findFirst({
+      where: { id: accountId, borrowerId },
+    });
+    if (!existing) {
+      throw new NotFoundException('Bank account not found');
+    }
+    const data: Prisma.BorrowerBankAccountUpdateInput = {};
+    if (input.bankName !== undefined) data.bankName = input.bankName;
+    if (input.accountNumber !== undefined) data.accountNumber = input.accountNumber;
+    if (input.branchName !== undefined) data.branchName = input.branchName || null;
+    if (input.branchCode !== undefined) data.branchCode = input.branchCode || null;
+    if (input.accountHolderName !== undefined) data.accountHolderName = input.accountHolderName;
+    if (input.accountType !== undefined) data.accountType = input.accountType;
+
+    const updated = await this.prisma.borrowerBankAccount.update({ where: { id: accountId }, data });
+    const before = bankAuditMap(existing);
+    await this.audit.record(tenantId, actor, {
+      entity: 'borrower',
+      entityId: borrowerId,
+      action: 'bank_updated',
+      changes: this.audit.diff(before, bankAuditMap(updated), Object.keys(before)),
+    });
+    return updated;
   }
 }

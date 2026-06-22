@@ -16,6 +16,8 @@ export enum LoanStatus {
   PartlyPaid = 'partly_paid',
   Settled = 'settled',
   WrittenOff = 'written_off',
+  // Voided before any repayment (created in error / duplicate / fell through).
+  Cancelled = 'cancelled',
   Closed = 'closed',
 }
 

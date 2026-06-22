@@ -1,9 +1,11 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Activity, FileText, Wallet } from 'lucide-react';
-import { LoanStatus, formatNad } from '@loan-pilot/domain';
+import { Activity, FileText, Pencil, Wallet } from 'lucide-react';
+import { LoanStatus, formatNad, isLender } from '@loan-pilot/domain';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -21,15 +23,21 @@ import { TypeChip } from '@/components/type-chip';
 import { InitialsAvatar } from '@/components/initials-avatar';
 import { Kv } from '@/components/kv';
 import { ContactCards } from '@/components/borrowers/contact-cards';
+import { EditBorrowerSheet } from '@/components/borrowers/edit-borrower-sheet';
+import { AuditLog } from '@/components/audit-log';
+import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
 import { formatDate } from '@/lib/format';
 import type { BorrowerDetail } from '@/lib/types';
 
 const BorrowerDetailPage = () => {
   const params = useParams<{ id: string }>();
+  const { user } = useAuth();
+  const [editing, setEditing] = useState(false);
   const { data, loading, error, refresh } = useApi<BorrowerDetail>(
     params.id ? `/borrowers/${params.id}` : null,
   );
+  const canEdit = Boolean(user && isLender(user.role));
 
   if (loading || !data) {
     return (
@@ -67,6 +75,11 @@ const BorrowerDetailPage = () => {
           </h1>
           <p className="text-sm text-muted-foreground">Borrower since {formatDate(data.since)}</p>
         </div>
+        {canEdit ? (
+          <Button size="sm" variant="outline" className="ml-auto" onClick={() => setEditing(true)}>
+            <Pencil className="size-4" /> Edit
+          </Button>
+        ) : null}
       </div>
 
       <StatStrip
@@ -95,6 +108,8 @@ const BorrowerDetailPage = () => {
             <Kv label="Employer" value={data.employer} />
             <Kv label="Occupation" value={data.occupation} />
             <Kv label="Monthly income" value={formatNad(data.monthlyIncome)} />
+            {data.gender ? <Kv label="Gender" value={data.gender} /> : null}
+            {data.payDay ? <Kv label="Pay day" value={data.payDay} /> : null}
           </dl>
         </CardContent>
       </Card>
@@ -103,6 +118,7 @@ const BorrowerDetailPage = () => {
         borrowerId={data.id}
         addresses={data.addresses}
         bankAccounts={data.bankAccounts}
+        canEdit={canEdit}
         onChanged={refresh}
       />
 
@@ -185,6 +201,26 @@ const BorrowerDetailPage = () => {
             </Table>
           </CardContent>
         </Card>
+      ) : null}
+
+      {canEdit ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Change history</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AuditLog entries={data.audit} />
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {canEdit ? (
+        <EditBorrowerSheet
+          borrower={data}
+          open={editing}
+          onOpenChange={setEditing}
+          onSaved={refresh}
+        />
       ) : null}
     </div>
   );

@@ -15,7 +15,8 @@ export type ActivityKind =
   | 'disbursed'
   | 'payment'
   | 'settled'
-  | 'written_off';
+  | 'written_off'
+  | 'cancelled';
 
 export interface ActivityEvent {
   kind: ActivityKind;
@@ -76,6 +77,7 @@ export interface LoanActivityInput {
   createdAt: Date | string;
   closedAt?: Date | string | null;
   writeOffReason?: string | null;
+  cancelReason?: string | null;
   balance: number;
 }
 
@@ -117,6 +119,12 @@ export const buildLoanActivity = (
       kind: 'written_off',
       at: closedAt ?? '',
       label: loan.writeOffReason ? `Written off — ${loan.writeOffReason}` : 'Written off',
+    });
+  } else if (loan.status === 'cancelled') {
+    events.push({
+      kind: 'cancelled',
+      at: closedAt ?? '',
+      label: loan.cancelReason ? `Cancelled — ${loan.cancelReason}` : 'Cancelled',
     });
   }
 

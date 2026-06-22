@@ -39,6 +39,7 @@ const STATUS: Record<string, StatusMeta> = {
   partly_paid: { label: 'Partly paid', tone: 'amber', icon: CircleDashed },
   settled: { label: 'Settled', tone: 'blue', icon: CheckCircle2 },
   written_off: { label: 'Written off', tone: 'zinc', icon: Ban },
+  cancelled: { label: 'Cancelled', tone: 'zinc', icon: XCircle },
   closed: { label: 'Closed', tone: 'zinc', icon: Lock },
   // ApplicationStatus
   pending: { label: 'Pending', tone: 'amber', icon: Hourglass },

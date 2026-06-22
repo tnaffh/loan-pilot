@@ -17,6 +17,20 @@ import type {
  * N$ cents — display with formatNad() from @loan-pilot/domain.
  */
 
+export interface AuditChange {
+  field: string;
+  from: string | null;
+  to: string | null;
+}
+
+export interface AuditEntry {
+  id: string;
+  actorName: string;
+  action: string;
+  changes: AuditChange[];
+  createdAt: string;
+}
+
 export interface UserRow {
   id: string;
   name: string;
@@ -122,6 +136,8 @@ export interface BorrowerRow {
   occupation: string;
   monthlyIncome: number;
   employmentType: EmploymentType;
+  gender: string | null;
+  payDay: string | null;
   status: string;
   since: string;
   _count: { loans: number };
@@ -173,10 +189,12 @@ export interface LoanRow {
 export interface LoanDetail extends LoanRow {
   borrower: { id: string; firstName: string; lastName: string; idNumber: string };
   writeOffReason: string | null;
+  cancelReason: string | null;
   closedAt: string | null;
   schedule: ScheduleItem[];
   payments: PaymentRow[];
   activity: ActivityEvent[];
+  audit: AuditEntry[];
 }
 
 export interface ExpenseRow {
@@ -227,6 +245,7 @@ export interface BorrowerDetail extends Omit<BorrowerRow, '_count'> {
   loans: (Omit<LoanRow, 'borrower'> & { schedule: ScheduleItem[] })[];
   addresses: BorrowerAddress[];
   bankAccounts: BorrowerBankAccount[];
+  audit: AuditEntry[];
 }
 
 export type OverviewStats =

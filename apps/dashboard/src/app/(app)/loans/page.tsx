@@ -101,6 +101,8 @@ const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
   { value: LoanStatus.Arrears, label: 'Arrears' },
   { value: LoanStatus.PartlyPaid, label: 'Partly paid' },
   { value: LoanStatus.Settled, label: 'Settled' },
+  { value: LoanStatus.WrittenOff, label: 'Written off' },
+  { value: LoanStatus.Cancelled, label: 'Cancelled' },
 ];
 
 const LoansPage = () => {

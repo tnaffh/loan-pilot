@@ -21,6 +21,7 @@ const ICONS: Record<ActivityKind, LucideIcon> = {
   payment: CircleDot,
   settled: CheckCircle2,
   written_off: Ban,
+  cancelled: XCircle,
 };
 
 const TONES: Record<ActivityKind, string> = {
@@ -32,6 +33,7 @@ const TONES: Record<ActivityKind, string> = {
   payment: 'text-emerald-600 dark:text-emerald-400',
   settled: 'text-emerald-600 dark:text-emerald-400',
   written_off: 'text-destructive',
+  cancelled: 'text-destructive',
 };
 
 /** Vertical activity timeline rendered from derived ActivityEvent[] (most recent first). */

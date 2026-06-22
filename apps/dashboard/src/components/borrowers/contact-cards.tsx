@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Building2, Check, Loader2, MapPin, Plus } from 'lucide-react';
+import { Building2, Check, Loader2, MapPin, Pencil, Plus } from 'lucide-react';
 import {
   createBorrowerAddressSchema,
   createBorrowerBankAccountSchema,
@@ -46,13 +46,22 @@ interface Props {
   borrowerId: string;
   addresses: BorrowerAddress[];
   bankAccounts: BorrowerBankAccount[];
+  canEdit?: boolean;
   onChanged: () => void;
 }
 
-export const ContactCards = ({ borrowerId, addresses, bankAccounts, onChanged }: Props) => {
+export const ContactCards = ({
+  borrowerId,
+  addresses,
+  bankAccounts,
+  canEdit = false,
+  onChanged,
+}: Props) => {
   const { token } = useAuth();
   const [addressOpen, setAddressOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
+  const [editAddress, setEditAddress] = useState<BorrowerAddress | null>(null);
+  const [editAccount, setEditAccount] = useState<BorrowerBankAccount | null>(null);
   const [activating, setActivating] = useState<string | null>(null);
 
   const activate = async (path: string, id: string) => {
@@ -74,9 +83,11 @@ export const ContactCards = ({ borrowerId, addresses, bankAccounts, onChanged }:
           <CardTitle className="flex items-center gap-2 text-base">
             <MapPin className="size-4 text-muted-foreground" /> Addresses
           </CardTitle>
-          <Button variant="outline" size="sm" onClick={() => setAddressOpen(true)}>
-            <Plus className="size-4" /> Add
-          </Button>
+          {canEdit ? (
+            <Button variant="outline" size="sm" onClick={() => setAddressOpen(true)}>
+              <Plus className="size-4" /> Add
+            </Button>
+          ) : null}
         </CardHeader>
         <CardContent className="space-y-3">
           {addresses.length === 0 ? (
@@ -96,19 +107,31 @@ export const ContactCards = ({ borrowerId, addresses, bankAccounts, onChanged }:
                     {address.label ? ` · ${address.label}` : ''}
                   </div>
                 </div>
-                {address.isActive ? (
-                  <ActiveBadge />
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={activating !== null}
-                    onClick={() => activate(`/borrowers/${borrowerId}/addresses/${address.id}/activate`, address.id)}
-                  >
-                    {activating === address.id ? <Loader2 className="size-4 animate-spin" /> : null}
-                    Make active
-                  </Button>
-                )}
+                <div className="flex shrink-0 items-center gap-1">
+                  {address.isActive ? (
+                    <ActiveBadge />
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={activating !== null}
+                      onClick={() => activate(`/borrowers/${borrowerId}/addresses/${address.id}/activate`, address.id)}
+                    >
+                      {activating === address.id ? <Loader2 className="size-4 animate-spin" /> : null}
+                      Make active
+                    </Button>
+                  )}
+                  {canEdit ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Edit address"
+                      onClick={() => setEditAddress(address)}
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
+                  ) : null}
+                </div>
               </div>
             ))
           )}
@@ -120,9 +143,11 @@ export const ContactCards = ({ borrowerId, addresses, bankAccounts, onChanged }:
           <CardTitle className="flex items-center gap-2 text-base">
             <Building2 className="size-4 text-muted-foreground" /> Bank accounts
           </CardTitle>
-          <Button variant="outline" size="sm" onClick={() => setAccountOpen(true)}>
-            <Plus className="size-4" /> Add
-          </Button>
+          {canEdit ? (
+            <Button variant="outline" size="sm" onClick={() => setAccountOpen(true)}>
+              <Plus className="size-4" /> Add
+            </Button>
+          ) : null}
         </CardHeader>
         <CardContent className="space-y-3">
           {bankAccounts.length === 0 ? (
@@ -143,52 +168,85 @@ export const ContactCards = ({ borrowerId, addresses, bankAccounts, onChanged }:
                   </div>
                   <div className="text-xs text-muted-foreground">{account.accountHolderName}</div>
                 </div>
-                {account.isActive ? (
-                  <ActiveBadge />
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={activating !== null}
-                    onClick={() =>
-                      activate(`/borrowers/${borrowerId}/bank-accounts/${account.id}/activate`, account.id)
-                    }
-                  >
-                    {activating === account.id ? <Loader2 className="size-4 animate-spin" /> : null}
-                    Make active
-                  </Button>
-                )}
+                <div className="flex shrink-0 items-center gap-1">
+                  {account.isActive ? (
+                    <ActiveBadge />
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      disabled={activating !== null}
+                      onClick={() =>
+                        activate(`/borrowers/${borrowerId}/bank-accounts/${account.id}/activate`, account.id)
+                      }
+                    >
+                      {activating === account.id ? <Loader2 className="size-4 animate-spin" /> : null}
+                      Make active
+                    </Button>
+                  )}
+                  {canEdit ? (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      aria-label="Edit bank account"
+                      onClick={() => setEditAccount(account)}
+                    >
+                      <Pencil className="size-4" />
+                    </Button>
+                  ) : null}
+                </div>
               </div>
             ))
           )}
         </CardContent>
       </Card>
 
-      <AddAddressDialog
-        open={addressOpen}
-        onOpenChange={setAddressOpen}
+      <AddressDialog
+        open={addressOpen || editAddress !== null}
+        onOpenChange={(next) => {
+          if (!next) {
+            setAddressOpen(false);
+            setEditAddress(null);
+          }
+        }}
         borrowerId={borrowerId}
+        address={editAddress}
         onSaved={onChanged}
       />
-      <AddBankAccountDialog
-        open={accountOpen}
-        onOpenChange={setAccountOpen}
+      <BankAccountDialog
+        open={accountOpen || editAccount !== null}
+        onOpenChange={(next) => {
+          if (!next) {
+            setAccountOpen(false);
+            setEditAccount(null);
+          }
+        }}
         borrowerId={borrowerId}
+        account={editAccount}
         onSaved={onChanged}
       />
     </div>
   );
 };
 
-interface DialogProps {
+interface AddressDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   borrowerId: string;
+  address: BorrowerAddress | null;
   onSaved: () => void;
 }
 
-const AddAddressDialog = ({ open, onOpenChange, borrowerId, onSaved }: DialogProps) => {
+const ADDRESS_ADD_DEFAULTS: CreateBorrowerAddressInput = {
+  label: 'Residential',
+  street: '',
+  city: '',
+  country: 'Namibia',
+};
+
+const AddressDialog = ({ open, onOpenChange, borrowerId, address, onSaved }: AddressDialogProps) => {
   const { token } = useAuth();
+  const editing = address !== null;
   const {
     register,
     handleSubmit,
@@ -196,14 +254,39 @@ const AddAddressDialog = ({ open, onOpenChange, borrowerId, onSaved }: DialogPro
     formState: { errors, isSubmitting },
   } = useForm<CreateBorrowerAddressInput>({
     resolver: zodResolver(createBorrowerAddressSchema),
-    defaultValues: { label: 'Residential', country: 'Namibia' },
+    defaultValues: ADDRESS_ADD_DEFAULTS,
   });
+
+  useEffect(() => {
+    if (!open) return;
+    reset(
+      address
+        ? {
+            label: address.label ?? '',
+            street: address.street,
+            suburb: address.suburb ?? '',
+            city: address.city,
+            region: address.region ?? '',
+            country: address.country,
+          }
+        : ADDRESS_ADD_DEFAULTS,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, address?.id]);
 
   const onSubmit = handleSubmit(async (values) => {
     try {
-      await apiFetch(`/borrowers/${borrowerId}/addresses`, { method: 'POST', body: values, token });
-      toast.success('Address added & set active');
-      reset({ label: 'Residential', country: 'Namibia' });
+      if (address) {
+        await apiFetch(`/borrowers/${borrowerId}/addresses/${address.id}`, {
+          method: 'PATCH',
+          body: values,
+          token,
+        });
+        toast.success('Address updated');
+      } else {
+        await apiFetch(`/borrowers/${borrowerId}/addresses`, { method: 'POST', body: values, token });
+        toast.success('Address added & set active');
+      }
       onOpenChange(false);
       onSaved();
     } catch (error) {
@@ -215,7 +298,7 @@ const AddAddressDialog = ({ open, onOpenChange, borrowerId, onSaved }: DialogPro
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add address</DialogTitle>
+          <DialogTitle>{editing ? 'Edit address' : 'Add address'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
           <FormField label="Street address" htmlFor="a-street" error={errors.street?.message}>
@@ -241,7 +324,7 @@ const AddAddressDialog = ({ open, onOpenChange, borrowerId, onSaved }: DialogPro
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-              Save address
+              {editing ? 'Save changes' : 'Save address'}
             </Button>
           </DialogFooter>
         </form>
@@ -250,8 +333,24 @@ const AddAddressDialog = ({ open, onOpenChange, borrowerId, onSaved }: DialogPro
   );
 };
 
-const AddBankAccountDialog = ({ open, onOpenChange, borrowerId, onSaved }: DialogProps) => {
+interface BankAccountDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  borrowerId: string;
+  account: BorrowerBankAccount | null;
+  onSaved: () => void;
+}
+
+const BANK_ADD_DEFAULTS: CreateBorrowerBankAccountInput = {
+  bankName: '',
+  accountNumber: '',
+  accountHolderName: '',
+  accountType: 'Savings',
+};
+
+const BankAccountDialog = ({ open, onOpenChange, borrowerId, account, onSaved }: BankAccountDialogProps) => {
   const { token } = useAuth();
+  const editing = account !== null;
   const {
     register,
     control,
@@ -260,14 +359,39 @@ const AddBankAccountDialog = ({ open, onOpenChange, borrowerId, onSaved }: Dialo
     formState: { errors, isSubmitting },
   } = useForm<CreateBorrowerBankAccountInput>({
     resolver: zodResolver(createBorrowerBankAccountSchema),
-    defaultValues: { accountType: 'Savings' },
+    defaultValues: BANK_ADD_DEFAULTS,
   });
+
+  useEffect(() => {
+    if (!open) return;
+    reset(
+      account
+        ? {
+            bankName: account.bankName,
+            accountNumber: account.accountNumber,
+            accountHolderName: account.accountHolderName,
+            accountType: account.accountType,
+            branchName: account.branchName ?? '',
+            branchCode: account.branchCode ?? '',
+          }
+        : BANK_ADD_DEFAULTS,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, account?.id]);
 
   const onSubmit = handleSubmit(async (values) => {
     try {
-      await apiFetch(`/borrowers/${borrowerId}/bank-accounts`, { method: 'POST', body: values, token });
-      toast.success('Bank account added & set active');
-      reset({ accountType: 'Savings' });
+      if (account) {
+        await apiFetch(`/borrowers/${borrowerId}/bank-accounts/${account.id}`, {
+          method: 'PATCH',
+          body: values,
+          token,
+        });
+        toast.success('Bank account updated');
+      } else {
+        await apiFetch(`/borrowers/${borrowerId}/bank-accounts`, { method: 'POST', body: values, token });
+        toast.success('Bank account added & set active');
+      }
       onOpenChange(false);
       onSaved();
     } catch (error) {
@@ -279,7 +403,7 @@ const AddBankAccountDialog = ({ open, onOpenChange, borrowerId, onSaved }: Dialo
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Add bank account</DialogTitle>
+          <DialogTitle>{editing ? 'Edit bank account' : 'Add bank account'}</DialogTitle>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -325,7 +449,7 @@ const AddBankAccountDialog = ({ open, onOpenChange, borrowerId, onSaved }: Dialo
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-              Save account
+              {editing ? 'Save changes' : 'Save account'}
             </Button>
           </DialogFooter>
         </form>

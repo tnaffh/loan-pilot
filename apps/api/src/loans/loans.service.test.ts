@@ -1,8 +1,22 @@
 import { Test } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
-import { LoanStatus, LoanType, PaymentMethod, RepaymentStatus } from '@loan-pilot/domain';
+import {
+  LoanStatus,
+  LoanType,
+  PaymentMethod,
+  RepaymentStatus,
+  UserRole,
+  type SessionUser,
+} from '@loan-pilot/domain';
 import { LoansService } from './loans.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.service';
+
+const auditMock = {
+  record: jest.fn(),
+  diff: jest.fn().mockReturnValue([]),
+  listFor: jest.fn().mockResolvedValue([]),
+};
 
 describe('LoansService', () => {
   const loanCreate = jest.fn();
@@ -14,10 +28,16 @@ describe('LoansService', () => {
   const scheduleItemUpdateMany = jest.fn();
   const paymentCreate = jest.fn();
 
+  const scheduleItemDeleteMany = jest.fn();
+
   const txMock = {
     loan: { create: loanCreate, findFirst: loanFindFirst, update: loanUpdate },
     borrower: { upsert: borrowerUpsert },
-    repaymentScheduleItem: { update: scheduleItemUpdate, updateMany: scheduleItemUpdateMany },
+    repaymentScheduleItem: {
+      update: scheduleItemUpdate,
+      updateMany: scheduleItemUpdateMany,
+      deleteMany: scheduleItemDeleteMany,
+    },
     payment: { create: paymentCreate },
   };
 
@@ -46,7 +66,11 @@ describe('LoansService', () => {
     );
 
     const moduleRef = await Test.createTestingModule({
-      providers: [LoansService, { provide: PrismaService, useValue: prismaMock }],
+      providers: [
+        LoansService,
+        { provide: PrismaService, useValue: prismaMock },
+        { provide: AuditService, useValue: auditMock },
+      ],
     }).compile();
 
     service = moduleRef.get(LoansService);
@@ -226,5 +250,105 @@ describe('LoansService', () => {
     expect(data.status).toBe(LoanStatus.WrittenOff);
     expect(data.writeOffReason).toBe('Borrower unreachable');
     expect(data.closedAt).toBeInstanceOf(Date);
+  });
+
+  // ----- audit edit + cancel -------------------------------------------------
+
+  const actor: SessionUser = {
+    id: 'user_1',
+    email: 'admin@rfs.na',
+    name: 'Admin',
+    role: UserRole.LenderAdmin,
+    tenantId: 'tenant_1',
+    tenantSlug: 'rfs',
+  };
+
+  const loanRow = (over: Record<string, unknown> = {}) => ({
+    id: 'loan_1',
+    tenantId: 'tenant_1',
+    borrowerId: 'bor_1',
+    type: LoanType.Payday,
+    principal: 100000,
+    financeCharge: 30000,
+    bankCharges: 0,
+    namfisaLevy: 0,
+    stampDuty: 0,
+    interestRate: 0.3,
+    total: 130000,
+    termMonths: 1,
+    instalment: 130000,
+    instalmentsPaid: 0,
+    instalmentsTotal: 1,
+    balance: 130000,
+    status: LoanStatus.Active,
+    collateral: null,
+    daysLate: 0,
+    originMonth: null,
+    externalRef: null,
+    note: null,
+    writeOffReason: null,
+    cancelReason: null,
+    disbursedAt: new Date('2025-01-01'),
+    nextDueAt: new Date('2025-02-01'),
+    closedAt: null,
+    createdAt: new Date('2025-01-01'),
+    updatedAt: new Date('2025-01-01'),
+    _count: { payments: 0 },
+    ...over,
+  });
+
+  it('re-prices and rebuilds the schedule when the amount changes on an unpaid loan', async () => {
+    loanFindFirst.mockResolvedValue(loanRow({ _count: { payments: 0 } }));
+
+    await service.update('tenant_1', actor, 'loan_1', { amount: 2000, termMonths: 2 });
+
+    expect(scheduleItemDeleteMany).toHaveBeenCalledWith({ where: { loanId: 'loan_1' } });
+    const data = loanUpdate.mock.calls[0][0].data;
+    expect(data.principal).toBe(200000); // N$ 2,000
+    expect(data.termMonths).toBe(2);
+    expect(data.total).toBe(260000); // + 30%
+    expect(data.schedule.create).toHaveLength(2);
+    expect(auditMock.record).toHaveBeenCalled();
+  });
+
+  it('rejects changing the amount of a loan that has payments', async () => {
+    loanFindFirst.mockResolvedValue(loanRow({ _count: { payments: 3 } }));
+
+    await expect(
+      service.update('tenant_1', actor, 'loan_1', { amount: 2000 }),
+    ).rejects.toThrow(BadRequestException);
+    expect(loanUpdate).not.toHaveBeenCalled();
+  });
+
+  it('allows safe-field edits on a loan with payments', async () => {
+    loanFindFirst.mockResolvedValue(loanRow({ _count: { payments: 3 } }));
+
+    await service.update('tenant_1', actor, 'loan_1', { note: 'corrected', collateral: 'Toyota' });
+
+    const data = loanUpdate.mock.calls[0][0].data;
+    expect(data.note).toBe('corrected');
+    expect(data.collateral).toBe('Toyota');
+    expect(scheduleItemDeleteMany).not.toHaveBeenCalled();
+  });
+
+  it('cancels a payment-free loan', async () => {
+    loanFindFirst.mockResolvedValue(loanRow({ _count: { payments: 0 } }));
+
+    await service.cancel('tenant_1', actor, 'loan_1', { reason: 'Duplicate import' });
+
+    const data = loanUpdate.mock.calls[0][0].data;
+    expect(data.status).toBe(LoanStatus.Cancelled);
+    expect(data.balance).toBe(0);
+    expect(data.cancelReason).toBe('Duplicate import');
+    expect(data.closedAt).toBeInstanceOf(Date);
+  });
+
+  it('refuses to cancel a loan that has payments', async () => {
+    loanFindFirst.mockResolvedValue(loanRow({ _count: { payments: 2 } }));
+
+    await expect(
+      service.cancel('tenant_1', actor, 'loan_1', { reason: 'oops' }),
+    ).rejects.toThrow(BadRequestException);
+    expect(loanUpdate).not.toHaveBeenCalled();
   });
 });
