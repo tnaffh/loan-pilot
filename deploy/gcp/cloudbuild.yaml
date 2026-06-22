@@ -16,7 +16,7 @@ substitutions:
   _CORS_ORIGINS: 'https://raccoonsfinance.com,https://www.raccoonsfinance.com,https://pilot.raccoonsfinance.com'
   _OAUTH_ALLOWED_DOMAINS: 'raccoonsfinance.com,alphanumeric.com.na'
   _GOOGLE_CLIENT_ID: '' # set once the Google OAuth client exists (empty = Google login disabled)
-  _MAIL_FROM: 'LoanPilot <no-reply@raccoonsfinance.com>'
+  _MAIL_FROM: 'LoanPilot <no-reply@send.raccoonsfinance.com>' # must be on the Resend-verified domain
   _RUNTIME_SA: '' # loanpilot-api@PROJECT.iam.gserviceaccount.com  (required)
   _INSTANCE: '' # PROJECT:REGION:loanpilot-db  (required)
   _BUCKET: '' # PROJECT-loanpilot-documents  (required)
