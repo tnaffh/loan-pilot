@@ -15,9 +15,11 @@ import {
   UserRole,
   feeSettingsSchema,
   loanProductSchema,
+  openingBalanceSchema,
   updateLoanProductSchema,
   type FeeSettingsInput,
   type LoanProductInput,
+  type OpeningBalanceInput,
   type SessionUser,
   type UpdateLoanProductInput,
 } from '@loan-pilot/domain';
@@ -47,6 +49,15 @@ export class SettingsController {
     @Body(new ZodValidationPipe(feeSettingsSchema)) body: FeeSettingsInput,
   ): Promise<TenantSettings> {
     return this.settings.updateFeeSettings(requireTenantId(user), body);
+  }
+
+  @Patch('opening-balance')
+  @Roles(UserRole.LenderAdmin)
+  updateOpeningBalance(
+    @CurrentUser() user: SessionUser,
+    @Body(new ZodValidationPipe(openingBalanceSchema)) body: OpeningBalanceInput,
+  ): Promise<TenantSettings> {
+    return this.settings.updateOpeningBalance(requireTenantId(user), body.openingBalance);
   }
 
   @Get('products')

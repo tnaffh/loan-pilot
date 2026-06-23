@@ -88,6 +88,10 @@ const main = async (): Promise<void> => {
   await prisma.invoice.deleteMany();
   await prisma.expense.deleteMany();
   await prisma.investment.deleteMany();
+  await prisma.income.deleteMany();
+  await prisma.auditEvent.deleteMany();
+  await prisma.tenantSettings.deleteMany();
+  await prisma.loanProduct.deleteMany();
   await prisma.user.deleteMany();
   // Borrower delete cascades to its addresses + bank accounts.
   await prisma.borrower.deleteMany();

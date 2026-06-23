@@ -4,8 +4,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { Borrower, BorrowerAddress, BorrowerBankAccount, Prisma } from '@prisma/client';
+import type { $Enums, Borrower, BorrowerAddress, BorrowerBankAccount, Prisma } from '@prisma/client';
 import {
+  LoanStatus,
+  RepaymentStatus,
+  assessArrears,
   fromCents,
   toCents,
   type CreateBorrowerAddressInput,
@@ -18,6 +21,8 @@ import {
 } from '@loan-pilot/domain';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService, type AuditEntry } from '../audit/audit.service';
+import { DocumentsService, type DocumentView } from '../documents/documents.service';
+import { SettingsService } from '../settings/settings.service';
 
 export type BorrowerWithLoanCount = Prisma.BorrowerGetPayload<{
   include: { _count: { select: { loans: true } } };
@@ -29,7 +34,31 @@ export type BorrowerWithLoans = Prisma.BorrowerGetPayload<{
     addresses: true;
     bankAccounts: true;
   };
-}> & { audit: AuditEntry[] };
+}> & { audit: AuditEntry[]; documents: DocumentView[] };
+
+/** A printable borrower account statement letter (proof of indebtedness). */
+export interface BorrowerStatement {
+  generatedAt: string;
+  lender: { name: string; short: string; town: string | null; logoUrl: string | null; accent: string };
+  borrower: { name: string; idNumber: string; address: string; phone: string };
+  loans: {
+    id: string;
+    type: $Enums.LoanType;
+    disbursedAt: string | null;
+    principal: number;
+    balance: number;
+    payoff: number;
+    status: $Enums.LoanStatus;
+  }[];
+  totals: { outstanding: number; lifetimeBorrowed: number; openLoans: number; settledLoans: number };
+  hasOutstanding: boolean;
+}
+
+const OPEN_STATUSES: $Enums.LoanStatus[] = [
+  LoanStatus.Active,
+  LoanStatus.Arrears,
+  LoanStatus.PartlyPaid,
+];
 
 /** Borrower fields shown in the audit trail (money/date in display form). */
 const borrowerAuditMap = (b: Borrower): Record<string, unknown> => ({
@@ -103,6 +132,8 @@ export class BorrowersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly documents: DocumentsService,
+    private readonly settings: SettingsService,
   ) {}
 
   findAllForTenant(tenantId: string): Promise<BorrowerWithLoanCount[]> {
@@ -128,7 +159,98 @@ export class BorrowersService {
     if (!borrower) {
       throw new NotFoundException('Borrower not found');
     }
-    return { ...borrower, audit: await this.audit.listFor(tenantId, 'borrower', id) };
+    return {
+      ...borrower,
+      audit: await this.audit.listFor(tenantId, 'borrower', id),
+      documents: await this.documents.listForBorrower(tenantId, id),
+    };
+  }
+
+  /**
+   * Build a printable account-statement letter for a borrower: their details,
+   * every loan with its live payoff (balance + accrued default interest on open
+   * loans), and the total outstanding — proof of what they owe or have settled.
+   */
+  async statementLetter(tenantId: string, id: string): Promise<BorrowerStatement> {
+    const borrower = await this.prisma.borrower.findFirst({
+      where: { id, tenantId },
+      include: {
+        loans: {
+          include: { schedule: { orderBy: { number: 'asc' } } },
+          orderBy: { disbursedAt: 'desc' },
+        },
+        addresses: { where: { isActive: true }, take: 1 },
+      },
+    });
+    if (!borrower) {
+      throw new NotFoundException('Borrower not found');
+    }
+    const [tenant, { monthlyRate }] = await Promise.all([
+      this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { name: true, short: true, town: true, logoUrl: true, accent: true },
+      }),
+      this.settings.resolveFeeSettings(tenantId),
+    ]);
+
+    const now = new Date();
+    const loans = borrower.loans.map((loan) => {
+      const open = OPEN_STATUSES.includes(loan.status);
+      const defaultInterest = open
+        ? assessArrears(
+            loan.schedule.map((item) => ({
+              amountCents: item.amount,
+              dueAt: item.dueAt,
+              paid: item.status === RepaymentStatus.Paid,
+            })),
+            now,
+            monthlyRate,
+          ).defaultInterestCents
+        : 0;
+      return {
+        id: loan.id,
+        type: loan.type,
+        disbursedAt: loan.disbursedAt?.toISOString() ?? null,
+        principal: loan.principal,
+        balance: loan.balance,
+        payoff: loan.balance + defaultInterest,
+        status: loan.status,
+      };
+    });
+
+    const outstanding = loans
+      .filter((loan) => OPEN_STATUSES.includes(loan.status))
+      .reduce((sum, loan) => sum + loan.payoff, 0);
+
+    const address = borrower.addresses[0];
+    return {
+      generatedAt: now.toISOString(),
+      lender: {
+        name: tenant?.name ?? '',
+        short: tenant?.short ?? '',
+        town: tenant?.town ?? null,
+        logoUrl: tenant?.logoUrl ?? null,
+        accent: tenant?.accent ?? '#25397a',
+      },
+      borrower: {
+        name: `${borrower.firstName} ${borrower.lastName}`,
+        idNumber: borrower.idNumber,
+        phone: borrower.phone,
+        address: address
+          ? [address.street, address.suburb, address.city, address.region, address.country]
+              .filter(Boolean)
+              .join(', ')
+          : '',
+      },
+      loans,
+      totals: {
+        outstanding,
+        lifetimeBorrowed: loans.reduce((sum, loan) => sum + loan.principal, 0),
+        openLoans: loans.filter((loan) => OPEN_STATUSES.includes(loan.status)).length,
+        settledLoans: loans.filter((loan) => loan.status === LoanStatus.Settled).length,
+      },
+      hasOutstanding: outstanding > 0,
+    };
   }
 
   async create(tenantId: string, input: CreateBorrowerInput): Promise<Borrower> {

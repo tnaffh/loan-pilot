@@ -52,6 +52,32 @@ export const apiFetch = async <T>(path: string, options: RequestOptions = {}): P
   return data;
 };
 
+/**
+ * Upload a document via multipart/form-data. `fetch` sets the multipart boundary
+ * itself, so we must NOT set Content-Type. Pass `tenant` for the public
+ * application endpoint (x-tenant) or `token` for authed borrower endpoints.
+ */
+export const uploadDocument = async (
+  path: string,
+  { kind, file }: { kind: string; file: File },
+  auth: { token?: string | null; tenant?: string | null } = {},
+): Promise<void> => {
+  const form = new FormData();
+  form.append('kind', kind);
+  form.append('file', file);
+
+  const headers: Record<string, string> = {};
+  if (auth.token) headers.Authorization = `Bearer ${auth.token}`;
+  if (auth.tenant) headers['x-tenant'] = auth.tenant;
+
+  const response = await fetch(`${API_URL}${path}`, { method: 'POST', headers, body: form });
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    const message = data && typeof data.message === 'string' ? data.message : response.statusText;
+    throw new ApiError(message, response.status);
+  }
+};
+
 export interface LoginResponse {
   accessToken: string;
   user: SessionUser;

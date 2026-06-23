@@ -11,6 +11,7 @@ import { LoansModule } from './loans/loans.module';
 import { PaymentsModule } from './payments/payments.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { InvestmentsModule } from './investments/investments.module';
+import { IncomeModule } from './income/income.module';
 import { StatsModule } from './stats/stats.module';
 import { DocumentsModule } from './documents/documents.module';
 import { SettingsModule } from './settings/settings.module';
@@ -29,6 +30,7 @@ import { SettingsModule } from './settings/settings.module';
     PaymentsModule,
     ExpensesModule,
     InvestmentsModule,
+    IncomeModule,
     StatsModule,
     DocumentsModule,
     SettingsModule,

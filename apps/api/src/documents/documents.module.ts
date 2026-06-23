@@ -8,6 +8,6 @@ import { StorageService } from './storage.service';
   imports: [TenantsModule],
   providers: [DocumentsService, StorageService],
   controllers: [DocumentsController],
-  exports: [StorageService],
+  exports: [StorageService, DocumentsService],
 })
 export class DocumentsModule {}

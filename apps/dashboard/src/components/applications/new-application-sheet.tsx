@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import {
+  DocumentKind,
   EmploymentType,
   LoanType,
   createApplicationSchema,
@@ -29,10 +30,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { ApiError, apiFetch } from '@/lib/api';
+import { ApiError, apiFetch, uploadDocument } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { bumpRevalidation } from '@/lib/revalidate';
 import { FormField } from '@/components/form-field';
+
+const DOC_LABELS: Record<string, string> = {
+  [DocumentKind.IdDocument]: 'ID document',
+  [DocumentKind.ProofOfResidence]: 'Proof of residence',
+  [DocumentKind.Payslip]: 'Payslip',
+  [DocumentKind.BankStatement]: 'Bank statement',
+};
 
 const TYPE_LABELS: Record<LoanType, string> = {
   [LoanType.Payday]: 'Payday',
@@ -81,7 +89,8 @@ interface Props {
 }
 
 export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const [docs, setDocs] = useState<Record<string, File>>({});
   const {
     register,
     control,
@@ -100,9 +109,38 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
     if (open) reset(DEFAULTS);
   }, [open, reset]);
 
+  // Clear staged files when the sheet (re)opens, without a setState-in-effect.
+  const [docsOpen, setDocsOpen] = useState(false);
+  if (open !== docsOpen) {
+    setDocsOpen(open);
+    if (open) setDocs({});
+  }
+
   const onSubmit = handleSubmit(async (values) => {
     try {
-      await apiFetch('/applications/internal', { method: 'POST', body: values, token });
+      const created = await apiFetch<{ id: string }>('/applications/internal', {
+        method: 'POST',
+        body: values,
+        token,
+      });
+      // Upload any attached documents to the new application. The endpoint
+      // resolves the tenant from the x-tenant header.
+      const files = Object.entries(docs);
+      if (files.length > 0) {
+        const results = await Promise.allSettled(
+          files.map(([kind, file]) =>
+            uploadDocument(
+              `/applications/${created.id}/documents`,
+              { kind, file },
+              { tenant: user?.tenantSlug },
+            ),
+          ),
+        );
+        const failed = results.filter((r) => r.status === 'rejected').length;
+        if (failed > 0) {
+          toast.warning(`${failed} document(s) failed to upload — add them from the borrower later.`);
+        }
+      }
       toast.success('Application captured', { description: 'Affordability assessed.' });
       bumpRevalidation();
       onOpenChange(false);
@@ -366,6 +404,34 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
                 <Plus className="size-4" /> Add reference
               </Button>
             )}
+          </div>
+
+          <div className="space-y-4">
+            <SectionTitle>Documents</SectionTitle>
+            <p className="text-xs text-muted-foreground">
+              Optional. PDF, JPG or PNG. They attach to the application and follow the borrower on
+              approval.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {Object.keys(DOC_LABELS).map((kind) => (
+                <FormField key={kind} label={DOC_LABELS[kind]} htmlFor={`doc-${kind}`} optional>
+                  <Input
+                    id={`doc-${kind}`}
+                    type="file"
+                    accept="application/pdf,image/jpeg,image/png"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      setDocs((current) => {
+                        const next = { ...current };
+                        if (file) next[kind] = file;
+                        else delete next[kind];
+                        return next;
+                      });
+                    }}
+                  />
+                </FormField>
+              ))}
+            </div>
           </div>
 
           <SheetFooter className="px-0">

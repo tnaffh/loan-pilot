@@ -122,6 +122,7 @@ model Tenant {
   payments     Payment[]
   expenses     Expense[]
   investments  Investment[]
+  incomes      Income[]
   auditEvents  AuditEvent[]
   settings     TenantSettings?
   products     LoanProduct[]
@@ -147,6 +148,9 @@ model TenantSettings {
   // Monthly compounding rate for term-loan growth (months 2..n) and default
   // interest on overdue instalments. NAMFISA cap is 5%.
   monthlyRate     Float    @default(0.05)
+  // Opening/bank balance (cents) so the computed available balance reconciles to
+  // the lender's actual bank account.
+  openingBalance  Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -259,6 +263,7 @@ model Borrower {
   user         User?
   addresses    BorrowerAddress[]
   bankAccounts BorrowerBankAccount[]
+  documents    Document[]
 
   @@unique([tenantId, idNumber])
   @@index([tenantId])
@@ -436,6 +441,10 @@ model Document {
   id            String           @id @default(cuid())
   applicationId String?
   application   LoanApplication? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  // Documents attach to a borrower (directly, or relinked from the application on
+  // approval) so they persist across the borrower's loans.
+  borrowerId    String?
+  borrower      Borrower?        @relation(fields: [borrowerId], references: [id], onDelete: Cascade)
   kind          String
   url           String
   fileName      String
@@ -444,6 +453,7 @@ model Document {
   uploadedAt    DateTime         @default(now())
 
   @@index([applicationId])
+  @@index([borrowerId])
 }
 
 model Invoice {
@@ -518,6 +528,25 @@ model Investment {
   externalRef   String?
   note          String?
   createdAt     DateTime  @default(now())
+
+  @@unique([tenantId, externalRef])
+  @@index([tenantId])
+}
+
+// Operational income received that is not a loan repayment or owner capital
+// (e.g. recoveries, admin fees, other income). Feeds available balance. Amounts
+// are integer N$ cents.
+model Income {
+  id          String    @id @default(cuid())
+  tenantId    String
+  tenant      Tenant    @relation(fields: [tenantId], references: [id])
+  category    String
+  period      String?
+  incurredAt  DateTime?
+  amount      Int
+  externalRef String?
+  note        String?
+  createdAt   DateTime  @default(now())
 
   @@unique([tenantId, externalRef])
   @@index([tenantId])

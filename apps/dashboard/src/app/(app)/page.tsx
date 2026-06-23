@@ -144,6 +144,13 @@ const LenderOverview = ({
 
       <StatGrid>
         <StatCard
+          label="Available balance"
+          value={formatNad(stats.availableBalance)}
+          icon={Wallet}
+          tone={stats.availableBalance >= 0 ? 'green' : 'red'}
+          hint="Cash available to lend"
+        />
+        <StatCard
           label="Net profit"
           value={formatNad(stats.netProfit)}
           icon={TrendingUp}

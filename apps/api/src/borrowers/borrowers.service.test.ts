@@ -4,6 +4,8 @@ import { EmploymentType, UserRole, type CreateBorrowerInput, type SessionUser } 
 import { BorrowersService } from './borrowers.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { DocumentsService } from '../documents/documents.service';
+import { SettingsService } from '../settings/settings.service';
 
 describe('BorrowersService', () => {
   const create = jest.fn();
@@ -27,15 +29,31 @@ describe('BorrowersService', () => {
     auditEvent: { updateMany: auditUpdateMany },
     borrower: { delete: borrowerDelete },
   };
+  const tenantFindUnique = jest.fn();
   const prismaMock = {
     borrower: { create, findFirst, update, findMany },
     borrowerAddress: { findFirst: addressFindFirst, update: addressUpdate },
+    tenant: { findUnique: tenantFindUnique },
     $transaction: jest.fn((cb: (tx: typeof txMock) => Promise<unknown>) => cb(txMock)),
   };
   const auditMock = {
     record: jest.fn(),
     diff: jest.fn().mockReturnValue([{ field: 'x', from: 'a', to: 'b' }]),
     listFor: jest.fn().mockResolvedValue([]),
+  };
+  const documentsMock = {
+    listForBorrower: jest.fn().mockResolvedValue([]),
+    createForBorrower: jest.fn(),
+    removeForBorrower: jest.fn(),
+  };
+  const settingsMock = {
+    resolveFeeSettings: jest.fn().mockResolvedValue({
+      namfisaLevyRate: 0,
+      stampDutyCents: 0,
+      insuranceRate: 0,
+      insuranceFlatCents: 0,
+      monthlyRate: 0.05,
+    }),
   };
 
   let service: BorrowersService;
@@ -84,6 +102,8 @@ describe('BorrowersService', () => {
         BorrowersService,
         { provide: PrismaService, useValue: prismaMock },
         { provide: AuditService, useValue: auditMock },
+        { provide: DocumentsService, useValue: documentsMock },
+        { provide: SettingsService, useValue: settingsMock },
       ],
     }).compile();
     service = moduleRef.get(BorrowersService);
@@ -259,5 +279,53 @@ describe('BorrowersService', () => {
     expect(ids).toContain('same_name');
     expect(ids).not.toContain('noise');
     expect(ids).not.toContain('bor_1');
+  });
+
+  it('builds a statement letter with payoff (incl. default interest) and totals', async () => {
+    findFirst.mockResolvedValue(
+      borrower({
+        loans: [
+          {
+            id: 'loan_open',
+            type: 'payday',
+            status: 'arrears',
+            principal: 100000,
+            balance: 130000,
+            disbursedAt: new Date('2020-01-01'),
+            // Long overdue → default interest accrues, so payoff exceeds balance.
+            schedule: [{ amount: 130000, dueAt: new Date('2020-02-01'), status: 'due' }],
+          },
+          {
+            id: 'loan_settled',
+            type: 'payday',
+            status: 'settled',
+            principal: 80000,
+            balance: 0,
+            disbursedAt: new Date('2021-01-01'),
+            schedule: [{ amount: 104000, dueAt: new Date('2021-02-01'), status: 'paid' }],
+          },
+        ],
+        addresses: [{ street: '1 Main', suburb: null, city: 'Windhoek', region: null, country: 'Namibia' }],
+      }),
+    );
+    tenantFindUnique.mockResolvedValue({
+      name: 'Regal Financial Solutions',
+      short: 'RFS',
+      town: 'Windhoek',
+      logoUrl: null,
+      accent: '#25397a',
+    });
+
+    const letter = await service.statementLetter('tenant_1', 'bor_1');
+
+    expect(letter.lender.name).toBe('Regal Financial Solutions');
+    expect(letter.borrower.address).toBe('1 Main, Windhoek, Namibia');
+    expect(letter.totals.openLoans).toBe(1);
+    expect(letter.totals.settledLoans).toBe(1);
+    expect(letter.totals.lifetimeBorrowed).toBe(180000);
+    const openLoan = letter.loans.find((l) => l.id === 'loan_open');
+    expect(openLoan?.payoff).toBeGreaterThan(130000); // includes default interest
+    expect(letter.totals.outstanding).toBe(openLoan?.payoff);
+    expect(letter.hasOutstanding).toBe(true);
   });
 });

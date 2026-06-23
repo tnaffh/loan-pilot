@@ -65,6 +65,16 @@ export class SettingsService {
     });
   }
 
+  /** Set the lender's opening/bank balance. `openingBalance` arrives in major N$. */
+  updateOpeningBalance(tenantId: string, openingBalance: number): Promise<TenantSettings> {
+    const data = { openingBalance: toCents(openingBalance) };
+    return this.prisma.tenantSettings.upsert({
+      where: { tenantId },
+      update: data,
+      create: { tenantId, ...data },
+    });
+  }
+
   listProducts(tenantId: string): Promise<LoanProduct[]> {
     return this.prisma.loanProduct.findMany({
       where: { tenantId },

@@ -408,6 +408,13 @@ export class LoansService {
       },
     });
 
+    // Carry the application's uploaded documents onto the borrower so they
+    // persist beyond the application.
+    await tx.document.updateMany({
+      where: { applicationId: application.id },
+      data: { borrowerId: borrower.id },
+    });
+
     const type = LOAN_TYPE_FROM_DB[application.type];
     const { interestRate, monthlyRate, productId, fees } = await this.resolvePricing(
       application.tenantId,

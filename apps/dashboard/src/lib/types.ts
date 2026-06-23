@@ -231,6 +231,40 @@ export interface InvestmentTotals {
   count: number;
 }
 
+export interface IncomeRow {
+  id: string;
+  category: string;
+  period: string | null;
+  incurredAt: string | null;
+  amount: number;
+  note: string | null;
+}
+
+export interface DocumentRow {
+  id: string;
+  kind: string;
+  url: string;
+  fileName: string;
+  uploadedAt: string;
+}
+
+export interface BorrowerStatement {
+  generatedAt: string;
+  lender: { name: string; short: string; town: string | null; logoUrl: string | null; accent: string };
+  borrower: { name: string; idNumber: string; address: string; phone: string };
+  loans: {
+    id: string;
+    type: LoanType;
+    disbursedAt: string | null;
+    principal: number;
+    balance: number;
+    payoff: number;
+    status: LoanStatus;
+  }[];
+  totals: { outstanding: number; lifetimeBorrowed: number; openLoans: number; settledLoans: number };
+  hasOutstanding: boolean;
+}
+
 export interface MonthlyPoint {
   month: string;
   label: string;
@@ -250,6 +284,7 @@ export interface BorrowerDetail extends Omit<BorrowerRow, '_count'> {
   addresses: BorrowerAddress[];
   bankAccounts: BorrowerBankAccount[];
   audit: AuditEntry[];
+  documents: DocumentRow[];
 }
 
 export type OverviewStats =
@@ -266,7 +301,10 @@ export type OverviewStats =
       expenses: number;
       drawings: number;
       invested: number;
+      income: number;
       netProfit: number;
+      openingBalance: number;
+      availableBalance: number;
     }
   | {
       kind: 'platform';

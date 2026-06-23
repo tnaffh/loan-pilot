@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { ExpenseKind, LoanStatus } from '@loan-pilot/domain';
+import { ExpenseKind, LoanStatus, UserRole, type SessionUser } from '@loan-pilot/domain';
 import { StatsService } from './stats.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -57,5 +57,60 @@ describe('StatsService.lenderSeries', () => {
       { status: LoanStatus.Settled, count: 2 },
       { status: LoanStatus.Active, count: 1 },
     ]);
+  });
+});
+
+describe('StatsService.lenderOverview', () => {
+  const loanAggregate = jest.fn();
+  const prismaMock = {
+    loan: { aggregate: loanAggregate },
+    loanApplication: { count: jest.fn().mockResolvedValue(0) },
+    borrower: { count: jest.fn().mockResolvedValue(0) },
+    payment: { aggregate: jest.fn() },
+    expense: { groupBy: jest.fn() },
+    investment: { aggregate: jest.fn() },
+    income: { aggregate: jest.fn() },
+    tenantSettings: { findUnique: jest.fn() },
+  };
+  let service: StatsService;
+
+  const admin: SessionUser = {
+    id: 'u1',
+    email: 'a@rfs.na',
+    name: 'Admin',
+    role: UserRole.LenderAdmin,
+    tenantId: 'tenant_1',
+    tenantSlug: 'rfs',
+  };
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+    const moduleRef = await Test.createTestingModule({
+      providers: [StatsService, { provide: PrismaService, useValue: prismaMock }],
+    }).compile();
+    service = moduleRef.get(StatsService);
+  });
+
+  it('computes available balance from opening balance + flows', async () => {
+    loanAggregate
+      .mockResolvedValueOnce({ _sum: { balance: 200000 }, _count: 3 }) // book
+      .mockResolvedValueOnce({ _sum: { balance: 50000 }, _count: 1 }) // arrears
+      .mockResolvedValueOnce({ _sum: { principal: 600000 } }); // disbursed
+    prismaMock.payment.aggregate.mockResolvedValue({ _sum: { amount: 300000 } });
+    prismaMock.expense.groupBy.mockResolvedValue([
+      { kind: ExpenseKind.Expense, _sum: { amount: 50000 } },
+      { kind: ExpenseKind.Drawing, _sum: { amount: 30000 } },
+    ]);
+    prismaMock.investment.aggregate.mockResolvedValue({ _sum: { amount: 500000 } });
+    prismaMock.income.aggregate.mockResolvedValue({ _sum: { amount: 20000 } });
+    prismaMock.tenantSettings.findUnique.mockResolvedValue({ openingBalance: 100000 });
+
+    const overview = await service.overview(admin);
+    if (overview.kind !== 'lender') throw new Error('expected lender overview');
+
+    // 100000 + 500000 + 300000 + 20000 − 600000 − 50000 − 30000 = 240000
+    expect(overview.availableBalance).toBe(240000);
+    expect(overview.income).toBe(20000);
+    expect(overview.openingBalance).toBe(100000);
   });
 });

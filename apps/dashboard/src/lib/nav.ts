@@ -70,7 +70,7 @@ const LENDER_NAV: NavGroup[] = [
       },
       { href: '/borrowers', label: 'Borrowers', icon: Users },
       { href: '/calendar', label: 'Calendar', icon: CalendarDays },
-      { href: '/expenses', label: 'Expenses', icon: Wallet },
+      { href: '/expenses', label: 'Finance', icon: Wallet },
     ],
   },
 ];
@@ -102,7 +102,7 @@ const TITLES: { prefix: string; title: string }[] = [
   { prefix: '/borrowers', title: 'Borrowers' },
   { prefix: '/loans', title: 'Loans' },
   { prefix: '/calendar', title: 'Calendar' },
-  { prefix: '/expenses', title: 'Expenses' },
+  { prefix: '/expenses', title: 'Finance' },
   { prefix: '/tenants', title: 'Tenants' },
   { prefix: '/users', title: 'Users' },
   { prefix: '/settings', title: 'Rates & fees' },

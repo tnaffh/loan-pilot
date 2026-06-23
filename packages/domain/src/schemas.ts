@@ -342,6 +342,26 @@ export const createInvestmentSchema = z.object({
 export type CreateInvestmentInput = z.infer<typeof createInvestmentSchema>;
 
 /**
+ * Record operational income that is not a loan repayment or owner capital (e.g.
+ * recoveries, admin fees). `amount` is submitted in major Namibian Dollar units
+ * and converted to cents server-side.
+ */
+export const createIncomeSchema = z.object({
+  category: z.string().min(1, 'A category is required'),
+  amount: z.coerce.number().min(0.01, 'An amount is required'),
+  period: z.string().max(40).optional().or(z.literal('')),
+  incurredAt: z.string().optional().or(z.literal('')),
+  note: z.string().max(280).optional().or(z.literal('')),
+});
+export type CreateIncomeInput = z.infer<typeof createIncomeSchema>;
+
+/** Set the lender's opening/bank balance (major N$), used by available balance. */
+export const openingBalanceSchema = z.object({
+  openingBalance: z.coerce.number(),
+});
+export type OpeningBalanceInput = z.infer<typeof openingBalanceSchema>;
+
+/**
  * Move a loan application along its lifecycle: into Review (triage), Approved
  * (disburses the loan) or Declined. `reason` is captured on a decline and shown
  * in the application's activity timeline.

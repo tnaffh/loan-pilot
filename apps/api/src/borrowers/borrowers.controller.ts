@@ -1,14 +1,18 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Param,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   UserRole,
   createBorrowerAddressSchema,
@@ -28,14 +32,18 @@ import {
   type UpdateBorrowerInput,
 } from '@loan-pilot/domain';
 import type { Borrower, BorrowerAddress, BorrowerBankAccount } from '@prisma/client';
+import { BadRequestException } from '@nestjs/common';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { requireTenantId } from '../common/tenant';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { DocumentsService, type DocumentView } from '../documents/documents.service';
+import { documentUploadOptions } from '../documents/upload.config';
 import {
   BorrowersService,
+  type BorrowerStatement,
   type BorrowerWithLoanCount,
   type BorrowerWithLoans,
 } from './borrowers.service';
@@ -44,7 +52,10 @@ import {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
 export class BorrowersController {
-  constructor(private readonly borrowers: BorrowersService) {}
+  constructor(
+    private readonly borrowers: BorrowersService,
+    private readonly documents: DocumentsService,
+  ) {}
 
   @Get()
   list(@CurrentUser() user: SessionUser): Promise<BorrowerWithLoanCount[]> {
@@ -149,5 +160,38 @@ export class BorrowersController {
     @Body(new ZodValidationPipe(updateBankAccountSchema)) body: UpdateBankAccountInput,
   ): Promise<BorrowerBankAccount> {
     return this.borrowers.updateBankAccount(requireTenantId(user), user, id, accountId, body);
+  }
+
+  @Post(':id/documents')
+  @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(FileInterceptor('file', documentUploadOptions))
+  uploadDocument(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+    @Body('kind') kind: string,
+  ): Promise<DocumentView> {
+    if (!file) {
+      throw new BadRequestException('A file is required');
+    }
+    return this.documents.createForBorrower(requireTenantId(user), id, kind || 'other', file);
+  }
+
+  @Delete(':id/documents/:documentId')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  deleteDocument(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+    @Param('documentId') documentId: string,
+  ): Promise<void> {
+    return this.documents.removeForBorrower(requireTenantId(user), id, documentId);
+  }
+
+  @Get(':id/statement-letter')
+  statementLetter(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+  ): Promise<BorrowerStatement> {
+    return this.borrowers.statementLetter(requireTenantId(user), id);
   }
 }

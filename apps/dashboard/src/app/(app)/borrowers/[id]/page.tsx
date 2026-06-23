@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Activity, FileText, GitMerge, Pencil, Wallet } from 'lucide-react';
+import { Activity, FileSignature, FileText, GitMerge, Pencil, Wallet } from 'lucide-react';
 import { LoanStatus, UserRole, formatNad, isLender } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,6 +23,7 @@ import { TypeChip } from '@/components/type-chip';
 import { InitialsAvatar } from '@/components/initials-avatar';
 import { Kv } from '@/components/kv';
 import { ContactCards } from '@/components/borrowers/contact-cards';
+import { BorrowerDocuments } from '@/components/borrowers/borrower-documents';
 import { EditBorrowerSheet } from '@/components/borrowers/edit-borrower-sheet';
 import { MergeBorrowerDialog } from '@/components/borrowers/merge-borrower-dialog';
 import { AuditLog } from '@/components/audit-log';
@@ -79,6 +80,15 @@ const BorrowerDetailPage = () => {
           <p className="text-sm text-muted-foreground">Borrower since {formatDate(data.since)}</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
+          {canEdit ? (
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => window.open(`/borrowers/${data.id}/statement`, '_blank')}
+            >
+              <FileSignature className="size-4" /> Statement letter
+            </Button>
+          ) : null}
           {canMerge ? (
             <Button size="sm" variant="outline" onClick={() => setMerging(true)}>
               <GitMerge className="size-4" /> Merge duplicate
@@ -128,6 +138,13 @@ const BorrowerDetailPage = () => {
         borrowerId={data.id}
         addresses={data.addresses}
         bankAccounts={data.bankAccounts}
+        canEdit={canEdit}
+        onChanged={refresh}
+      />
+
+      <BorrowerDocuments
+        borrowerId={data.id}
+        documents={data.documents}
         canEdit={canEdit}
         onChanged={refresh}
       />

@@ -38,6 +38,7 @@ describe('ApplicationsService', () => {
     borrower: { upsert: borrowerUpsert },
     borrowerAddress: { updateMany: jest.fn(), create: jest.fn() },
     borrowerBankAccount: { updateMany: jest.fn(), create: jest.fn() },
+    document: { updateMany: jest.fn() },
     loan: { create: loanCreate },
   };
 
