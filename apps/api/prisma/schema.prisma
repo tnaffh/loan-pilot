@@ -123,6 +123,56 @@ model Tenant {
   expenses     Expense[]
   investments  Investment[]
   auditEvents  AuditEvent[]
+  settings     TenantSettings?
+  products     LoanProduct[]
+}
+
+/**
+ * Per-lender fee configuration applied to every loan. Levy and insurance rates
+ * are fractions of the loan amount; stamp duty and the insurance flat component
+ * are integer N$ cents. One row per tenant (created lazily on first read).
+ */
+model TenantSettings {
+  id              String   @id @default(cuid())
+  tenantId        String   @unique
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  // NAMFISA levy as a fraction of the loan amount (0.0103 = 1.03%); remitted annually.
+  namfisaLevyRate Float    @default(0.0103)
+  // Flat stamp duty in cents (default N$5).
+  stampDuty       Int      @default(500)
+  // Insurance as a fraction of the loan amount (0 = off).
+  insuranceRate   Float    @default(0)
+  // Flat insurance component in cents (0 = off).
+  insuranceFlat   Int      @default(0)
+  // Monthly compounding rate for term-loan growth (months 2..n) and default
+  // interest on overdue instalments. NAMFISA cap is 5%.
+  monthlyRate     Float    @default(0.05)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+/**
+ * A named interest-rate plan ("product"). Carries the flat finance-charge rate
+ * applied to the principal debt, including promotional rates (e.g. 0.25, or 0
+ * for an interest-free loan). Deactivate rather than delete to keep history.
+ */
+model LoanProduct {
+  id           String    @id @default(cuid())
+  tenantId     String
+  tenant       Tenant    @relation(fields: [tenantId], references: [id])
+  name         String
+  // Optional restriction to a single loan type; null = any.
+  loanType     LoanType?
+  interestRate Float
+  active       Boolean   @default(true)
+  // The product seeded when none is chosen (e.g. the public application flow).
+  isDefault    Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  loans Loan[]
+
+  @@index([tenantId])
 }
 
 /** Append-only change log for data corrections (borrower/loan edits, cancel). */
@@ -265,8 +315,12 @@ model Loan {
   bankCharges      Int        @default(0)
   namfisaLevy      Int        @default(0)
   stampDuty        Int        @default(0)
-  // Flat finance-charge rate applied to the principal (e.g. 0.3 = 30%).
+  insurance        Int        @default(0)
+  // Flat finance-charge rate applied to the principal debt (e.g. 0.3 = 30%).
   interestRate     Float      @default(0.3)
+  // The rate plan this loan was priced from, if any.
+  productId        String?
+  product          LoanProduct? @relation(fields: [productId], references: [id])
   total            Int
   termMonths       Int
   instalment       Int

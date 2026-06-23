@@ -195,6 +195,10 @@ export interface LoanDetail extends LoanRow {
   payments: PaymentRow[];
   activity: ActivityEvent[];
   audit: AuditEntry[];
+  // Live arrears derived server-side (cents). `payoff` = balance + defaultInterest.
+  defaultInterest: number;
+  overdueAmount: number;
+  payoff: number;
 }
 
 export interface ExpenseRow {

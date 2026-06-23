@@ -43,6 +43,15 @@ const TYPE_LABELS: Record<LoanType, string> = {
   [LoanType.Collateral]: 'Collateral',
 };
 
+interface LoanProductOption {
+  id: string;
+  name: string;
+  loanType: LoanType | null;
+  interestRate: number;
+  active: boolean;
+  isDefault: boolean;
+}
+
 const isLoanField = (path: string): path is keyof CreateLoanInput =>
   path in createLoanSchema.shape;
 
@@ -55,6 +64,10 @@ interface Props {
 export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
   const { token } = useAuth();
   const { data: borrowers } = useApi<BorrowerRow[]>(open ? '/borrowers' : null);
+  const { data: products } = useApi<LoanProductOption[]>(open ? '/settings/products' : null);
+  const activeProducts = (products ?? []).filter((product) => product.active);
+  const [productId, setProductId] = useState('');
+  const [customRate, setCustomRate] = useState('');
   const [quote, setQuote] = useState<LoanQuote | null>(null);
   const [quoting, setQuoting] = useState(false);
 
@@ -86,6 +99,8 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
         borrowerId: borrowerId ?? '',
         collateral: '',
       });
+      setProductId('');
+      setCustomRate('');
     }
   }, [open, borrowerId, reset]);
 
@@ -106,7 +121,13 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
     const handle = setTimeout(() => {
       apiFetch<LoanQuote>('/loans/quote', {
         method: 'POST',
-        body: { loanType, amount: numAmount, termMonths: numTerm },
+        body: {
+          loanType,
+          amount: numAmount,
+          termMonths: numTerm,
+          productId: productId || undefined,
+          interestRate: customRate ? Number(customRate) / 100 : undefined,
+        },
         token,
       })
         .then((result) => setQuote(result))
@@ -114,11 +135,19 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
         .finally(() => setQuoting(false));
     }, 300);
     return () => clearTimeout(handle);
-  }, [open, token, amount, termMonths, loanType]);
+  }, [open, token, amount, termMonths, loanType, productId, customRate]);
 
   const onSubmit = handleSubmit(async (values) => {
     try {
-      await apiFetch('/loans', { method: 'POST', body: values, token });
+      await apiFetch('/loans', {
+        method: 'POST',
+        body: {
+          ...values,
+          productId: productId || undefined,
+          interestRate: customRate ? Number(customRate) / 100 : undefined,
+        },
+        token,
+      });
       toast.success('Loan disbursed', {
         description: `${TYPE_LABELS[values.loanType]} loan of ${formatNad(toCents(values.amount))}.`,
       });
@@ -200,6 +229,52 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
             </FormField>
           </div>
 
+          <div className="grid gap-4 sm:grid-cols-2">
+            <FormField
+              label="Rate plan"
+              htmlFor="productId"
+              description="Defaults to the standard rate when none is chosen."
+            >
+              <Select
+                value={productId || undefined}
+                onValueChange={(value) => setProductId(value ?? '')}
+              >
+                <SelectTrigger id="productId" className="w-full">
+                  <SelectValue placeholder="Standard rate" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeProducts.map((product) => (
+                    <SelectItem key={product.id} value={product.id}>
+                      {product.name} — {(product.interestRate * 100).toFixed(2)}%
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormField>
+            <FormField
+              label="Custom rate"
+              htmlFor="customRate"
+              optional
+              description="Promotional override, e.g. 25 or 0. Max 30%."
+            >
+              <div className="relative">
+                <Input
+                  id="customRate"
+                  type="number"
+                  step="0.01"
+                  max="30"
+                  inputMode="decimal"
+                  placeholder="—"
+                  value={customRate}
+                  onChange={(event) => setCustomRate(event.target.value)}
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                  %
+                </span>
+              </div>
+            </FormField>
+          </div>
+
           <div className="rounded-lg border bg-muted/40 p-4 text-sm">
             <div className="mb-2 flex items-center justify-between">
               <span className="font-medium">Quote preview</span>
@@ -207,14 +282,49 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
             </div>
             {quote ? (
               <dl className="grid grid-cols-2 gap-y-1.5">
-                <dt className="text-muted-foreground">Principal</dt>
+                <dt className="text-muted-foreground">Loan amount</dt>
                 <dd className="text-right tabular-nums">{formatNad(quote.principalCents)}</dd>
-                <dt className="text-muted-foreground">Finance charge</dt>
+                {quote.stampDutyCents > 0 ? (
+                  <>
+                    <dt className="text-muted-foreground">Stamp duty</dt>
+                    <dd className="text-right tabular-nums">{formatNad(quote.stampDutyCents)}</dd>
+                  </>
+                ) : null}
+                {quote.insuranceCents > 0 ? (
+                  <>
+                    <dt className="text-muted-foreground">Insurance</dt>
+                    <dd className="text-right tabular-nums">{formatNad(quote.insuranceCents)}</dd>
+                  </>
+                ) : null}
+                {quote.namfisaLevyCents > 0 ? (
+                  <>
+                    <dt className="text-muted-foreground">NAMFISA levy</dt>
+                    <dd className="text-right tabular-nums">{formatNad(quote.namfisaLevyCents)}</dd>
+                  </>
+                ) : null}
+                <dt className="text-muted-foreground">Principal debt</dt>
+                <dd className="text-right tabular-nums">{formatNad(quote.principalDebtCents)}</dd>
+                <dt className="text-muted-foreground">
+                  Interest ({(quote.interestRate * 100).toFixed(2)}%)
+                </dt>
                 <dd className="text-right tabular-nums">{formatNad(quote.financeChargeCents)}</dd>
+                {quote.bankChargesCents > 0 ? (
+                  <>
+                    <dt className="text-muted-foreground">Bank charges</dt>
+                    <dd className="text-right tabular-nums">{formatNad(quote.bankChargesCents)}</dd>
+                  </>
+                ) : null}
                 <dt className="text-muted-foreground">Instalment</dt>
                 <dd className="text-right tabular-nums">{formatNad(quote.instalmentCents)}</dd>
                 <dt className="font-medium">Total repayable</dt>
                 <dd className="text-right font-medium tabular-nums">{formatNad(quote.totalCents)}</dd>
+                {quote.termMonths > 1 ? (
+                  <dd className="col-span-2 mt-1 text-xs text-muted-foreground">
+                    Interest is {(quote.interestRate * 100).toFixed(0)}% for month 1, then compounds
+                    at 5%/month for the remaining {quote.termMonths - 1} month
+                    {quote.termMonths - 1 === 1 ? '' : 's'}.
+                  </dd>
+                ) : null}
               </dl>
             ) : (
               <p className="text-muted-foreground">Enter an amount and term to preview pricing.</p>

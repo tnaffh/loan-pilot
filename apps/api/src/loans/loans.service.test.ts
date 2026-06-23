@@ -11,11 +11,26 @@ import {
 import { LoansService } from './loans.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
+import { SettingsService } from '../settings/settings.service';
 
 const auditMock = {
   record: jest.fn(),
   diff: jest.fn().mockReturnValue([]),
   listFor: jest.fn().mockResolvedValue([]),
+};
+
+// Zero fees + no product + 0% monthly rate, so pricing matches the original
+// loan-amount-only, flat-charge math. Term compounding is covered in the domain
+// tests; individual cases here override monthlyRate when they need it.
+const settingsMock = {
+  resolveFeeSettings: jest.fn().mockResolvedValue({
+    namfisaLevyRate: 0,
+    stampDutyCents: 0,
+    insuranceRate: 0,
+    insuranceFlatCents: 0,
+    monthlyRate: 0,
+  }),
+  resolveProduct: jest.fn().mockResolvedValue(null),
 };
 
 describe('LoansService', () => {
@@ -70,6 +85,7 @@ describe('LoansService', () => {
         LoansService,
         { provide: PrismaService, useValue: prismaMock },
         { provide: AuditService, useValue: auditMock },
+        { provide: SettingsService, useValue: settingsMock },
       ],
     }).compile();
 
@@ -204,6 +220,7 @@ describe('LoansService', () => {
       status: LoanStatus.Active,
       balance: 520000,
       instalmentsTotal: 2,
+      schedule: [],
     });
 
     await service.settle('tenant_1', 'loan_1', { method: PaymentMethod.Cash, paidAt: '2026-06-18' });
@@ -350,5 +367,78 @@ describe('LoansService', () => {
       service.cancel('tenant_1', actor, 'loan_1', { reason: 'oops' }),
     ).rejects.toThrow(BadRequestException);
     expect(loanUpdate).not.toHaveBeenCalled();
+  });
+
+  const feeSettings = (monthlyRate: number) => ({
+    namfisaLevyRate: 0,
+    stampDutyCents: 0,
+    insuranceRate: 0,
+    insuranceFlatCents: 0,
+    monthlyRate,
+  });
+
+  it('compounds the monthly rate into the stored total for a 2-month term loan', async () => {
+    borrowerFindFirst.mockResolvedValue({ id: 'bor_1', tenantId: 'tenant_1' });
+    settingsMock.resolveFeeSettings.mockResolvedValueOnce(feeSettings(0.05));
+
+    await service.create('tenant_1', {
+      borrowerId: 'bor_1',
+      loanType: LoanType.Payday,
+      amount: 8000,
+      termMonths: 2,
+    });
+
+    const data = loanCreate.mock.calls[0][0].data;
+    expect(data.total).toBe(1092000); // 8000 ×1.30 ×1.05
+    expect(data.schedule.create).toHaveLength(2);
+  });
+
+  it('does not recompute the total on a fee-only edit of a term loan', async () => {
+    loanFindFirst.mockResolvedValue(loanRow({ termMonths: 2, total: 200000, _count: { payments: 0 } }));
+
+    await service.update('tenant_1', actor, 'loan_1', { namfisaLevy: 50 });
+
+    const data = loanUpdate.mock.calls[0][0].data;
+    expect(data.namfisaLevy).toBe(5000);
+    expect(data.total).toBeUndefined();
+    expect(scheduleItemDeleteMany).not.toHaveBeenCalled();
+  });
+
+  it('derives default interest and a payoff on a loan with an overdue instalment', async () => {
+    const overdue = new Date();
+    overdue.setDate(overdue.getDate() - 65); // ≥ 1 complete month late
+    settingsMock.resolveFeeSettings.mockResolvedValueOnce(feeSettings(0.05));
+    loanFindFirst.mockResolvedValue({
+      ...loanRow(),
+      balance: 130000,
+      payments: [],
+      schedule: [
+        { id: 's1', number: 1, amount: 130000, dueAt: overdue, status: RepaymentStatus.Due, paidAt: null },
+      ],
+    });
+
+    const result = await service.findOne('tenant_1', 'loan_1');
+
+    expect(result.defaultInterest).toBeGreaterThan(0);
+    expect(result.payoff).toBe(130000 + result.defaultInterest);
+    expect(result.daysLate).toBeGreaterThan(0);
+  });
+
+  it('includes accrued default interest in the settlement payoff', async () => {
+    settingsMock.resolveFeeSettings.mockResolvedValueOnce(feeSettings(0.05));
+    loanFindFirst.mockResolvedValue({
+      id: 'loan_1',
+      tenantId: 'tenant_1',
+      status: LoanStatus.Arrears,
+      balance: 130000,
+      instalmentsTotal: 1,
+      schedule: [{ amount: 130000, dueAt: new Date('2026-01-01'), status: RepaymentStatus.Due }],
+    });
+
+    await service.settle('tenant_1', 'loan_1', { method: PaymentMethod.Cash, paidAt: '2026-06-01' });
+
+    const amount = paymentCreate.mock.calls[0][0].data.amount;
+    expect(amount).toBeGreaterThan(130000); // balance + default interest
+    expect(loanUpdate.mock.calls[0][0].data.balance).toBe(0);
   });
 });

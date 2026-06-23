@@ -239,11 +239,50 @@ export type UpdateAddressInput = z.infer<typeof updateAddressSchema>;
 export const updateBankAccountSchema = bankAccountSchema.partial();
 export type UpdateBankAccountInput = z.infer<typeof updateBankAccountSchema>;
 
-/** Inputs for a loan quote preview. `amount` is in major N$ units. */
+/**
+ * Lender-wide fee settings. Levy and insurance are fractions of the loan amount
+ * (e.g. 0.0103 = 1.03%); `stampDuty` and `insuranceFlat` are major N$ amounts
+ * converted to cents server-side. These feed every loan's fee calculation.
+ */
+export const feeSettingsSchema = z.object({
+  namfisaLevyRate: z.coerce.number().min(0).max(1),
+  stampDuty: z.coerce.number().min(0),
+  insuranceRate: z.coerce.number().min(0).max(1),
+  insuranceFlat: z.coerce.number().min(0),
+  monthlyRate: z.coerce.number().min(0).max(0.05).optional(),
+});
+export type FeeSettingsInput = z.infer<typeof feeSettingsSchema>;
+
+/**
+ * A named interest-rate plan ("product"). `interestRate` is a fraction capped at
+ * the NAMFISA ceiling; promotional rates (e.g. 0.25, or 0 for an interest-free
+ * loan) are expressed here. Products can be deactivated rather than deleted.
+ */
+export const loanProductSchema = z.object({
+  name: z.string().min(1, 'A product name is required').max(80),
+  loanType: z.nativeEnum(LoanType).optional(),
+  interestRate: z.coerce.number().min(0).max(MAX_FINANCE_CHARGE_RATE),
+  active: z.coerce.boolean().optional(),
+  isDefault: z.coerce.boolean().optional(),
+});
+export type LoanProductInput = z.infer<typeof loanProductSchema>;
+
+/** Edit an existing product (incl. toggling `active`). All fields optional. */
+export const updateLoanProductSchema = loanProductSchema.partial();
+export type UpdateLoanProductInput = z.infer<typeof updateLoanProductSchema>;
+
+/**
+ * Inputs for a loan quote preview. `amount` is in major N$ units. An optional
+ * `productId` selects a rate plan; `interestRate` (fraction) overrides it for a
+ * one-off promotional rate. `bankCharges` is a flat major-N$ add-on.
+ */
 export const loanQuoteSchema = z.object({
   loanType: z.nativeEnum(LoanType),
   amount: z.coerce.number().int().min(500, 'Minimum amount is N$ 500').max(500000),
   termMonths: z.coerce.number().int().min(1).max(MAX_TERM_MONTHS),
+  productId: z.string().optional().or(z.literal('')),
+  interestRate: z.coerce.number().min(0).max(MAX_FINANCE_CHARGE_RATE).optional(),
+  bankCharges: z.coerce.number().min(0).optional(),
 });
 export type LoanQuoteInput = z.infer<typeof loanQuoteSchema>;
 
@@ -358,6 +397,7 @@ export const updateLoanSchema = z.object({
   bankCharges: z.coerce.number().min(0).optional(),
   namfisaLevy: z.coerce.number().min(0).optional(),
   stampDuty: z.coerce.number().min(0).optional(),
+  insurance: z.coerce.number().min(0).optional(),
   amount: z.coerce.number().int().min(500).max(500000).optional(),
   termMonths: z.coerce.number().int().min(1).max(MAX_TERM_MONTHS).optional(),
   interestRate: z.coerce.number().min(0).max(MAX_FINANCE_CHARGE_RATE).optional(),

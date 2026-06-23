@@ -50,11 +50,20 @@ interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   loanId: string;
+  /** Full payoff to display (balance + any accrued default interest). */
   balance: number;
+  defaultInterest?: number;
   loanLabel?: string;
 }
 
-export const SettleDialog = ({ open, onOpenChange, loanId, balance, loanLabel }: Props) => {
+export const SettleDialog = ({
+  open,
+  onOpenChange,
+  loanId,
+  balance,
+  defaultInterest,
+  loanLabel,
+}: Props) => {
   const { token } = useAuth();
   const {
     register,
@@ -91,6 +100,11 @@ export const SettleDialog = ({ open, onOpenChange, loanId, balance, loanLabel }:
             Clear the full outstanding balance of{' '}
             <span className="font-medium text-foreground">{formatNad(balance)}</span>
             {loanLabel ? ` on ${loanLabel}` : ''} in one payment. This closes the loan as settled.
+            {defaultInterest && defaultInterest > 0 ? (
+              <span className="mt-1 block text-xs">
+                Includes accrued default interest of {formatNad(defaultInterest)}.
+              </span>
+            ) : null}
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4" noValidate>

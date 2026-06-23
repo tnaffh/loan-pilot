@@ -11,6 +11,20 @@ import { LoansService } from '../loans/loans.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../documents/storage.service';
 import { AuditService } from '../audit/audit.service';
+import { SettingsService } from '../settings/settings.service';
+
+// Zero fees + no product + 0% monthly rate, so pricing matches the original
+// loan-amount-only, flat-charge math.
+const settingsMock = {
+  resolveFeeSettings: jest.fn().mockResolvedValue({
+    namfisaLevyRate: 0,
+    stampDutyCents: 0,
+    insuranceRate: 0,
+    insuranceFlatCents: 0,
+    monthlyRate: 0,
+  }),
+  resolveProduct: jest.fn().mockResolvedValue(null),
+};
 
 describe('ApplicationsService', () => {
   const create = jest.fn();
@@ -57,6 +71,7 @@ describe('ApplicationsService', () => {
           provide: AuditService,
           useValue: { record: jest.fn(), diff: jest.fn().mockReturnValue([]), listFor: jest.fn() },
         },
+        { provide: SettingsService, useValue: settingsMock },
       ],
     }).compile();
 

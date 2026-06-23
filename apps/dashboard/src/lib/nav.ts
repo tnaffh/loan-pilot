@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   Receipt,
   ShieldCheck,
+  SlidersHorizontal,
   Users,
   Wallet,
   type LucideIcon,
@@ -48,7 +49,10 @@ const PLATFORM_NAV: NavGroup[] = [
 /** Admin tools shown only to lender admins (appended in navForRole). */
 const LENDER_ADMIN_NAV: NavGroup = {
   label: 'Admin',
-  items: [{ href: '/users', label: 'Users', icon: ShieldCheck }],
+  items: [
+    { href: '/users', label: 'Users', icon: ShieldCheck },
+    { href: '/settings', label: 'Rates & fees', icon: SlidersHorizontal },
+  ],
 };
 
 const LENDER_NAV: NavGroup[] = [
@@ -101,6 +105,7 @@ const TITLES: { prefix: string; title: string }[] = [
   { prefix: '/expenses', title: 'Expenses' },
   { prefix: '/tenants', title: 'Tenants' },
   { prefix: '/users', title: 'Users' },
+  { prefix: '/settings', title: 'Rates & fees' },
   { prefix: '/billing', title: 'Billing' },
   { prefix: '/statements', title: 'Statements' },
   { prefix: '/', title: 'Overview' },

@@ -1,4 +1,4 @@
-import { addMonths, daysBetween } from './dates';
+import { addMonths, completeMonthsBetween, daysBetween } from './dates';
 
 describe('addMonths', () => {
   it('shifts forward within a year', () => {
@@ -37,5 +37,22 @@ describe('daysBetween', () => {
     expect(daysBetween(new Date('2026-06-13T00:00:00Z'), new Date('2026-06-01T00:00:00Z'))).toBe(
       0,
     );
+  });
+});
+
+describe('completeMonthsBetween', () => {
+  it('counts a month only once the day-of-month anniversary is reached', () => {
+    expect(completeMonthsBetween(new Date('2026-01-15'), new Date('2026-02-14'))).toBe(0);
+    expect(completeMonthsBetween(new Date('2026-01-15'), new Date('2026-02-15'))).toBe(1);
+    expect(completeMonthsBetween(new Date('2026-01-15'), new Date('2026-04-15'))).toBe(3);
+  });
+
+  it('rolls over year boundaries', () => {
+    expect(completeMonthsBetween(new Date('2025-11-10'), new Date('2026-02-10'))).toBe(3);
+  });
+
+  it('clamps to zero when `to` is not after `from`', () => {
+    expect(completeMonthsBetween(new Date('2026-06-01'), new Date('2026-06-01'))).toBe(0);
+    expect(completeMonthsBetween(new Date('2026-06-01'), new Date('2026-05-01'))).toBe(0);
   });
 });

@@ -40,7 +40,9 @@ interface PaymentTarget {
 }
 interface SettleTarget {
   loanId: string;
+  /** The full payoff (balance + any accrued default interest) to display. */
   balance: number;
+  defaultInterest?: number;
   loanLabel?: string;
 }
 interface WriteOffTarget {
@@ -282,6 +284,7 @@ export const CommandProvider = ({ children }: { children: React.ReactNode }) => 
           onOpenChange={(open) => (open ? null : setSettle(null))}
           loanId={settle.loanId}
           balance={settle.balance}
+          defaultInterest={settle.defaultInterest}
           loanLabel={settle.loanLabel}
         />
       ) : null}

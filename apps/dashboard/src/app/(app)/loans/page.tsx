@@ -93,6 +93,18 @@ const baseColumns: ColumnDef<LoanRow>[] = [
   },
 ];
 
+/**
+ * Live arrears: an open loan whose next instalment is past due, regardless of
+ * whether a repayment has been recorded to flip its stored status yet.
+ */
+const isOverdue = (loan: LoanRow): boolean =>
+  loan.balance > 0 &&
+  (loan.status === LoanStatus.Active ||
+    loan.status === LoanStatus.Arrears ||
+    loan.status === LoanStatus.PartlyPaid) &&
+  loan.nextDueAt !== null &&
+  new Date(loan.nextDueAt) < new Date();
+
 type StatusFilter = 'all' | LoanStatus;
 
 const STATUS_OPTIONS: { value: StatusFilter; label: string }[] = [
@@ -160,7 +172,7 @@ const LoansPage = () => {
   const summary = useMemo(() => {
     const book = rows.reduce((sum, loan) => sum + loan.balance, 0);
     const active = rows.filter((loan) => loan.status === LoanStatus.Active).length;
-    const arrears = rows.filter((loan) => loan.status === LoanStatus.Arrears).length;
+    const arrears = rows.filter(isOverdue).length;
     const avg = rows.length ? Math.round(rows.reduce((s, l) => s + l.principal, 0) / rows.length) : 0;
     return { book, active, arrears, avg };
   }, [rows]);

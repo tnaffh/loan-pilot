@@ -147,7 +147,12 @@ const LoanDetailPage = () => {
                 size="sm"
                 variant="outline"
                 onClick={() =>
-                  command.openSettle({ loanId: data.id, balance: data.balance, loanLabel })
+                  command.openSettle({
+                    loanId: data.id,
+                    balance: data.payoff,
+                    defaultInterest: data.defaultInterest,
+                    loanLabel,
+                  })
                 }
               >
                 Settle
@@ -200,6 +205,15 @@ const LoanDetailPage = () => {
           tone={data.daysLate > 0 ? 'red' : 'green'}
           hint={data.daysLate > 0 ? 'In arrears' : 'On track'}
         />
+        {data.defaultInterest > 0 ? (
+          <StatCard
+            label="Default interest"
+            value={formatNad(data.defaultInterest)}
+            icon={Banknote}
+            tone="red"
+            hint={`Payoff today ${formatNad(data.payoff)}`}
+          />
+        ) : null}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -297,6 +311,10 @@ const LoanDetailPage = () => {
                       <TableCell className="text-right tabular-nums">{formatNad(item.amount)}</TableCell>
                       <TableCell>
                         <StatusBadge value={item.status} />
+                        {item.status !== RepaymentStatus.Paid &&
+                        new Date(item.dueAt) < new Date() ? (
+                          <span className="ml-2 text-xs font-medium text-destructive">Overdue</span>
+                        ) : null}
                       </TableCell>
                       <TableCell>{formatDate(item.paidAt)}</TableCell>
                     </TableRow>

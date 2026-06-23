@@ -165,8 +165,14 @@ export class StatsService {
           _sum: { balance: true },
           _count: true,
         }),
+        // Live arrears: any open loan whose next instalment is past due, even if
+        // no repayment has been recorded to flip its stored status yet.
         this.prisma.loan.aggregate({
-          where: { tenantId, status: LoanStatus.Arrears },
+          where: {
+            tenantId,
+            status: { in: [LoanStatus.Active, LoanStatus.Arrears, LoanStatus.PartlyPaid] },
+            nextDueAt: { lt: new Date() },
+          },
           _sum: { balance: true },
           _count: true,
         }),

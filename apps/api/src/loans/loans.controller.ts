@@ -51,8 +51,11 @@ export class LoansController {
   @Post('quote')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
-  quote(@Body(new ZodValidationPipe(loanQuoteSchema)) body: LoanQuoteInput): LoanQuote {
-    return this.loans.quotePreview(body);
+  quote(
+    @CurrentUser() user: SessionUser,
+    @Body(new ZodValidationPipe(loanQuoteSchema)) body: LoanQuoteInput,
+  ): Promise<LoanQuote> {
+    return this.loans.quotePreview(requireTenantId(user), body);
   }
 
   @Post()

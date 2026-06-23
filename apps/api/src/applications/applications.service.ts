@@ -4,7 +4,6 @@ import {
   ApplicationStatus,
   assessAffordability,
   buildApplicationActivity,
-  quote,
   toCents,
   type ActivityEvent,
   type CreateApplicationInput,
@@ -45,7 +44,7 @@ export class ApplicationsService {
     const principalCents = toCents(input.amount);
     const monthlyIncomeCents = toCents(input.monthlyIncome);
 
-    const loanQuote = quote({
+    const loanQuote = await this.loans.priceQuote(tenantId, {
       principalCents,
       termMonths: input.termMonths,
       type: input.loanType,

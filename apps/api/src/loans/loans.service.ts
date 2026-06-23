@@ -5,15 +5,18 @@ import {
   LoanType,
   RepaymentStatus,
   addMonths,
+  assessArrears,
   buildLoanActivity,
+  computeFees,
   daysBetween,
   fromCents,
-  penaltyInterest,
   quote,
   toCents,
   type ActivityEvent,
+  type ArrearsAssessment,
   type CancelLoanInput,
   type CreateLoanInput,
+  type LoanFees,
   type LoanQuote,
   type LoanQuoteInput,
   type RecordRepaymentInput,
@@ -24,6 +27,7 @@ import {
 } from '@loan-pilot/domain';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService, type AuditEntry } from '../audit/audit.service';
+import { SettingsService } from '../settings/settings.service';
 
 export type LoanWithBorrower = Prisma.LoanGetPayload<{
   include: { borrower: { select: { id: true; firstName: true; lastName: true } } };
@@ -35,7 +39,15 @@ export type LoanWithDetails = Prisma.LoanGetPayload<{
     schedule: true;
     payments: true;
   };
-}> & { activity: ActivityEvent[]; audit: AuditEntry[] };
+}> & {
+  activity: ActivityEvent[];
+  audit: AuditEntry[];
+  // Live arrears derived from the schedule + today (not persisted). `daysLate`
+  // here reflects real lateness; `payoff` = balance + accrued default interest.
+  defaultInterest: number;
+  overdueAmount: number;
+  payoff: number;
+};
 
 export interface StatementLine {
   date: string;
@@ -61,7 +73,7 @@ export interface LoanStatement {
     status: $Enums.LoanStatus;
   };
   lines: StatementLine[];
-  penaltyAccrued: number;
+  defaultInterestAccrued: number;
   outstandingBalance: number;
 }
 
@@ -88,6 +100,7 @@ const loanAuditMap = (loan: Loan): Record<string, unknown> => ({
   bankCharges: fromCents(loan.bankCharges),
   namfisaLevy: fromCents(loan.namfisaLevy),
   stampDuty: fromCents(loan.stampDuty),
+  insurance: fromCents(loan.insurance),
   disbursedAt: loan.disbursedAt ? loan.disbursedAt.toISOString().slice(0, 10) : null,
   nextDueAt: loan.nextDueAt ? loan.nextDueAt.toISOString().slice(0, 10) : null,
 });
@@ -111,14 +124,79 @@ export class LoansService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly settings: SettingsService,
   ) {}
 
-  /** Pure pricing preview — no persistence. All values in cents. */
-  quotePreview(input: LoanQuoteInput): LoanQuote {
+  /**
+   * Resolve the rate plan and fee amounts for a new loan from the tenant's
+   * settings. A per-loan `interestRateOverride` (incl. 0 for a promo) wins over
+   * the product rate; with neither, pricing falls back to the loan type's
+   * standard rate. Returns everything {@link quote} needs.
+   */
+  private async resolvePricing(
+    tenantId: string,
+    params: {
+      principalCents: number;
+      type: LoanType;
+      productId?: string;
+      interestRateOverride?: number;
+      bankChargesCents?: number;
+    },
+  ): Promise<{
+    interestRate: number | undefined;
+    monthlyRate: number;
+    productId: string | null;
+    fees: LoanFees;
+  }> {
+    const [feeSettings, product] = await Promise.all([
+      this.settings.resolveFeeSettings(tenantId),
+      this.settings.resolveProduct(tenantId, params.productId || undefined, params.type),
+    ]);
+    const interestRate = params.interestRateOverride ?? product?.interestRate;
+    const fees = computeFees(params.principalCents, feeSettings, params.bankChargesCents ?? 0);
+    return { interestRate, monthlyRate: feeSettings.monthlyRate, productId: product?.id ?? null, fees };
+  }
+
+  /**
+   * Price a loan for a tenant using its default product and fee settings. Used
+   * for the indicative application quote so it matches what is charged on
+   * approval.
+   */
+  async priceQuote(
+    tenantId: string,
+    params: { principalCents: number; termMonths: number; type: LoanType },
+  ): Promise<LoanQuote> {
+    const { interestRate, monthlyRate, fees } = await this.resolvePricing(tenantId, {
+      principalCents: params.principalCents,
+      type: params.type,
+    });
     return quote({
-      principalCents: toCents(input.amount),
+      principalCents: params.principalCents,
+      termMonths: params.termMonths,
+      type: params.type,
+      interestRate,
+      monthlyRate,
+      fees,
+    });
+  }
+
+  /** Pure pricing preview — no persistence. Grosses the loan up by the tenant's fees. */
+  async quotePreview(tenantId: string, input: LoanQuoteInput): Promise<LoanQuote> {
+    const principalCents = toCents(input.amount);
+    const { interestRate, monthlyRate, fees } = await this.resolvePricing(tenantId, {
+      principalCents,
+      type: input.loanType,
+      productId: input.productId || undefined,
+      interestRateOverride: input.interestRate,
+      bankChargesCents: input.bankCharges !== undefined ? toCents(input.bankCharges) : 0,
+    });
+    return quote({
+      principalCents,
       termMonths: input.termMonths,
       type: input.loanType,
+      interestRate,
+      monthlyRate,
+      fees,
     });
   }
 
@@ -140,6 +218,35 @@ export class LoansService {
     });
   }
 
+  /**
+   * Live arrears for a loan, derived from its schedule and the as-of date — never
+   * persisted. Returns zeros for terminal loans (closed loans accrue nothing).
+   */
+  private async deriveArrears(
+    tenantId: string,
+    status: $Enums.LoanStatus,
+    schedule: readonly { amount: number; dueAt: Date; status: $Enums.RepaymentStatus }[],
+    asOf: Date = new Date(),
+  ): Promise<ArrearsAssessment> {
+    const open =
+      status === LoanStatus.Active ||
+      status === LoanStatus.Arrears ||
+      status === LoanStatus.PartlyPaid;
+    if (!open) {
+      return { overdueCents: 0, defaultInterestCents: 0, daysLate: 0, monthsLateMax: 0 };
+    }
+    const { monthlyRate } = await this.settings.resolveFeeSettings(tenantId);
+    return assessArrears(
+      schedule.map((item) => ({
+        amountCents: item.amount,
+        dueAt: item.dueAt,
+        paid: item.status === RepaymentStatus.Paid,
+      })),
+      asOf,
+      monthlyRate,
+    );
+  }
+
   async findOne(tenantId: string, id: string): Promise<LoanWithDetails> {
     const loan = await this.prisma.loan.findFirst({
       where: { id, tenantId },
@@ -152,10 +259,15 @@ export class LoansService {
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
+    const arrears = await this.deriveArrears(tenantId, loan.status, loan.schedule);
     return {
       ...loan,
+      daysLate: arrears.daysLate,
       activity: buildLoanActivity(loan, loan.payments),
       audit: await this.audit.listFor(tenantId, 'loan', id),
+      defaultInterest: arrears.defaultInterestCents,
+      overdueAmount: arrears.overdueCents,
+      payoff: loan.balance + arrears.defaultInterestCents,
     };
   }
 
@@ -172,8 +284,17 @@ export class LoansService {
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
+    const arrears = await this.deriveArrears(loan.tenantId, loan.status, loan.schedule);
     // Borrowers don't see the staff audit trail.
-    return { ...loan, activity: buildLoanActivity(loan, loan.payments), audit: [] };
+    return {
+      ...loan,
+      daysLate: arrears.daysLate,
+      activity: buildLoanActivity(loan, loan.payments),
+      audit: [],
+      defaultInterest: arrears.defaultInterestCents,
+      overdueAmount: arrears.overdueCents,
+      payoff: loan.balance + arrears.defaultInterestCents,
+    };
   }
 
   /** Disburse a new loan to an existing borrower of the tenant. */
@@ -185,10 +306,21 @@ export class LoansService {
       throw new NotFoundException('Borrower not found');
     }
 
+    const principalCents = toCents(input.amount);
+    const { interestRate, monthlyRate, productId, fees } = await this.resolvePricing(tenantId, {
+      principalCents,
+      type: input.loanType,
+      productId: input.productId || undefined,
+      interestRateOverride: input.interestRate,
+      bankChargesCents: input.bankCharges !== undefined ? toCents(input.bankCharges) : 0,
+    });
     const loanQuote = quote({
-      principalCents: toCents(input.amount),
+      principalCents,
       termMonths: input.termMonths,
       type: input.loanType,
+      interestRate,
+      monthlyRate,
+      fees,
     });
 
     return this.prisma.loan.create({
@@ -197,6 +329,7 @@ export class LoansService {
         borrowerId: borrower.id,
         loanQuote,
         type: input.loanType,
+        productId,
         collateral: input.collateral || null,
         disbursedAt: new Date(),
       }),
@@ -276,10 +409,17 @@ export class LoansService {
     });
 
     const type = LOAN_TYPE_FROM_DB[application.type];
+    const { interestRate, monthlyRate, productId, fees } = await this.resolvePricing(
+      application.tenantId,
+      { principalCents: application.amount, type },
+    );
     const loanQuote = quote({
       principalCents: application.amount,
+      monthlyRate,
       termMonths: application.termMonths,
       type,
+      interestRate,
+      fees,
     });
 
     return tx.loan.create({
@@ -288,6 +428,7 @@ export class LoansService {
         borrowerId: borrower.id,
         loanQuote,
         type,
+        productId,
         collateral: null,
         disbursedAt: new Date(),
       }),
@@ -354,7 +495,10 @@ export class LoansService {
    */
   settle(tenantId: string, loanId: string, input: SettleLoanInput): Promise<Loan> {
     return this.prisma.$transaction(async (tx) => {
-      const loan = await tx.loan.findFirst({ where: { id: loanId, tenantId } });
+      const loan = await tx.loan.findFirst({
+        where: { id: loanId, tenantId },
+        include: { schedule: true },
+      });
       if (!loan) {
         throw new NotFoundException('Loan not found');
       }
@@ -369,14 +513,23 @@ export class LoansService {
       }
 
       const paidAt = new Date(input.paidAt);
+      // Payoff = outstanding balance + any default interest accrued (as of the
+      // settlement date) on overdue instalments. Default interest is realised
+      // through the payment amount; stored totals are not rewritten.
+      const arrears = await this.deriveArrears(tenantId, loan.status, loan.schedule, paidAt);
+      const payoff = loan.balance + arrears.defaultInterestCents;
       await tx.payment.create({
         data: {
           tenant: { connect: { id: tenantId } },
           loan: { connect: { id: loan.id } },
           paidAt,
-          amount: loan.balance,
+          amount: payoff,
           method: input.method,
-          note: input.note || 'Early settlement',
+          note:
+            input.note ||
+            (arrears.defaultInterestCents > 0
+              ? 'Early settlement (incl. default interest)'
+              : 'Early settlement'),
         },
       });
       await tx.repaymentScheduleItem.updateMany({
@@ -455,8 +608,12 @@ export class LoansService {
       if (input.bankCharges !== undefined) data.bankCharges = toCents(input.bankCharges);
       if (input.namfisaLevy !== undefined) data.namfisaLevy = toCents(input.namfisaLevy);
       if (input.stampDuty !== undefined) data.stampDuty = toCents(input.stampDuty);
+      if (input.insurance !== undefined) data.insurance = toCents(input.insurance);
 
-      // Financial core — re-price only when it actually changes, and only when unpaid.
+      // Financial core — re-price only when it actually changes, and only when
+      // unpaid. Re-pricing grosses the loan up by its (post-edit) fees, so a loan
+      // with no fees re-prices identically to before. Fee-only edits are stored
+      // without recomputing the total, leaving existing loans untouched.
       const newPrincipal = input.amount !== undefined ? toCents(input.amount) : loan.principal;
       const newTerm = input.termMonths ?? loan.termMonths;
       const newRate = input.interestRate ?? loan.interestRate;
@@ -468,11 +625,22 @@ export class LoansService {
             'The amount, term or rate of a loan with payments cannot be changed',
           );
         }
+        const effectiveFees: LoanFees = {
+          namfisaLevyCents:
+            input.namfisaLevy !== undefined ? toCents(input.namfisaLevy) : loan.namfisaLevy,
+          stampDutyCents: input.stampDuty !== undefined ? toCents(input.stampDuty) : loan.stampDuty,
+          insuranceCents: input.insurance !== undefined ? toCents(input.insurance) : loan.insurance,
+          bankChargesCents:
+            input.bankCharges !== undefined ? toCents(input.bankCharges) : loan.bankCharges,
+        };
+        const { monthlyRate } = await this.settings.resolveFeeSettings(tenantId);
         const q = quote({
           principalCents: newPrincipal,
           termMonths: newTerm,
           type: LOAN_TYPE_FROM_DB[loan.type],
-          financeChargeRate: newRate,
+          interestRate: newRate,
+          monthlyRate,
+          fees: effectiveFees,
         });
         const disbursedAt = input.disbursedAt
           ? new Date(input.disbursedAt)
@@ -582,7 +750,8 @@ export class LoansService {
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
-    return this.buildStatement(loan);
+    const { monthlyRate } = await this.settings.resolveFeeSettings(tenantId);
+    return this.buildStatement(loan, monthlyRate);
   }
 
   async statementForBorrowerUser(userId: string, loanId: string): Promise<LoanStatement> {
@@ -598,7 +767,8 @@ export class LoansService {
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
-    return this.buildStatement(loan);
+    const { monthlyRate } = await this.settings.resolveFeeSettings(loan.tenantId);
+    return this.buildStatement(loan, monthlyRate);
   }
 
   private buildStatement(
@@ -609,24 +779,37 @@ export class LoansService {
         schedule: true;
       };
     }>,
+    monthlyRate: number,
   ): LoanStatement {
     const openedAt = loan.disbursedAt ?? loan.createdAt;
     const lines: StatementLine[] = [];
 
-    lines.push({
-      date: openedAt.toISOString(),
-      description: 'Principal advanced',
-      debit: loan.principal,
-      credit: 0,
-      balance: loan.principal,
-    });
-    lines.push({
-      date: openedAt.toISOString(),
-      description: 'Finance charge (NAMFISA ≤30% of principal)',
-      debit: loan.financeCharge,
-      credit: 0,
-      balance: loan.total,
-    });
+    // The principal debt (loan + fees), then the finance charge and any bank
+    // charges, accumulated into the opening balance. Zero-value fees are omitted,
+    // so loans priced before fees were tracked render exactly as before.
+    const charges = [
+      { amount: loan.principal, description: 'Principal advanced' },
+      { amount: loan.stampDuty, description: 'Stamp duty' },
+      { amount: loan.insurance, description: 'Insurance' },
+      { amount: loan.namfisaLevy, description: 'NAMFISA levy' },
+      {
+        amount: loan.financeCharge,
+        description: 'Finance charge (NAMFISA ≤30% of principal debt)',
+      },
+      { amount: loan.bankCharges, description: 'Bank charges' },
+    ].filter((charge) => charge.amount > 0);
+
+    charges.reduce((balance, charge) => {
+      const next = balance + charge.amount;
+      lines.push({
+        date: openedAt.toISOString(),
+        description: charge.description,
+        debit: charge.amount,
+        credit: 0,
+        balance: next,
+      });
+      return next;
+    }, 0);
 
     const paidItems = loan.schedule.filter(
       (item) => item.status === RepaymentStatus.Paid && item.paidAt,
@@ -643,13 +826,30 @@ export class LoansService {
       return next;
     }, loan.total);
 
-    const penaltyAccrued =
-      loan.status === LoanStatus.Arrears
-        ? penaltyInterest(loan.balance, Math.ceil(loan.daysLate / 30))
-        : 0;
+    // Default interest accrued on overdue, unpaid instalments (5%/month
+    // compounding, uncapped) as of today. Derived, never persisted.
+    const now = new Date();
+    const arrears = assessArrears(
+      loan.schedule.map((item) => ({
+        amountCents: item.amount,
+        dueAt: item.dueAt,
+        paid: item.status === RepaymentStatus.Paid,
+      })),
+      now,
+      monthlyRate,
+    );
+    if (arrears.defaultInterestCents > 0) {
+      lines.push({
+        date: now.toISOString(),
+        description: 'Default interest (5%/month, NAMFISA)',
+        debit: arrears.defaultInterestCents,
+        credit: 0,
+        balance: runningBalance + arrears.defaultInterestCents,
+      });
+    }
 
     return {
-      generatedAt: new Date().toISOString(),
+      generatedAt: now.toISOString(),
       lender: { name: loan.tenant.name, town: loan.tenant.town },
       borrower: {
         name: `${loan.borrower.firstName} ${loan.borrower.lastName}`,
@@ -668,8 +868,8 @@ export class LoansService {
         status: loan.status,
       },
       lines,
-      penaltyAccrued,
-      outstandingBalance: runningBalance + penaltyAccrued,
+      defaultInterestAccrued: arrears.defaultInterestCents,
+      outstandingBalance: runningBalance + arrears.defaultInterestCents,
     };
   }
 
@@ -678,6 +878,7 @@ export class LoansService {
     borrowerId,
     loanQuote,
     type,
+    productId,
     collateral,
     disbursedAt,
   }: {
@@ -685,15 +886,22 @@ export class LoansService {
     borrowerId: string;
     loanQuote: LoanQuote;
     type: LoanType;
+    productId: string | null;
     collateral: string | null;
     disbursedAt: Date;
   }): Prisma.LoanCreateInput {
     return {
       tenant: { connect: { id: tenantId } },
       borrower: { connect: { id: borrowerId } },
+      ...(productId ? { product: { connect: { id: productId } } } : {}),
       type,
       principal: loanQuote.principalCents,
       financeCharge: loanQuote.financeChargeCents,
+      interestRate: loanQuote.interestRate,
+      namfisaLevy: loanQuote.namfisaLevyCents,
+      stampDuty: loanQuote.stampDutyCents,
+      insurance: loanQuote.insuranceCents,
+      bankCharges: loanQuote.bankChargesCents,
       total: loanQuote.totalCents,
       termMonths: loanQuote.termMonths,
       instalment: loanQuote.instalmentCents,
