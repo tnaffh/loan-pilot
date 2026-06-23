@@ -14,12 +14,14 @@ import {
   createBorrowerAddressSchema,
   createBorrowerBankAccountSchema,
   createBorrowerSchema,
+  mergeBorrowerSchema,
   updateAddressSchema,
   updateBankAccountSchema,
   updateBorrowerSchema,
   type CreateBorrowerAddressInput,
   type CreateBorrowerBankAccountInput,
   type CreateBorrowerInput,
+  type MergeBorrowerInput,
   type SessionUser,
   type UpdateAddressInput,
   type UpdateBankAccountInput,
@@ -61,6 +63,25 @@ export class BorrowersController {
   @Get(':id')
   findOne(@CurrentUser() user: SessionUser, @Param('id') id: string): Promise<BorrowerWithLoans> {
     return this.borrowers.findOneForTenant(requireTenantId(user), id);
+  }
+
+  @Get(':id/duplicate-suggestions')
+  duplicateSuggestions(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+  ): Promise<BorrowerWithLoanCount[]> {
+    return this.borrowers.duplicateSuggestions(requireTenantId(user), id);
+  }
+
+  @Post(':id/merge')
+  @HttpCode(HttpStatus.OK)
+  @Roles(UserRole.LenderAdmin)
+  merge(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(mergeBorrowerSchema)) body: MergeBorrowerInput,
+  ): Promise<BorrowerWithLoans> {
+    return this.borrowers.mergeBorrowers(requireTenantId(user), user, id, body.duplicateId);
   }
 
   @Patch(':id')

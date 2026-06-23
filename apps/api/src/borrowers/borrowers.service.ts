@@ -1,4 +1,9 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import type { Borrower, BorrowerAddress, BorrowerBankAccount, Prisma } from '@prisma/client';
 import {
   fromCents,
@@ -51,6 +56,10 @@ const addressAuditMap = (a: BorrowerAddress): Record<string, unknown> => ({
   region: a.region,
   country: a.country,
 });
+
+/** Normalise a name for duplicate matching — mirrors the RFS import dedupe. */
+const nameKey = (first: string, last: string): string =>
+  `${first} ${last}`.trim().replace(/\s+/g, ' ').toLowerCase();
 
 const bankAuditMap = (a: BorrowerBankAccount): Record<string, unknown> => ({
   bankName: a.bankName,
@@ -336,5 +345,113 @@ export class BorrowersService {
       changes: this.audit.diff(before, bankAuditMap(updated), Object.keys(before)),
     });
     return updated;
+  }
+
+  /**
+   * Merge a duplicate borrower into the survivor (the one being viewed). Moves
+   * the duplicate's loans, addresses, bank accounts, portal login and audit
+   * history onto the survivor, then deletes the duplicate. Audited.
+   */
+  async mergeBorrowers(
+    tenantId: string,
+    actor: SessionUser,
+    survivorId: string,
+    duplicateId: string,
+  ): Promise<BorrowerWithLoans> {
+    if (survivorId === duplicateId) {
+      throw new BadRequestException('Cannot merge a borrower into itself');
+    }
+    const survivor = await this.prisma.borrower.findFirst({
+      where: { id: survivorId, tenantId },
+      include: { user: { select: { id: true } } },
+    });
+    const duplicate = await this.prisma.borrower.findFirst({
+      where: { id: duplicateId, tenantId },
+      include: { user: { select: { id: true } }, _count: { select: { loans: true } } },
+    });
+    if (!survivor || !duplicate) {
+      throw new NotFoundException('Borrower not found');
+    }
+    // User.borrowerId is unique — two portal logins can't both point at the survivor.
+    if (survivor.user && duplicate.user) {
+      throw new BadRequestException(
+        'Both borrowers have a portal login. Resolve the duplicate login before merging.',
+      );
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.loan.updateMany({
+        where: { borrowerId: duplicateId },
+        data: { borrowerId: survivorId },
+      });
+      // Reparent contact records as INACTIVE — the partial unique index
+      // (one active address/account per borrower) forbids a second active row.
+      await tx.borrowerAddress.updateMany({
+        where: { borrowerId: duplicateId },
+        data: { borrowerId: survivorId, isActive: false },
+      });
+      await tx.borrowerBankAccount.updateMany({
+        where: { borrowerId: duplicateId },
+        data: { borrowerId: survivorId, isActive: false },
+      });
+      if (duplicate.user) {
+        await tx.user.update({
+          where: { id: duplicate.user.id },
+          data: { borrowerId: survivorId },
+        });
+      }
+      await tx.auditEvent.updateMany({
+        where: { tenantId, entity: 'borrower', entityId: duplicateId },
+        data: { entityId: survivorId },
+      });
+      await tx.borrower.delete({ where: { id: duplicateId } });
+      await this.audit.record(
+        tenantId,
+        actor,
+        {
+          entity: 'borrower',
+          entityId: survivorId,
+          action: 'merged',
+          changes: [
+            {
+              field: 'mergedFrom',
+              from: null,
+              to: `${duplicate.firstName} ${duplicate.lastName} (${duplicate.idNumber})`,
+            },
+            { field: 'loansMoved', from: null, to: String(duplicate._count.loans) },
+          ],
+        },
+        tx,
+      );
+    });
+
+    return this.findOneForTenant(tenantId, survivorId);
+  }
+
+  /** Likely duplicates of a borrower within the tenant: same phone or same name. */
+  async duplicateSuggestions(tenantId: string, id: string): Promise<BorrowerWithLoanCount[]> {
+    const target = await this.prisma.borrower.findFirst({ where: { id, tenantId } });
+    if (!target) {
+      throw new NotFoundException('Borrower not found');
+    }
+    const candidates = await this.prisma.borrower.findMany({
+      where: {
+        tenantId,
+        id: { not: id },
+        OR: [
+          { phone: target.phone },
+          { firstName: { equals: target.firstName, mode: 'insensitive' } },
+          { lastName: { equals: target.lastName, mode: 'insensitive' } },
+        ],
+      },
+      include: { _count: { select: { loans: true } } },
+      take: 25,
+    });
+    const targetName = nameKey(target.firstName, target.lastName);
+    return candidates
+      .filter(
+        (c) => c.phone === target.phone || nameKey(c.firstName, c.lastName) === targetName,
+      )
+      .slice(0, 5);
   }
 }

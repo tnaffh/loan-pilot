@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
 import { EmploymentType, UserRole, type CreateBorrowerInput, type SessionUser } from '@loan-pilot/domain';
 import { BorrowersService } from './borrowers.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -8,14 +8,35 @@ import { AuditService } from '../audit/audit.service';
 describe('BorrowersService', () => {
   const create = jest.fn();
   const findFirst = jest.fn();
+  const findMany = jest.fn();
   const update = jest.fn();
   const addressFindFirst = jest.fn();
   const addressUpdate = jest.fn();
-  const prismaMock = {
-    borrower: { create, findFirst, update, findMany: jest.fn() },
-    borrowerAddress: { findFirst: addressFindFirst, update: addressUpdate },
+  // Merge writes (run inside $transaction against the tx client).
+  const loanUpdateMany = jest.fn();
+  const addressUpdateMany = jest.fn();
+  const bankUpdateMany = jest.fn();
+  const userUpdate = jest.fn();
+  const auditUpdateMany = jest.fn();
+  const borrowerDelete = jest.fn();
+  const txMock = {
+    loan: { updateMany: loanUpdateMany },
+    borrowerAddress: { updateMany: addressUpdateMany },
+    borrowerBankAccount: { updateMany: bankUpdateMany },
+    user: { update: userUpdate },
+    auditEvent: { updateMany: auditUpdateMany },
+    borrower: { delete: borrowerDelete },
   };
-  const auditMock = { record: jest.fn(), diff: jest.fn().mockReturnValue([{ field: 'x', from: 'a', to: 'b' }]) };
+  const prismaMock = {
+    borrower: { create, findFirst, update, findMany },
+    borrowerAddress: { findFirst: addressFindFirst, update: addressUpdate },
+    $transaction: jest.fn((cb: (tx: typeof txMock) => Promise<unknown>) => cb(txMock)),
+  };
+  const auditMock = {
+    record: jest.fn(),
+    diff: jest.fn().mockReturnValue([{ field: 'x', from: 'a', to: 'b' }]),
+    listFor: jest.fn().mockResolvedValue([]),
+  };
 
   let service: BorrowersService;
 
@@ -150,5 +171,93 @@ describe('BorrowersService', () => {
       actor,
       expect.objectContaining({ action: 'address_updated' }),
     );
+  });
+
+  // ----- merge duplicates ----------------------------------------------------
+
+  // findFirst is called for survivor, duplicate (with includes), then again by
+  // findOneForTenant — resolve by the queried id.
+  const mergeFindFirst = (survivor: Record<string, unknown>, duplicate: Record<string, unknown>) =>
+    findFirst.mockImplementation(({ where }: { where: { id: string } }) =>
+      Promise.resolve(where.id === 'dup_1' ? duplicate : survivor),
+    );
+
+  it('merges: reassigns loans, deactivates moved contacts, deletes the duplicate, audits', async () => {
+    mergeFindFirst(
+      borrower({ id: 'bor_1', user: null }),
+      borrower({ id: 'dup_1', firstName: 'Selmah', user: null, _count: { loans: 2 } }),
+    );
+
+    await service.mergeBorrowers('tenant_1', actor, 'bor_1', 'dup_1');
+
+    expect(loanUpdateMany).toHaveBeenCalledWith({
+      where: { borrowerId: 'dup_1' },
+      data: { borrowerId: 'bor_1' },
+    });
+    expect(addressUpdateMany).toHaveBeenCalledWith({
+      where: { borrowerId: 'dup_1' },
+      data: { borrowerId: 'bor_1', isActive: false },
+    });
+    expect(bankUpdateMany).toHaveBeenCalledWith({
+      where: { borrowerId: 'dup_1' },
+      data: { borrowerId: 'bor_1', isActive: false },
+    });
+    expect(auditUpdateMany).toHaveBeenCalledWith({
+      where: { tenantId: 'tenant_1', entity: 'borrower', entityId: 'dup_1' },
+      data: { entityId: 'bor_1' },
+    });
+    expect(borrowerDelete).toHaveBeenCalledWith({ where: { id: 'dup_1' } });
+    expect(userUpdate).not.toHaveBeenCalled();
+    expect(auditMock.record).toHaveBeenCalledWith(
+      'tenant_1',
+      actor,
+      expect.objectContaining({ entity: 'borrower', entityId: 'bor_1', action: 'merged' }),
+      txMock,
+    );
+  });
+
+  it('rejects merging a borrower into itself', async () => {
+    await expect(service.mergeBorrowers('tenant_1', actor, 'bor_1', 'bor_1')).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(borrowerDelete).not.toHaveBeenCalled();
+  });
+
+  it('rejects merge when both borrowers have a portal login', async () => {
+    mergeFindFirst(
+      borrower({ id: 'bor_1', user: { id: 'u_a' } }),
+      borrower({ id: 'dup_1', user: { id: 'u_b' }, _count: { loans: 0 } }),
+    );
+    await expect(service.mergeBorrowers('tenant_1', actor, 'bor_1', 'dup_1')).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(borrowerDelete).not.toHaveBeenCalled();
+  });
+
+  it('reassigns the duplicate portal login when only it has one', async () => {
+    mergeFindFirst(
+      borrower({ id: 'bor_1', user: null }),
+      borrower({ id: 'dup_1', user: { id: 'u_b' }, _count: { loans: 1 } }),
+    );
+    await service.mergeBorrowers('tenant_1', actor, 'bor_1', 'dup_1');
+    expect(userUpdate).toHaveBeenCalledWith({
+      where: { id: 'u_b' },
+      data: { borrowerId: 'bor_1' },
+    });
+  });
+
+  it('suggests same-phone / same-name borrowers and excludes the target', async () => {
+    findFirst.mockResolvedValue(borrower({ id: 'bor_1', phone: '0811', firstName: 'Selma', lastName: 'N' }));
+    findMany.mockResolvedValue([
+      borrower({ id: 'same_phone', phone: '0811', firstName: 'Different', lastName: 'Name' }),
+      borrower({ id: 'same_name', phone: '0822', firstName: 'selma', lastName: 'n' }),
+      borrower({ id: 'noise', phone: '0833', firstName: 'Selma', lastName: 'Other' }),
+    ]);
+    const result = await service.duplicateSuggestions('tenant_1', 'bor_1');
+    const ids = result.map((b) => b.id);
+    expect(ids).toContain('same_phone');
+    expect(ids).toContain('same_name');
+    expect(ids).not.toContain('noise');
+    expect(ids).not.toContain('bor_1');
   });
 });

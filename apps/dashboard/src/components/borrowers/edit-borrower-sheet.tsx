@@ -7,6 +7,8 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import {
   EmploymentType,
+  GENDER_OPTIONS,
+  PAY_DAY_OPTIONS,
   fromCents,
   updateBorrowerSchema,
   type UpdateBorrowerInput,
@@ -46,6 +48,12 @@ interface Props {
 
 export const EditBorrowerSheet = ({ borrower, open, onOpenChange, onSaved }: Props) => {
   const { token } = useAuth();
+
+  // Keep a legacy/imported pay-day value selectable so editing doesn't drop it.
+  const payDayOptions =
+    borrower.payDay && !PAY_DAY_OPTIONS.some((option) => option === borrower.payDay)
+      ? [borrower.payDay, ...PAY_DAY_OPTIONS]
+      : PAY_DAY_OPTIONS;
 
   const defaults = (): UpdateBorrowerInput => ({
     firstName: borrower.firstName,
@@ -118,7 +126,13 @@ export const EditBorrowerSheet = ({ borrower, open, onOpenChange, onSaved }: Pro
             <FormField label="Phone" htmlFor="phone" error={errors.phone?.message}>
               <Input id="phone" {...register('phone')} />
             </FormField>
-            <FormField label="Email" htmlFor="email" error={errors.email?.message} className="sm:col-span-2">
+            <FormField
+              label="Email"
+              htmlFor="email"
+              error={errors.email?.message}
+              optional
+              className="sm:col-span-2"
+            >
               <Input id="email" type="email" {...register('email')} />
             </FormField>
             <FormField label="Employer" htmlFor="employer" error={errors.employer?.message}>
@@ -140,10 +154,24 @@ export const EditBorrowerSheet = ({ borrower, open, onOpenChange, onSaved }: Pro
               </select>
             </FormField>
             <FormField label="Gender" htmlFor="gender" optional>
-              <Input id="gender" {...register('gender')} />
+              <select id="gender" className={selectClass} {...register('gender')}>
+                <option value="">—</option>
+                {GENDER_OPTIONS.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
             </FormField>
             <FormField label="Pay day" htmlFor="payDay" optional>
-              <Input id="payDay" {...register('payDay')} />
+              <select id="payDay" className={selectClass} {...register('payDay')}>
+                <option value="">—</option>
+                {payDayOptions.map((option) => (
+                  <option key={option} value={option}>
+                    {option}
+                  </option>
+                ))}
+              </select>
             </FormField>
             <FormField label="Status" htmlFor="status">
               <select id="status" className={selectClass} {...register('status')}>

@@ -195,6 +195,8 @@ export type CreateBorrowerInput = z.infer<typeof createBorrowerSchema>;
 export const updateBorrowerSchema = createBorrowerSchema
   .omit({ address: true, bankAccount: true })
   .extend({
+    // Email is optional when correcting imported records (many have none).
+    email: z.string().email('A valid email is required').optional().or(z.literal('')),
     gender: z.string().max(40).optional().or(z.literal('')),
     payDay: z.string().max(40).optional().or(z.literal('')),
     status: z.string().max(40).optional().or(z.literal('')),
@@ -202,6 +204,28 @@ export const updateBorrowerSchema = createBorrowerSchema
   })
   .partial();
 export type UpdateBorrowerInput = z.infer<typeof updateBorrowerSchema>;
+
+/** Curated option lists for the borrower edit form (columns stay free strings). */
+export const GENDER_OPTIONS = ['Male', 'Female', 'Other'] as const;
+
+/** Add the English ordinal suffix to a day number (1 → "1st", 22 → "22nd"). */
+const ordinalDay = (n: number): string => {
+  const suffix = ['th', 'st', 'nd', 'rd'];
+  const v = n % 100;
+  return `${n}${suffix[(v - 20) % 10] ?? suffix[v] ?? suffix[0]}`;
+};
+
+// "End of month" plus every calendar day (1st–31st).
+export const PAY_DAY_OPTIONS: readonly string[] = [
+  'End of month',
+  ...Array.from({ length: 31 }, (_, i) => ordinalDay(i + 1)),
+];
+
+/** Absorb a duplicate borrower into the current one (survivor = the URL :id). */
+export const mergeBorrowerSchema = z.object({
+  duplicateId: z.string().min(1, 'Select a borrower to merge'),
+});
+export type MergeBorrowerInput = z.infer<typeof mergeBorrowerSchema>;
 
 /** Add or replace a borrower address / bank account from the dashboard. */
 export const createBorrowerAddressSchema = addressSchema;

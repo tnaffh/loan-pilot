@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Activity, FileText, Pencil, Wallet } from 'lucide-react';
-import { LoanStatus, formatNad, isLender } from '@loan-pilot/domain';
+import { Activity, FileText, GitMerge, Pencil, Wallet } from 'lucide-react';
+import { LoanStatus, UserRole, formatNad, isLender } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -24,6 +24,7 @@ import { InitialsAvatar } from '@/components/initials-avatar';
 import { Kv } from '@/components/kv';
 import { ContactCards } from '@/components/borrowers/contact-cards';
 import { EditBorrowerSheet } from '@/components/borrowers/edit-borrower-sheet';
+import { MergeBorrowerDialog } from '@/components/borrowers/merge-borrower-dialog';
 import { AuditLog } from '@/components/audit-log';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
@@ -34,10 +35,12 @@ const BorrowerDetailPage = () => {
   const params = useParams<{ id: string }>();
   const { user } = useAuth();
   const [editing, setEditing] = useState(false);
+  const [merging, setMerging] = useState(false);
   const { data, loading, error, refresh } = useApi<BorrowerDetail>(
     params.id ? `/borrowers/${params.id}` : null,
   );
   const canEdit = Boolean(user && isLender(user.role));
+  const canMerge = user?.role === UserRole.LenderAdmin;
 
   if (loading || !data) {
     return (
@@ -75,11 +78,18 @@ const BorrowerDetailPage = () => {
           </h1>
           <p className="text-sm text-muted-foreground">Borrower since {formatDate(data.since)}</p>
         </div>
-        {canEdit ? (
-          <Button size="sm" variant="outline" className="ml-auto" onClick={() => setEditing(true)}>
-            <Pencil className="size-4" /> Edit
-          </Button>
-        ) : null}
+        <div className="ml-auto flex items-center gap-2">
+          {canMerge ? (
+            <Button size="sm" variant="outline" onClick={() => setMerging(true)}>
+              <GitMerge className="size-4" /> Merge duplicate
+            </Button>
+          ) : null}
+          {canEdit ? (
+            <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+              <Pencil className="size-4" /> Edit
+            </Button>
+          ) : null}
+        </div>
       </div>
 
       <StatStrip
@@ -104,7 +114,7 @@ const BorrowerDetailPage = () => {
           <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Kv label="ID number" value={data.idNumber} />
             <Kv label="Phone" value={data.phone} />
-            <Kv label="Email" value={data.email} />
+            <Kv label="Email" value={data.email || '—'} />
             <Kv label="Employer" value={data.employer} />
             <Kv label="Occupation" value={data.occupation} />
             <Kv label="Monthly income" value={formatNad(data.monthlyIncome)} />
@@ -220,6 +230,15 @@ const BorrowerDetailPage = () => {
           open={editing}
           onOpenChange={setEditing}
           onSaved={refresh}
+        />
+      ) : null}
+
+      {canMerge ? (
+        <MergeBorrowerDialog
+          survivor={data}
+          open={merging}
+          onOpenChange={setMerging}
+          onMerged={refresh}
         />
       ) : null}
     </div>
