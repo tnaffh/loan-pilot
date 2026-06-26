@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { ShieldCheck } from 'lucide-react';
+import { MessageCircle, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { COMPANY, NAV_LINKS } from '@/lib/site-data';
@@ -19,16 +19,24 @@ export const SiteHeader = () => {
             <ShieldCheck className="size-3.5" />
             Registered microlender · Regulated by NAMFISA · {COMPANY.licence}
           </span>
-          <span className="flex items-center gap-5">
-            <a className="transition-colors hover:text-background" href={COMPANY.whatsappHref}>
-              WhatsApp {COMPANY.whatsapp}
-            </a>
-            <a
-              className="hidden transition-colors hover:text-background sm:inline"
-              href={COMPANY.phoneHref}
-            >
-              {COMPANY.phone}
-            </a>
+          <span className="flex items-center gap-4">
+            {COMPANY.phones.map((phone, index) => (
+              <span
+                key={phone.display}
+                className={cn('flex items-center gap-1.5', index > 0 && 'hidden sm:flex')}
+              >
+                <a className="transition-colors hover:text-background" href={phone.tel}>
+                  {phone.display}
+                </a>
+                <a
+                  className="transition-colors hover:text-background"
+                  href={phone.whatsapp}
+                  aria-label={`WhatsApp ${phone.display}`}
+                >
+                  <MessageCircle className="size-3.5" />
+                </a>
+              </span>
+            ))}
           </span>
         </div>
       </div>

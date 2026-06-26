@@ -12,8 +12,6 @@ export const metadata: Metadata = {
 
 const ContactPage = () => {
   const channels = [
-    { icon: MessageCircle, label: 'WhatsApp', value: COMPANY.whatsapp, href: COMPANY.whatsappHref },
-    { icon: Phone, label: 'Phone', value: COMPANY.phone, href: COMPANY.phoneHref },
     { icon: Mail, label: 'Email', value: COMPANY.email, href: `mailto:${COMPANY.email}` },
     { icon: MapPin, label: 'Visit us', value: COMPANY.address, href: undefined },
   ];
@@ -35,6 +33,28 @@ const ContactPage = () => {
 
       <section className="mx-auto grid max-w-6xl gap-6 px-4 py-14 md:grid-cols-2">
         <div className="grid gap-4 sm:grid-cols-2">
+          {COMPANY.phones.map((phone) => (
+            <Card key={phone.display}>
+              <CardContent className="space-y-2 py-6">
+                <div className="flex size-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                  <Phone className="size-5" />
+                </div>
+                <div className="text-sm text-muted-foreground">Call or WhatsApp</div>
+                <div className="font-medium">{phone.display}</div>
+                <div className="flex gap-4 text-sm">
+                  <a href={phone.tel} className="font-medium text-primary hover:underline">
+                    Call
+                  </a>
+                  <a
+                    href={phone.whatsapp}
+                    className="flex items-center gap-1 font-medium text-primary hover:underline"
+                  >
+                    <MessageCircle className="size-4" /> WhatsApp
+                  </a>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
           {channels.map((channel) => (
             <Card key={channel.label}>
               <CardContent className="space-y-2 py-6">

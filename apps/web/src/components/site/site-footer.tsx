@@ -36,16 +36,17 @@ export const SiteFooter = () => {
         <div className="space-y-4">
           <h4 className="text-sm font-semibold text-background">Contact</h4>
           <ul className="space-y-2.5 text-sm">
-            <li>
-              <a href={COMPANY.whatsappHref} className="transition-colors hover:text-background">
-                WhatsApp {COMPANY.whatsapp}
-              </a>
-            </li>
-            <li>
-              <a href={COMPANY.phoneHref} className="transition-colors hover:text-background">
-                {COMPANY.phone}
-              </a>
-            </li>
+            {COMPANY.phones.map((phone) => (
+              <li key={phone.display} className="flex flex-wrap items-center gap-x-2">
+                <a href={phone.tel} className="transition-colors hover:text-background">
+                  {phone.display}
+                </a>
+                <span aria-hidden>·</span>
+                <a href={phone.whatsapp} className="transition-colors hover:text-background">
+                  WhatsApp
+                </a>
+              </li>
+            ))}
             <li>
               <a
                 href={`mailto:${COMPANY.email}`}

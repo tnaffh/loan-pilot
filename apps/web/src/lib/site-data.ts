@@ -6,11 +6,12 @@ export const COMPANY = {
   short: 'RFS',
   licence: 'NAMFISA Licence 25/11/1471',
   email: 'apply@raccoonsfinance.com',
-  whatsapp: '+264 81 725 8138',
-  whatsappHref: 'https://wa.me/264817258138',
-  phone: '+264 81 692 6592',
-  phoneHref: 'tel:+264816926592',
-  address: 'Erf 863, Otjomuise Lifestyle, Stockholm Street, Windhoek',
+  // Both numbers are reachable on WhatsApp Business and for normal calls.
+  phones: [
+    { display: '+264 81 725 8138', tel: 'tel:+264817258138', whatsapp: 'https://wa.me/264817258138' },
+    { display: '+264 81 692 6592', tel: 'tel:+264816926592', whatsapp: 'https://wa.me/264816926592' },
+  ],
+  address: 'Erf 3026, Chaldeer street, Soweto, Windhoek',
   town: 'Windhoek, Namibia',
 } as const;
 
