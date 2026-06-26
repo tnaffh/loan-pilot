@@ -5,7 +5,7 @@ export const COMPANY = {
   legalName: 'Raccoons Financial Services CC',
   short: 'RFS',
   licence: 'NAMFISA Licence 25/11/1471',
-  email: 'racoonsfs@gmail.com',
+  email: 'apply@raccoonsfinance.com',
   whatsapp: '+264 81 725 8138',
   whatsappHref: 'https://wa.me/264817258138',
   phone: '+264 81 692 6592',

@@ -75,11 +75,11 @@ const STEP_FIELDS: FieldPath<CreateApplicationInput>[][] = [
   ['references', 'consent'],
 ];
 
-const DOCUMENT_SLOTS: { kind: DocumentKind; label: string }[] = [
+const DOCUMENT_SLOTS: { kind: DocumentKind; label: string; required?: boolean }[] = [
+  { kind: DocumentKind.IdDocument, label: 'ID / passport copy', required: true },
+  { kind: DocumentKind.Payslip, label: 'Latest payslip', required: true },
+  { kind: DocumentKind.BankStatement, label: '3-month bank statement', required: true },
   { kind: DocumentKind.ProofOfResidence, label: 'Proof of residence' },
-  { kind: DocumentKind.IdDocument, label: 'ID / passport copy' },
-  { kind: DocumentKind.Payslip, label: 'Latest payslip' },
-  { kind: DocumentKind.BankStatement, label: 'Bank statement' },
 ];
 
 const EMPLOYMENT_OPTIONS: { value: EmploymentType; label: string }[] = [
@@ -104,6 +104,7 @@ export const ApplyForm = () => {
   const [step, setStep] = useState(0);
   const [result, setResult] = useState<ApplicationResult | null>(null);
   const [docs, setDocs] = useState<Partial<Record<DocumentKind, File>>>({});
+  const [docErrors, setDocErrors] = useState<Partial<Record<DocumentKind, string>>>({});
   const [pricing, setPricing] = useState<PricingConfig | null>(null);
 
   useEffect(() => {
@@ -192,7 +193,26 @@ export const ApplyForm = () => {
     toast.error('Please fix the highlighted fields before submitting.');
   };
 
+  /** Required supporting documents aren't part of the zod schema (they upload
+   * separately), so gate them here. Returns true when all required files are
+   * attached, otherwise sets per-slot errors. */
+  const validateDocs = (): boolean => {
+    const errs: Partial<Record<DocumentKind, string>> = {};
+    for (const slot of DOCUMENT_SLOTS) {
+      if (slot.required && !docs[slot.kind]) {
+        errs[slot.kind] = 'This document is required';
+      }
+    }
+    setDocErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const onSubmit = handleSubmit(async (values) => {
+    if (!validateDocs()) {
+      const { toast } = await import('sonner');
+      toast.error('Please attach the required documents before submitting.');
+      return;
+    }
     try {
       const response = await submitApplication(values);
 
@@ -692,22 +712,26 @@ export const ApplyForm = () => {
 
                 <div className="space-y-3">
                   <div className="space-y-1">
-                    <h3 className="font-heading text-lg font-medium">
-                      Supporting documents{' '}
-                      <span className="text-sm font-normal text-muted-foreground">(optional)</span>
-                    </h3>
+                    <h3 className="font-heading text-lg font-medium">Supporting documents</h3>
                     <p className="text-sm text-muted-foreground">
-                      PDF, JPG or PNG. You can also send these later if you don&apos;t have them now.
+                      PDF, JPG or PNG. Your ID, latest payslip and a 3-month bank statement are
+                      required; proof of residence is optional.
                     </p>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
                     {DOCUMENT_SLOTS.map((slot) => (
-                      <FormField key={slot.kind} label={slot.label}>
+                      <FormField
+                        key={slot.kind}
+                        label={slot.label}
+                        optional={!slot.required}
+                        error={docErrors[slot.kind]}
+                      >
                         <FileUpload
                           value={docs[slot.kind] ?? null}
-                          onChange={(file) =>
-                            setDocs((current) => ({ ...current, [slot.kind]: file ?? undefined }))
-                          }
+                          onChange={(file) => {
+                            setDocs((current) => ({ ...current, [slot.kind]: file ?? undefined }));
+                            setDocErrors((current) => ({ ...current, [slot.kind]: undefined }));
+                          }}
                         />
                       </FormField>
                     ))}
