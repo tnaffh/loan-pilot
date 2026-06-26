@@ -1,5 +1,17 @@
 import { LoanType } from '@loan-pilot/domain';
 
+/** Canonical public origin of the marketing site, used for metadataBase,
+ * canonical URLs, sitemap, robots and structured data. Override per environment
+ * with NEXT_PUBLIC_SITE_URL. */
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://raccoonsfinance.com').replace(
+  /\/+$/,
+  '',
+);
+
+/** One-line value proposition reused across metadata and structured data. */
+export const SITE_DESCRIPTION =
+  'Fair, transparent short-term loans for Namibians. Registered microlender regulated by NAMFISA. Every cost shown before you sign.';
+
 export const COMPANY = {
   name: 'Raccoons Financial Services',
   legalName: 'Raccoons Financial Services CC',

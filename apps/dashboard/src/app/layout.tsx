@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { GeistSans } from 'geist/font/sans';
 import { GeistMono } from 'geist/font/mono';
 import './globals.css';
@@ -8,12 +8,29 @@ import { TenantThemeProvider } from '@/lib/tenant-theme';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/sonner';
 
+const DASHBOARD_URL = (
+  process.env.NEXT_PUBLIC_DASHBOARD_URL ?? 'https://pilot.raccoonsfinance.com'
+).replace(/\/+$/, '');
+
 export const metadata: Metadata = {
+  metadataBase: new URL(DASHBOARD_URL),
+  applicationName: 'LoanPilot',
   title: {
     default: 'LoanPilot Dashboard',
     template: '%s · LoanPilot',
   },
   description: 'Multi-tenant micro-lending management dashboard.',
+  // A private, authenticated portal — keep it out of search indexes entirely.
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: { index: false, follow: false },
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#25397a',
+  colorScheme: 'light',
 };
 
 const RootLayout = ({ children }: Readonly<{ children: React.ReactNode }>) => {

@@ -2,10 +2,14 @@ import type { Metadata } from 'next';
 import { Building2, HeartHandshake, Lightbulb, Users } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 
+const description =
+  'Raccoons Financial Services — established 2019, a NAMFISA-regulated Namibian microlender redefining responsible short-term lending.';
+
 export const metadata: Metadata = {
   title: 'About',
-  description:
-    'Raccoons Financial Services — established 2019, a NAMFISA-regulated Namibian microlender redefining responsible short-term lending.',
+  description,
+  alternates: { canonical: '/about' },
+  openGraph: { title: 'About · Raccoons Financial Services', description, url: '/about' },
 };
 
 const VALUES = [

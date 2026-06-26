@@ -1,9 +1,13 @@
 import type { Metadata } from 'next';
 import { ApplyForm } from '@/components/site/apply-form';
 
+const description = 'Apply for a Raccoons loan in about five minutes.';
+
 export const metadata: Metadata = {
   title: 'Apply',
-  description: 'Apply for a Raccoons loan in about five minutes.',
+  description,
+  alternates: { canonical: '/apply' },
+  openGraph: { title: 'Apply · Raccoons Financial Services', description, url: '/apply' },
 };
 
 const ApplyPage = () => {

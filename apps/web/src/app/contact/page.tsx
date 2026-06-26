@@ -5,9 +5,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { COMPANY } from '@/lib/site-data';
 
+const description = 'Get in touch with Raccoons Financial Services in Windhoek, Namibia.';
+
 export const metadata: Metadata = {
   title: 'Contact',
-  description: 'Get in touch with Raccoons Financial Services in Windhoek, Namibia.',
+  description,
+  alternates: { canonical: '/contact' },
+  openGraph: { title: 'Contact · Raccoons Financial Services', description, url: '/contact' },
 };
 
 const ContactPage = () => {

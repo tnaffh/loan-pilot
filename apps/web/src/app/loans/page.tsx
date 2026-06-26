@@ -5,10 +5,14 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { PRODUCTS, REQUIREMENTS } from '@/lib/site-data';
 
+const description =
+  'Short-term, business and collateral-backed loans for Namibians — assessed responsibly, regulated by NAMFISA.';
+
 export const metadata: Metadata = {
   title: 'Loans',
-  description:
-    'Short-term, business and collateral-backed loans for Namibians — assessed responsibly, regulated by NAMFISA.',
+  description,
+  alternates: { canonical: '/loans' },
+  openGraph: { title: 'Loans · Raccoons Financial Services', description, url: '/loans' },
 };
 
 const LoansPage = () => {
