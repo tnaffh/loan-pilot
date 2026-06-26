@@ -50,6 +50,7 @@ const PLATFORM_NAV: NavGroup[] = [
 const LENDER_ADMIN_NAV: NavGroup = {
   label: 'Admin',
   items: [
+    { href: '/expenses', label: 'Finance', icon: Wallet },
     { href: '/users', label: 'Users', icon: ShieldCheck },
     { href: '/settings', label: 'Rates & fees', icon: SlidersHorizontal },
   ],
@@ -70,7 +71,6 @@ const LENDER_NAV: NavGroup[] = [
       },
       { href: '/borrowers', label: 'Borrowers', icon: Users },
       { href: '/calendar', label: 'Calendar', icon: CalendarDays },
-      { href: '/expenses', label: 'Finance', icon: Wallet },
     ],
   },
 ];

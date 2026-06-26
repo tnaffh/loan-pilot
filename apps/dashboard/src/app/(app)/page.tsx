@@ -15,7 +15,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
-import { LoanStatus, formatNad } from '@loan-pilot/domain';
+import { LoanStatus, UserRole, formatNad, fromCents } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -36,6 +36,7 @@ import { BorrowerHome } from '@/components/borrower/home';
 import { useCommand } from '@/components/command-provider';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
+import { downloadCsv } from '@/lib/csv';
 import { useTenantBranding } from '@/lib/tenant-theme';
 import { formatDate } from '@/lib/format';
 import type { ApplicationRow, LenderSeries, LoanRow, OverviewStats } from '@/lib/types';
@@ -67,6 +68,7 @@ const LenderOverview = ({
   const router = useRouter();
   const command = useCommand();
   const { user } = useAuth();
+  const admin = user?.role === UserRole.LenderAdmin;
   const branding = useTenantBranding();
   const { data: loans } = useApi<LoanRow[]>('/loans');
   const { data: applications } = useApi<ApplicationRow[]>('/applications');
@@ -87,6 +89,39 @@ const LenderOverview = ({
 
   const latestApplications = (applications ?? []).slice(0, 4);
 
+  const exportLoanBook = () => {
+    const rows = (loans ?? []).map((loan) => [
+      `${loan.borrower.firstName} ${loan.borrower.lastName}`,
+      loan.type,
+      fromCents(loan.principal),
+      fromCents(loan.balance),
+      fromCents(loan.instalment),
+      loan.termMonths,
+      `${loan.instalmentsPaid}/${loan.instalmentsTotal}`,
+      loan.status,
+      loan.disbursedAt ? formatDate(loan.disbursedAt) : '',
+      loan.nextDueAt ? formatDate(loan.nextDueAt) : '',
+      loan.daysLate,
+    ]);
+    downloadCsv(
+      `loan-book-${new Date().toISOString().slice(0, 10)}.csv`,
+      [
+        'Borrower',
+        'Type',
+        'Principal (N$)',
+        'Balance (N$)',
+        'Instalment (N$)',
+        'Term (months)',
+        'Instalments paid',
+        'Status',
+        'Disbursed',
+        'Next due',
+        'Days late',
+      ],
+      rows,
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -99,7 +134,7 @@ const LenderOverview = ({
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={exportLoanBook} disabled={!loans?.length}>
             <Download />
             Export
           </Button>
@@ -142,57 +177,61 @@ const LenderOverview = ({
         />
       </StatGrid>
 
-      <StatGrid>
-        <StatCard
-          label="Available balance"
-          value={formatNad(stats.availableBalance)}
-          icon={Wallet}
-          tone={stats.availableBalance >= 0 ? 'green' : 'red'}
-          hint="Cash available to lend"
-        />
-        <StatCard
-          label="Net profit"
-          value={formatNad(stats.netProfit)}
-          icon={TrendingUp}
-          tone={stats.netProfit >= 0 ? 'green' : 'red'}
-          hint="Collected − disbursed − expenses"
-        />
-        <StatCard
-          label="Collected to date"
-          value={formatNad(stats.collected)}
-          icon={Banknote}
-          hint={`${formatNad(stats.expenses)} operating costs`}
-        />
-        <StatCard
-          label="Invested capital"
-          value={formatNad(stats.invested)}
-          icon={PiggyBank}
-          tone="brand"
-          hint="Owner contributions in"
-        />
-        <StatCard
-          label="Owner drawings"
-          value={formatNad(stats.drawings)}
-          icon={ArrowDownCircle}
-          hint="Dividends / cash-out"
-        />
-      </StatGrid>
+      {admin ? (
+        <StatGrid>
+          <StatCard
+            label="Available balance"
+            value={formatNad(stats.availableBalance ?? 0)}
+            icon={Wallet}
+            tone={(stats.availableBalance ?? 0) >= 0 ? 'green' : 'red'}
+            hint="Cash available to lend"
+          />
+          <StatCard
+            label="Net profit"
+            value={formatNad(stats.netProfit ?? 0)}
+            icon={TrendingUp}
+            tone={(stats.netProfit ?? 0) >= 0 ? 'green' : 'red'}
+            hint="Collected − disbursed − expenses"
+          />
+          <StatCard
+            label="Collected to date"
+            value={formatNad(stats.collected ?? 0)}
+            icon={Banknote}
+            hint={`${formatNad(stats.expenses ?? 0)} operating costs`}
+          />
+          <StatCard
+            label="Invested capital"
+            value={formatNad(stats.invested ?? 0)}
+            icon={PiggyBank}
+            tone="brand"
+            hint="Owner contributions in"
+          />
+          <StatCard
+            label="Owner drawings"
+            value={formatNad(stats.drawings ?? 0)}
+            icon={ArrowDownCircle}
+            hint="Dividends / cash-out"
+          />
+        </StatGrid>
+      ) : null}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Cash flow</CardTitle>
-          <CardDescription>Disbursed, collected and expenses by month</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {series ? (
-            <CashFlowChart data={series.monthly} />
-          ) : (
-            <Skeleton className="h-[260px] w-full" />
-          )}
-        </CardContent>
-      </Card>
+      {admin ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Cash flow</CardTitle>
+            <CardDescription>Disbursed, collected and expenses by month</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {series ? (
+              <CashFlowChart data={series.monthly} />
+            ) : (
+              <Skeleton className="h-[260px] w-full" />
+            )}
+          </CardContent>
+        </Card>
+      ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_1.4fr]">
+      <div className={admin ? 'grid gap-4 lg:grid-cols-[1fr_1.4fr]' : undefined}>
         <Card>
           <CardHeader>
             <CardTitle>Loan status</CardTitle>
@@ -206,19 +245,21 @@ const LenderOverview = ({
             )}
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Top expenses</CardTitle>
-            <CardDescription>Largest operating cost categories</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {series ? (
-              <ExpenseBar data={series.topExpenseCategories} />
-            ) : (
-              <Skeleton className="h-[240px] w-full" />
-            )}
-          </CardContent>
-        </Card>
+        {admin ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Top expenses</CardTitle>
+              <CardDescription>Largest operating cost categories</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {series ? (
+                <ExpenseBar data={series.topExpenseCategories} />
+              ) : (
+                <Skeleton className="h-[240px] w-full" />
+              )}
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">

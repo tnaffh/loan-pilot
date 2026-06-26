@@ -150,6 +150,13 @@ const main = async (): Promise<void> => {
         passwordHash: DEV_PASSWORD_HASH,
         tenantId: rfs.id,
       },
+      {
+        email: 'staff@raccoons.na',
+        name: 'Tangeni Shipanga',
+        role: UserRole.LenderStaff,
+        passwordHash: DEV_PASSWORD_HASH,
+        tenantId: rfs.id,
+      },
     ],
   });
 

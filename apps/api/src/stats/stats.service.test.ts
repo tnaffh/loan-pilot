@@ -42,7 +42,7 @@ describe('StatsService.lenderSeries', () => {
       { status: LoanStatus.Active, _count: 1 },
     ]);
 
-    const series = await service.lenderSeries('tenant_1');
+    const series = await service.lenderSeries('tenant_1', true);
 
     expect(series.monthly).toEqual([
       { month: '2023-10', label: 'Oct 2023', disbursed: 100000, collected: 131500, expenses: 30000 },
@@ -57,6 +57,21 @@ describe('StatsService.lenderSeries', () => {
       { status: LoanStatus.Settled, count: 2 },
       { status: LoanStatus.Active, count: 1 },
     ]);
+  });
+
+  it('strips the sensitive cash-flow series for non-admins, keeping status mix', async () => {
+    loanFindMany.mockResolvedValue([{ disbursedAt: new Date('2023-10-06'), principal: 100000 }]);
+    paymentFindMany.mockResolvedValue([{ paidAt: new Date('2023-10-25'), amount: 131500 }]);
+    expenseFindMany.mockResolvedValue([
+      { incurredAt: new Date('2023-10-01'), amount: 20000, kind: ExpenseKind.Expense, category: 'Rent' },
+    ]);
+    loanGroupBy.mockResolvedValue([{ status: LoanStatus.Active, _count: 1 }]);
+
+    const series = await service.lenderSeries('tenant_1', false);
+
+    expect(series.monthly).toEqual([]);
+    expect(series.topExpenseCategories).toEqual([]);
+    expect(series.statusMix).toEqual([{ status: LoanStatus.Active, count: 1 }]);
   });
 });
 
@@ -82,16 +97,9 @@ describe('StatsService.lenderOverview', () => {
     tenantId: 'tenant_1',
     tenantSlug: 'rfs',
   };
+  const staff: SessionUser = { ...admin, id: 'u2', role: UserRole.LenderStaff };
 
-  beforeEach(async () => {
-    jest.resetAllMocks();
-    const moduleRef = await Test.createTestingModule({
-      providers: [StatsService, { provide: PrismaService, useValue: prismaMock }],
-    }).compile();
-    service = moduleRef.get(StatsService);
-  });
-
-  it('computes available balance from opening balance + flows', async () => {
+  const seedOverviewMocks = (): void => {
     loanAggregate
       .mockResolvedValueOnce({ _sum: { balance: 200000 }, _count: 3 }) // book
       .mockResolvedValueOnce({ _sum: { balance: 50000 }, _count: 1 }) // arrears
@@ -104,6 +112,18 @@ describe('StatsService.lenderOverview', () => {
     prismaMock.investment.aggregate.mockResolvedValue({ _sum: { amount: 500000 } });
     prismaMock.income.aggregate.mockResolvedValue({ _sum: { amount: 20000 } });
     prismaMock.tenantSettings.findUnique.mockResolvedValue({ openingBalance: 100000 });
+  };
+
+  beforeEach(async () => {
+    jest.resetAllMocks();
+    const moduleRef = await Test.createTestingModule({
+      providers: [StatsService, { provide: PrismaService, useValue: prismaMock }],
+    }).compile();
+    service = moduleRef.get(StatsService);
+  });
+
+  it('computes available balance from opening balance + flows for admins', async () => {
+    seedOverviewMocks();
 
     const overview = await service.overview(admin);
     if (overview.kind !== 'lender') throw new Error('expected lender overview');
@@ -112,5 +132,23 @@ describe('StatsService.lenderOverview', () => {
     expect(overview.availableBalance).toBe(240000);
     expect(overview.income).toBe(20000);
     expect(overview.openingBalance).toBe(100000);
+  });
+
+  it('omits sensitive financials for staff, keeping operational figures', async () => {
+    seedOverviewMocks();
+
+    const overview = await service.overview(staff);
+    if (overview.kind !== 'lender') throw new Error('expected lender overview');
+
+    // Operational figures stay.
+    expect(overview.activeLoans).toBe(3);
+    expect(overview.bookValue).toBe(200000);
+    expect(overview.arrearsValue).toBe(50000);
+    // Sensitive financials are stripped.
+    expect(overview.availableBalance).toBeUndefined();
+    expect(overview.netProfit).toBeUndefined();
+    expect(overview.invested).toBeUndefined();
+    expect(overview.expenses).toBeUndefined();
+    expect(overview.openingBalance).toBeUndefined();
   });
 });

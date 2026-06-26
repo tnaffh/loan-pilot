@@ -1,6 +1,7 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { ArrowDownCircle, ArrowUpCircle, Loader2, Plus, Wallet } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -260,6 +261,7 @@ const capitalColumns: ColumnDef<InvestmentRow>[] = [
 
 const FinancePage = () => {
   const { user } = useAuth();
+  const router = useRouter();
   const admin = user?.role === UserRole.LenderAdmin;
   const { data: stats } = useApi<OverviewStats>('/stats/overview');
   const { data: expenses, loading } = useApi<ExpenseRow[]>('/expenses');
@@ -268,6 +270,13 @@ const FinancePage = () => {
 
   const [entry, setEntry] = useState<EntryKind | null>(null);
   const [editingOpening, setEditingOpening] = useState(false);
+
+  // Finance is admin-only; bounce staff who reach it via a direct URL.
+  useEffect(() => {
+    if (user && !admin) {
+      router.replace('/');
+    }
+  }, [user, admin, router]);
 
   const lender = stats && stats.kind === 'lender' ? stats : null;
   const operating = useMemo(
@@ -278,6 +287,11 @@ const FinancePage = () => {
     () => (expenses ?? []).filter((row) => row.kind === ExpenseKind.Drawing),
     [expenses],
   );
+
+  // Render nothing for non-admins while the redirect above takes effect.
+  if (!admin) {
+    return null;
+  }
 
   return (
     <div>
@@ -309,14 +323,14 @@ const FinancePage = () => {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <StatCard
               label="Available balance"
-              value={formatNad(lender.availableBalance)}
+              value={formatNad(lender.availableBalance ?? 0)}
               icon={Wallet}
-              tone={lender.availableBalance >= 0 ? 'green' : 'red'}
+              tone={(lender.availableBalance ?? 0) >= 0 ? 'green' : 'red'}
               hint="Cash available to lend"
             />
-            <StatCard label="Income + capital in" value={formatNad(lender.income + lender.invested)} icon={ArrowUpCircle} tone="green" />
-            <StatCard label="Expenses" value={formatNad(lender.expenses)} icon={ArrowDownCircle} tone="amber" />
-            <StatCard label="Owner drawings" value={formatNad(lender.drawings)} icon={ArrowDownCircle} />
+            <StatCard label="Income + capital in" value={formatNad((lender.income ?? 0) + (lender.invested ?? 0))} icon={ArrowUpCircle} tone="green" />
+            <StatCard label="Expenses" value={formatNad(lender.expenses ?? 0)} icon={ArrowDownCircle} tone="amber" />
+            <StatCard label="Owner drawings" value={formatNad(lender.drawings ?? 0)} icon={ArrowDownCircle} />
           </div>
           {admin ? (
             <Button
@@ -325,7 +339,7 @@ const FinancePage = () => {
               className="mt-1 h-auto px-0 text-xs text-muted-foreground"
               onClick={() => setEditingOpening(true)}
             >
-              Opening balance: {formatNad(lender.openingBalance)} — edit
+              Opening balance: {formatNad(lender.openingBalance ?? 0)} — edit
             </Button>
           ) : null}
         </div>

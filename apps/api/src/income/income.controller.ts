@@ -29,13 +29,13 @@ export class IncomeController {
   constructor(private readonly income: IncomeService) {}
 
   @Get()
-  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  @Roles(UserRole.LenderAdmin)
   list(@CurrentUser() user: SessionUser, @Query('period') period?: string): Promise<Income[]> {
     return this.income.findAllForTenant(requireTenantId(user), period);
   }
 
   @Get('totals')
-  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  @Roles(UserRole.LenderAdmin)
   totals(@CurrentUser() user: SessionUser): Promise<IncomeTotals> {
     return this.income.totals(requireTenantId(user));
   }

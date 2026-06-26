@@ -4,6 +4,7 @@ import {
   ExpenseKind,
   LoanStatus,
   TenantStatus,
+  UserRole,
   isBorrower,
   isPlatform,
   type SessionUser,
@@ -13,27 +14,29 @@ import { requireTenantId } from '../common/tenant';
 
 export interface LenderOverview {
   kind: 'lender';
+  // Operational figures — visible to every lender role.
   activeLoans: number;
   arrearsLoans: number;
   bookValue: number;
   arrearsValue: number;
   pendingApplications: number;
   borrowers: number;
+  // Sensitive financials — only populated for lender admins (omitted for staff).
   // Lifetime cash flows (cents): disbursed principal, collected payments,
   // operating expenses, and the resulting net profit. Capital movements
   // (owner drawings out, capital invested in) are tracked separately — they
   // affect the cash/capital position, not profit.
-  disbursed: number;
-  collected: number;
-  expenses: number;
-  drawings: number;
-  invested: number;
-  income: number;
-  netProfit: number;
+  disbursed?: number;
+  collected?: number;
+  expenses?: number;
+  drawings?: number;
+  invested?: number;
+  income?: number;
+  netProfit?: number;
   // Cash available to lend: openingBalance + capital + collected + income −
   // disbursed − expenses − drawings.
-  openingBalance: number;
-  availableBalance: number;
+  openingBalance?: number;
+  availableBalance?: number;
 }
 
 export interface PlatformOverview {
@@ -91,11 +94,17 @@ export class StatsService {
     if (isBorrower(user.role)) {
       return this.borrowerOverview(user.id);
     }
-    return this.lenderOverview(requireTenantId(user));
+    // Sensitive financials are for lender admins only; staff get the operational subset.
+    return this.lenderOverview(requireTenantId(user), user.role === UserRole.LenderAdmin);
   }
 
-  /** Time-series + distributions for the lender dashboard charts. */
-  async lenderSeries(tenantId: string): Promise<LenderSeries> {
+  /**
+   * Time-series + distributions for the lender dashboard charts. The cash-flow
+   * (`monthly`) and `topExpenseCategories` series are sensitive financials, so
+   * they are returned empty for non-admins — only the operational `statusMix`
+   * (loan-status donut) is shared with staff.
+   */
+  async lenderSeries(tenantId: string, includeSensitive: boolean): Promise<LenderSeries> {
     const [loans, payments, expenses, statusGroups] = await Promise.all([
       this.prisma.loan.findMany({
         where: { tenantId, disbursedAt: { not: null } },
@@ -159,10 +168,16 @@ export class StatsService {
 
     const statusMix = statusGroups.map((group) => ({ status: group.status, count: group._count }));
 
+    if (!includeSensitive) {
+      return { monthly: [], statusMix, topExpenseCategories: [] };
+    }
     return { monthly, statusMix, topExpenseCategories };
   }
 
-  private async lenderOverview(tenantId: string): Promise<LenderOverview> {
+  private async lenderOverview(
+    tenantId: string,
+    includeSensitive: boolean,
+  ): Promise<LenderOverview> {
     const [
       book,
       arrears,
@@ -222,7 +237,7 @@ export class StatsService {
     const incomeTotal = incomeAgg._sum.amount ?? 0;
     const openingBalance = settings?.openingBalance ?? 0;
 
-    return {
+    const operational: LenderOverview = {
       kind: 'lender',
       activeLoans: book._count,
       arrearsLoans: arrears._count,
@@ -230,6 +245,13 @@ export class StatsService {
       arrearsValue: arrears._sum.balance ?? 0,
       pendingApplications,
       borrowers,
+    };
+    if (!includeSensitive) {
+      return operational;
+    }
+
+    return {
+      ...operational,
       disbursed: disbursedTotal,
       collected: collectedTotal,
       expenses,

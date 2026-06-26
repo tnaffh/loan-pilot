@@ -21,6 +21,6 @@ export class StatsController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
   series(@CurrentUser() user: SessionUser): Promise<LenderSeries> {
-    return this.stats.lenderSeries(requireTenantId(user));
+    return this.stats.lenderSeries(requireTenantId(user), user.role === UserRole.LenderAdmin);
   }
 }

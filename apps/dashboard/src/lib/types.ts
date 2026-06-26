@@ -296,15 +296,16 @@ export type OverviewStats =
       arrearsValue: number;
       pendingApplications: number;
       borrowers: number;
-      disbursed: number;
-      collected: number;
-      expenses: number;
-      drawings: number;
-      invested: number;
-      income: number;
-      netProfit: number;
-      openingBalance: number;
-      availableBalance: number;
+      // Sensitive financials — only present for lender admins (the API omits them for staff).
+      disbursed?: number;
+      collected?: number;
+      expenses?: number;
+      drawings?: number;
+      invested?: number;
+      income?: number;
+      netProfit?: number;
+      openingBalance?: number;
+      availableBalance?: number;
     }
   | {
       kind: 'platform';

@@ -29,13 +29,13 @@ export class ExpensesController {
   constructor(private readonly expenses: ExpensesService) {}
 
   @Get()
-  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  @Roles(UserRole.LenderAdmin)
   list(@CurrentUser() user: SessionUser, @Query('period') period?: string): Promise<Expense[]> {
     return this.expenses.findAllForTenant(requireTenantId(user), period);
   }
 
   @Get('totals')
-  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  @Roles(UserRole.LenderAdmin)
   totals(@CurrentUser() user: SessionUser): Promise<ExpenseTotals> {
     return this.expenses.totals(requireTenantId(user));
   }
