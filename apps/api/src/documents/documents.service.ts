@@ -3,11 +3,12 @@ import type { Document } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from './storage.service';
 
-/** A document with its storage key resolved to an openable URL. */
+/** A document with its storage key resolved to an openable URL (null when the
+ * URL could not be signed — see {@link StorageService.safeAccessUrl}). */
 export interface DocumentView {
   id: string;
   kind: string;
-  url: string;
+  url: string | null;
   fileName: string;
   uploadedAt: Date;
 }
@@ -112,7 +113,7 @@ export class DocumentsService {
     return {
       id: document.id,
       kind: document.kind,
-      url: await this.storage.accessUrl(document.url),
+      url: await this.storage.safeAccessUrl(document.url),
       fileName: document.fileName,
       uploadedAt: document.uploadedAt,
     };

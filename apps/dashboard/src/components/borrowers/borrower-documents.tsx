@@ -88,14 +88,23 @@ export const BorrowerDocuments = ({
               <li key={doc.id} className="flex items-center justify-between gap-3 py-2">
                 <div className="flex min-w-0 items-center gap-2">
                   <FileText className="size-4 shrink-0 text-muted-foreground" />
-                  <a
-                    href={doc.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="truncate font-medium hover:underline"
-                  >
-                    {doc.fileName}
-                  </a>
+                  {doc.url ? (
+                    <a
+                      href={doc.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="truncate font-medium hover:underline"
+                    >
+                      {doc.fileName}
+                    </a>
+                  ) : (
+                    <span
+                      className="truncate font-medium text-muted-foreground"
+                      title="This file is temporarily unavailable"
+                    >
+                      {doc.fileName}
+                    </span>
+                  )}
                   <span className="shrink-0 text-xs text-muted-foreground">
                     · {KIND_LABELS[doc.kind] ?? doc.kind} · {formatDate(doc.uploadedAt)}
                   </span>

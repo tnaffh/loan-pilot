@@ -156,15 +156,25 @@ export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Pr
                         <span className="capitalize text-muted-foreground">
                           {doc.kind.replace(/_/g, ' ')}
                         </span>
-                        <a
-                          href={doc.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="flex items-center gap-1 truncate font-medium hover:underline"
-                        >
-                          <FileText className="size-3.5 shrink-0" />
-                          {doc.fileName}
-                        </a>
+                        {doc.url ? (
+                          <a
+                            href={doc.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="flex items-center gap-1 truncate font-medium hover:underline"
+                          >
+                            <FileText className="size-3.5 shrink-0" />
+                            {doc.fileName}
+                          </a>
+                        ) : (
+                          <span
+                            className="flex items-center gap-1 truncate text-muted-foreground"
+                            title="This file is temporarily unavailable"
+                          >
+                            <FileText className="size-3.5 shrink-0" />
+                            {doc.fileName}
+                          </span>
+                        )}
                       </li>
                     ))}
                   </ul>

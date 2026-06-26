@@ -1,20 +1,22 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { LoanType, formatNad, quote, toCents } from '@loan-pilot/domain';
+import { LoanType, formatNad, toCents } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { computeQuote, fetchPricingConfig, type PricingConfig } from '@/lib/pricing';
 
 export const PaydayCalculator = () => {
   const [amount, setAmount] = useState(5000);
   const [term, setTerm] = useState(1);
+  const [config, setConfig] = useState<PricingConfig | null>(null);
 
-  const result = quote({
-    principalCents: toCents(amount),
-    termMonths: term,
-    type: LoanType.Payday,
-  });
+  useEffect(() => {
+    fetchPricingConfig().then(setConfig);
+  }, []);
+
+  const result = computeQuote(config, { amount, termMonths: term, type: LoanType.Payday });
 
   return (
     <Card className="w-full shadow-lg">

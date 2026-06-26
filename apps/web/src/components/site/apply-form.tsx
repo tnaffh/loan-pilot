@@ -1,8 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Controller, useFieldArray, useForm, useWatch, type FieldPath } from 'react-hook-form';
+import {
+  Controller,
+  useFieldArray,
+  useForm,
+  useWatch,
+  type FieldErrors,
+  type FieldPath,
+} from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { CheckCircle2, ChevronLeft, ChevronRight, Loader2, Plus, Trash2, XCircle } from 'lucide-react';
 import {
@@ -11,7 +18,6 @@ import {
   LoanType,
   createApplicationSchema,
   formatNad,
-  quote,
   toCents,
   type CreateApplicationInput,
 } from '@loan-pilot/domain';
@@ -37,6 +43,7 @@ import {
   uploadApplicationDocument,
   type ApplicationResult,
 } from '@/lib/api';
+import { computeQuote, fetchPricingConfig, type PricingConfig } from '@/lib/pricing';
 import { PRODUCTS } from '@/lib/site-data';
 
 const STEPS = ['Your loan', 'Personal', 'Employment & bank', 'References & docs'] as const;
@@ -97,6 +104,11 @@ export const ApplyForm = () => {
   const [step, setStep] = useState(0);
   const [result, setResult] = useState<ApplicationResult | null>(null);
   const [docs, setDocs] = useState<Partial<Record<DocumentKind, File>>>({});
+  const [pricing, setPricing] = useState<PricingConfig | null>(null);
+
+  useEffect(() => {
+    fetchPricingConfig().then(setPricing);
+  }, []);
 
   const form = useForm<CreateApplicationInput>({
     resolver: zodResolver(createApplicationSchema),
@@ -149,7 +161,7 @@ export const ApplyForm = () => {
   const watchedTerm = Number(watchedTermRaw) || 1;
   const estimate =
     watchedAmount >= 500
-      ? quote({ principalCents: toCents(watchedAmount), termMonths: watchedTerm, type: watchedType })
+      ? computeQuote(pricing, { amount: watchedAmount, termMonths: watchedTerm, type: watchedType })
       : null;
 
   const next = async () => {
@@ -160,6 +172,25 @@ export const ApplyForm = () => {
   };
 
   const back = () => setStep((current) => Math.max(current - 1, 0));
+
+  /** First step that owns a field with a validation error, so a blocked submit
+   * jumps back to it instead of failing silently. */
+  const stepOfFirstError = (errs: FieldErrors<CreateApplicationInput>): number => {
+    const erroredRoots = new Set(Object.keys(errs));
+    const index = STEP_FIELDS.findIndex((fields) =>
+      fields.some((field) => erroredRoots.has(field.split('.')[0] ?? field)),
+    );
+    return index === -1 ? step : index;
+  };
+
+  const onInvalid = async (errs: FieldErrors<CreateApplicationInput>) => {
+    const target = stepOfFirstError(errs);
+    setStep(target);
+    // Surface the errors on the destination step's fields.
+    await trigger(STEP_FIELDS[target]);
+    const { toast } = await import('sonner');
+    toast.error('Please fix the highlighted fields before submitting.');
+  };
 
   const onSubmit = handleSubmit(async (values) => {
     try {
@@ -190,7 +221,7 @@ export const ApplyForm = () => {
       }
       toast.error('We could not submit your application. Please try again.');
     }
-  });
+  }, onInvalid);
 
   if (result) {
     const Icon = result.affordability === 'fail' ? XCircle : CheckCircle2;

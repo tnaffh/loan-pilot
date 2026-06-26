@@ -69,7 +69,7 @@ export interface ApplicationDecision {
 export interface ApplicationDocument {
   id: string;
   kind: string;
-  url: string;
+  url: string | null;
   fileName: string;
   mimeType: string | null;
   sizeBytes: number | null;
@@ -243,7 +243,7 @@ export interface IncomeRow {
 export interface DocumentRow {
   id: string;
   kind: string;
-  url: string;
+  url: string | null;
   fileName: string;
   uploadedAt: string;
 }

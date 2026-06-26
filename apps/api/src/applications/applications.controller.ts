@@ -31,6 +31,7 @@ import {
   type ApplicationDecision,
   type ApplicationDetail,
   type ApplicationWithReferences,
+  type PricingConfig,
 } from './applications.service';
 
 interface ApplicationResultDto {
@@ -90,6 +91,13 @@ export class ApplicationsController {
       quotedInstalment: fromCents(application.quotedInstalment),
       submittedAt: application.submittedAt.toISOString(),
     };
+  }
+
+  /** Public pricing config — active rate per loan type + fee settings. Tenant from x-tenant. */
+  @Get('pricing')
+  async pricing(@Headers('x-tenant') tenantSlug?: string): Promise<PricingConfig> {
+    const tenant = await this.tenants.resolveForPublicRequest(tenantSlug);
+    return this.applications.pricingConfig(tenant.id);
   }
 
   @Get()

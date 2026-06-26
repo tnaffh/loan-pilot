@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { GetObjectCommand, PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Storage, type Bucket } from '@google-cloud/storage';
@@ -31,6 +31,7 @@ const trimTrailingSlash = (value: string): string => value.replace(/\/+$/, '');
  */
 @Injectable()
 export class StorageService {
+  private readonly logger = new Logger(StorageService.name);
   private readonly driver = (process.env.STORAGE_DRIVER ?? 'local').toLowerCase();
   private readonly bucket = process.env.S3_BUCKET ?? '';
   private readonly publicBase = process.env.S3_PUBLIC_URL;
@@ -106,5 +107,24 @@ export class StorageService {
       });
     }
     return `${trimTrailingSlash(this.apiOrigin)}/uploads/${key}`;
+  }
+
+  /**
+   * Resolve a storage key to a URL, never throwing. URL signing can fail (e.g.
+   * GCS V4 signing on Cloud Run when the runtime service account lacks
+   * `iam.serviceAccountTokenCreator` on itself); returning null on failure lets
+   * a single unsignable document degrade gracefully instead of 500-ing the
+   * whole detail/list it belongs to.
+   */
+  async safeAccessUrl(key: string): Promise<string | null> {
+    try {
+      return await this.accessUrl(key);
+    } catch (error) {
+      this.logger.error(
+        `Failed to resolve document URL for "${key}"`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      return null;
+    }
   }
 }

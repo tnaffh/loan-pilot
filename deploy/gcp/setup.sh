@@ -122,6 +122,12 @@ retry gcloud projects add-iam-policy-binding "${PROJECT_ID}" \
   --member="serviceAccount:${RUNTIME_SA}" --role="roles/secretmanager.secretAccessor" --condition=None -q >/dev/null
 retry gcloud storage buckets add-iam-policy-binding "gs://${BUCKET}" \
   --member="serviceAccount:${RUNTIME_SA}" --role="roles/storage.objectAdmin" >/dev/null
+# Let the runtime SA sign GCS V4 download URLs as itself. With keyless ADC the
+# Storage client signs via the IAM SignBlob API, which needs serviceAccountTokenCreator
+# ON ITSELF — without it, fetching any record that has documents fails with
+# "iam.serviceAccounts.signBlob denied".
+retry gcloud iam service-accounts add-iam-policy-binding "${RUNTIME_SA}" \
+  --member="serviceAccount:${RUNTIME_SA}" --role="roles/iam.serviceAccountTokenCreator" -q >/dev/null
 
 # Deployer SA (the Cloud Build runner): build, push, deploy, run the migrate job,
 # write build logs, and read the source-staging bucket.

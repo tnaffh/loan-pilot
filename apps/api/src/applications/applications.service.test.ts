@@ -120,6 +120,24 @@ describe('ApplicationsService', () => {
     expect(data.references.create).toHaveLength(2);
   });
 
+  it('pricingConfig returns the active rate per loan type and the fee settings', async () => {
+    settingsMock.resolveProduct.mockImplementation(
+      (_tenantId: string, _productId: string | undefined, loanType: LoanType) =>
+        Promise.resolve(loanType === LoanType.Collateral ? null : { interestRate: 0.25 }),
+    );
+
+    const config = await service.pricingConfig('tenant_1');
+
+    expect(config.rates[LoanType.Payday]).toBe(0.25);
+    // No active product → null, so the client falls back to the type's standard rate.
+    expect(config.rates[LoanType.Collateral]).toBeNull();
+    expect(config.feeSettings.monthlyRate).toBe(0);
+    expect(settingsMock.resolveFeeSettings).toHaveBeenCalledWith('tenant_1');
+
+    // Restore the shared default (jest.clearAllMocks keeps implementations).
+    settingsMock.resolveProduct.mockResolvedValue(null);
+  });
+
   it('fails affordability when the instalment is unaffordable', async () => {
     await service.create('tenant_1', { ...baseInput, amount: 15000, monthlyIncome: 9000 });
 

@@ -2,15 +2,18 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import type { LoanApplication, Prisma } from '@prisma/client';
 import {
   ApplicationStatus,
+  LoanType,
   assessAffordability,
   buildApplicationActivity,
   toCents,
   type ActivityEvent,
   type CreateApplicationInput,
+  type FeeSettings,
   type UpdateApplicationStatusInput,
 } from '@loan-pilot/domain';
 import { PrismaService } from '../prisma/prisma.service';
 import { LoansService } from '../loans/loans.service';
+import { SettingsService } from '../settings/settings.service';
 import { StorageService } from '../documents/storage.service';
 
 export type ApplicationWithReferences = Prisma.LoanApplicationGetPayload<{
@@ -21,11 +24,28 @@ export type ApplicationWithDetail = Prisma.LoanApplicationGetPayload<{
   include: { references: true; documents: true };
 }>;
 
-export type ApplicationDetail = ApplicationWithDetail & { activity: ActivityEvent[] };
+/** A document with its storage key resolved to an openable URL (null when the
+ * URL could not be signed — see {@link StorageService.safeAccessUrl}). */
+type ResolvedDocument = Omit<ApplicationWithDetail['documents'][number], 'url'> & {
+  url: string | null;
+};
+
+export type ApplicationDetail = Omit<ApplicationWithDetail, 'documents'> & {
+  documents: ResolvedDocument[];
+  activity: ActivityEvent[];
+};
 
 export interface ApplicationDecision {
   application: LoanApplication;
   loanId: string | null;
+}
+
+/** Public pricing config for the marketing calculators: the active rate per loan
+ * type (null falls back to the loan type's standard rate) plus the tenant's fee
+ * settings, so the client can gross loans up exactly as {@link LoansService} does. */
+export interface PricingConfig {
+  rates: Record<LoanType, number | null>;
+  feeSettings: FeeSettings;
 }
 
 @Injectable()
@@ -33,8 +53,34 @@ export class ApplicationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly loans: LoansService,
+    private readonly settings: SettingsService,
     private readonly storage: StorageService,
   ) {}
+
+  /**
+   * The active interest rate per loan type and the fee settings for a tenant,
+   * used by the public loan calculators so their estimate matches the quote a
+   * borrower actually receives.
+   */
+  async pricingConfig(tenantId: string): Promise<PricingConfig> {
+    const resolveRate = async (type: LoanType): Promise<number | null> => {
+      const product = await this.settings.resolveProduct(tenantId, undefined, type);
+      return product?.interestRate ?? null;
+    };
+    const [feeSettings, payday, business, collateral] = await Promise.all([
+      this.settings.resolveFeeSettings(tenantId),
+      resolveRate(LoanType.Payday),
+      resolveRate(LoanType.Business),
+      resolveRate(LoanType.Collateral),
+    ]);
+    // An exhaustive literal so a new LoanType is a compile error here, not a gap.
+    const rates: Record<LoanType, number | null> = {
+      [LoanType.Payday]: payday,
+      [LoanType.Business]: business,
+      [LoanType.Collateral]: collateral,
+    };
+    return { rates, feeSettings };
+  }
 
   /**
    * Price the requested loan and assess affordability, then persist the
@@ -115,11 +161,13 @@ export class ApplicationsService {
     if (!application) {
       throw new NotFoundException('Application not found');
     }
-    // Resolve each document's storage key to a browser-openable URL.
+    // Resolve each document's storage key to a browser-openable URL. URL signing
+    // can fail (e.g. GCS perms) — degrade that document to a null URL rather than
+    // failing the whole detail request.
     const documents = await Promise.all(
       application.documents.map(async (document) => ({
         ...document,
-        url: await this.storage.accessUrl(document.url),
+        url: await this.storage.safeAccessUrl(document.url),
       })),
     );
     return { ...application, documents, activity: buildApplicationActivity(application) };
@@ -157,8 +205,7 @@ export class ApplicationsService {
         data: {
           status: input.status,
           decidedAt: new Date(),
-          declineReason:
-            input.status === ApplicationStatus.Declined ? input.reason || null : null,
+          declineReason: input.status === ApplicationStatus.Declined ? input.reason || null : null,
         },
       });
 
