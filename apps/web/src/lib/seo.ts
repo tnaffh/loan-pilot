@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { COMPANY, SITE_DESCRIPTION, SITE_URL } from '@/lib/site-data';
 
 /**
@@ -34,7 +35,6 @@ export const structuredData = {
         areaServed: 'NA',
         availableLanguage: ['en'],
       })),
-      sameAs: COMPANY.phones.map((phone) => phone.whatsapp),
       knowsAbout: ['Microlending', 'Short-term loans', 'NAMFISA regulation'],
     },
     {
@@ -48,3 +48,24 @@ export const structuredData = {
     },
   ],
 };
+
+/**
+ * A complete Open Graph object for a sub-page. The App Router merges metadata
+ * shallowly per top-level key, so a page that declares its own `openGraph`
+ * fully replaces the root layout's — and the file-based opengraph-image.png is
+ * NOT back-filled. Re-supply the shared fields (type/siteName/locale/image) here
+ * so sub-pages keep a full social card with a preview image.
+ */
+export const pageOpenGraph = (opts: {
+  title: string;
+  description: string;
+  path: string;
+}): Metadata['openGraph'] => ({
+  type: 'website',
+  siteName: COMPANY.name,
+  locale: 'en_NA',
+  title: opts.title,
+  description: opts.description,
+  url: opts.path,
+  images: [{ url: '/opengraph-image.png', width: 1200, height: 630, alt: COMPANY.name }],
+});

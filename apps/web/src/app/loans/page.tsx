@@ -4,6 +4,7 @@ import { ArrowRight, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { PRODUCTS, REQUIREMENTS } from '@/lib/site-data';
+import { pageOpenGraph } from '@/lib/seo';
 
 const description =
   'Short-term, business and collateral-backed loans for Namibians — assessed responsibly, regulated by NAMFISA.';
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
   title: 'Loans',
   description,
   alternates: { canonical: '/loans' },
-  openGraph: { title: 'Loans · Raccoons Financial Services', description, url: '/loans' },
+  openGraph: pageOpenGraph({ title: 'Loans · Raccoons Financial Services', description, path: '/loans' }),
 };
 
 const LoansPage = () => {

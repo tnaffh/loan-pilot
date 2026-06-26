@@ -4,6 +4,7 @@ import { Mail, MapPin, MessageCircle, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { COMPANY } from '@/lib/site-data';
+import { pageOpenGraph } from '@/lib/seo';
 
 const description = 'Get in touch with Raccoons Financial Services in Windhoek, Namibia.';
 
@@ -11,7 +12,7 @@ export const metadata: Metadata = {
   title: 'Contact',
   description,
   alternates: { canonical: '/contact' },
-  openGraph: { title: 'Contact · Raccoons Financial Services', description, url: '/contact' },
+  openGraph: pageOpenGraph({ title: 'Contact · Raccoons Financial Services', description, path: '/contact' }),
 };
 
 const ContactPage = () => {
