@@ -41,6 +41,7 @@ import { StatusBadge } from '@/components/status-badge';
 import { TypeChip } from '@/components/type-chip';
 import { ActivityTimeline } from '@/components/activity-timeline';
 import { AuditLog } from '@/components/audit-log';
+import { BorrowerDocuments } from '@/components/borrowers/borrower-documents';
 import { EditLoanSheet } from '@/components/loans/edit-loan-sheet';
 import { useCommand } from '@/components/command-provider';
 import { ApiError, apiFetch } from '@/lib/api';
@@ -118,7 +119,14 @@ const LoanDetailPage = () => {
     <div className="space-y-6">
       <PageHeader
         title={`${data.type[0]?.toUpperCase()}${data.type.slice(1)} loan`}
-        description={`${data.borrower.firstName} ${data.borrower.lastName} · disbursed ${formatDate(data.disbursedAt)}`}
+        description={
+          <>
+            <Link href={`/borrowers/${data.borrower.id}`} className="font-medium hover:underline">
+              {data.borrower.firstName} {data.borrower.lastName}
+            </Link>{' '}
+            · disbursed {formatDate(data.disbursedAt)}
+          </>
+        }
         action={
           <div className="flex flex-wrap items-center gap-2">
             <StatusBadge value={data.status} />
@@ -369,6 +377,14 @@ const LoanDetailPage = () => {
               <ActivityTimeline events={data.activity} />
             </CardContent>
           </Card>
+
+          <BorrowerDocuments
+            borrowerId={data.borrower.id}
+            documents={data.borrowerDocuments}
+            canEdit={false}
+            onChanged={() => {}}
+            title="Borrower documents"
+          />
 
           {admin ? (
             <Card>

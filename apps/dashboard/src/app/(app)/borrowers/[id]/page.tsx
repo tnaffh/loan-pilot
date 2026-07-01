@@ -2,10 +2,19 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { Activity, FileSignature, FileText, GitMerge, Pencil, Wallet } from 'lucide-react';
-import { LoanStatus, UserRole, formatNad, isLender } from '@loan-pilot/domain';
+import { useParams, useRouter } from 'next/navigation';
+import {
+  Activity,
+  AlertTriangle,
+  FileSignature,
+  FileText,
+  GitMerge,
+  Pencil,
+  Wallet,
+} from 'lucide-react';
+import { LoanStatus, UserRole, formatNad, isLender, isUnverifiedId } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Table,
@@ -34,6 +43,7 @@ import type { BorrowerDetail } from '@/lib/types';
 
 const BorrowerDetailPage = () => {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const { user } = useAuth();
   const [editing, setEditing] = useState(false);
   const [merging, setMerging] = useState(false);
@@ -122,7 +132,20 @@ const BorrowerDetailPage = () => {
         </CardHeader>
         <CardContent>
           <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Kv label="ID number" value={data.idNumber} />
+            <div>
+              <dt className="text-xs text-muted-foreground">ID number</dt>
+              <dd className="flex items-center gap-2 text-sm font-medium">
+                {data.idNumber}
+                {isUnverifiedId(data.idNumber) ? (
+                  <Badge
+                    variant="destructive"
+                    title="This ID is a placeholder or fails validation — edit it or merge duplicate records."
+                  >
+                    <AlertTriangle /> Unverified ID
+                  </Badge>
+                ) : null}
+              </dd>
+            </div>
             <Kv label="Phone" value={data.phone} />
             <Kv label="Email" value={data.email || '—'} />
             <Kv label="Employer" value={data.employer} />
@@ -167,11 +190,13 @@ const BorrowerDetailPage = () => {
             </TableHeader>
             <TableBody>
               {data.loans.map((loan) => (
-                <TableRow key={loan.id}>
+                <TableRow
+                  key={loan.id}
+                  onClick={() => router.push(`/loans/${loan.id}`)}
+                  className="cursor-pointer"
+                >
                   <TableCell>
-                    <Link href={`/loans/${loan.id}`} className="hover:underline">
-                      <TypeChip type={loan.type} />
-                    </Link>
+                    <TypeChip type={loan.type} />
                   </TableCell>
                   <TableCell className="text-right tabular-nums">{formatNad(loan.principal)}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatNad(loan.total)}</TableCell>

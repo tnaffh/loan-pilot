@@ -5,6 +5,7 @@ import {
   LoanType,
   assessAffordability,
   buildApplicationActivity,
+  isPlaceholderId,
   toCents,
   type ActivityEvent,
   type CreateApplicationInput,
@@ -30,9 +31,21 @@ type ResolvedDocument = Omit<ApplicationWithDetail['documents'][number], 'url'> 
   url: string | null;
 };
 
+/** An existing borrower whose ID number matches the application — surfaced at
+ * review so the reviewer sees a returning borrower before approving (approval
+ * links to them automatically via the upsert in {@link LoansService}). */
+export interface MatchedBorrower {
+  id: string;
+  firstName: string;
+  lastName: string;
+  idNumber: string;
+  loanCount: number;
+}
+
 export type ApplicationDetail = Omit<ApplicationWithDetail, 'documents'> & {
   documents: ResolvedDocument[];
   activity: ActivityEvent[];
+  existingBorrower: MatchedBorrower | null;
 };
 
 export interface ApplicationDecision {
@@ -170,7 +183,46 @@ export class ApplicationsService {
         url: await this.storage.safeAccessUrl(document.url),
       })),
     );
-    return { ...application, documents, activity: buildApplicationActivity(application) };
+    return {
+      ...application,
+      documents,
+      activity: buildApplicationActivity(application),
+      existingBorrower: await this.matchExistingBorrower(tenantId, application.idNumber),
+    };
+  }
+
+  /**
+   * Find a borrower in the tenant whose ID number matches the application, so
+   * the review sheet can flag a returning borrower. Placeholder/blank IDs never
+   * match (they aren't real identifiers), avoiding false positives.
+   */
+  private async matchExistingBorrower(
+    tenantId: string,
+    idNumber: string,
+  ): Promise<MatchedBorrower | null> {
+    if (!idNumber || isPlaceholderId(idNumber)) {
+      return null;
+    }
+    const borrower = await this.prisma.borrower.findFirst({
+      where: { tenantId, idNumber },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        idNumber: true,
+        _count: { select: { loans: true } },
+      },
+    });
+    if (!borrower) {
+      return null;
+    }
+    return {
+      id: borrower.id,
+      firstName: borrower.firstName,
+      lastName: borrower.lastName,
+      idNumber: borrower.idNumber,
+      loanCount: borrower._count.loans,
+    };
   }
 
   /**

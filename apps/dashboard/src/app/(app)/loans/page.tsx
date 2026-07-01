@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Activity, AlertTriangle, Eye, Plus, Wallet } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
@@ -26,10 +27,16 @@ const baseColumns: ColumnDef<LoanRow>[] = [
     id: 'borrower',
     header: 'Borrower',
     accessorFn: (row) => `${row.borrower.firstName} ${row.borrower.lastName}`,
-    cell: ({ getValue }) => (
+    cell: ({ row, getValue }) => (
       <div className="flex items-center gap-3">
         <InitialsAvatar name={String(getValue())} />
-        <span className="font-medium">{String(getValue())}</span>
+        <Link
+          href={`/borrowers/${row.original.borrower.id}`}
+          className="font-medium hover:underline"
+          onClick={(event) => event.stopPropagation()}
+        >
+          {String(getValue())}
+        </Link>
       </div>
     ),
   },

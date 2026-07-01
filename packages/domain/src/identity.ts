@@ -86,6 +86,22 @@ export const isPlausibleId = (value: string): boolean => {
   return /^[A-Za-z0-9]{6,15}$/.test(compacted);
 };
 
+/**
+ * True for a synthetic placeholder ID minted during import when the source
+ * register had no real ID number (see `import-raccoons.ts`, `NOID-<slug>`).
+ * Such borrowers cannot be matched by ID, so intake dedup skips them and the
+ * UI flags them for manual cleanup.
+ */
+export const isPlaceholderId = (value: string): boolean => /^NOID-/i.test(value.trim());
+
+/**
+ * True when a stored ID cannot be trusted for dedup — a placeholder, blank, or
+ * otherwise implausible value. Used to badge legacy borrowers that predate ID
+ * validation so operators can correct or merge them.
+ */
+export const isUnverifiedId = (value: string): boolean =>
+  isPlaceholderId(value) || !isPlausibleId(value);
+
 /** Remove spaces and separators from a phone number for storage/comparison. */
 export const normalizePhone = (value: string): string => compact(value);
 

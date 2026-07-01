@@ -101,6 +101,15 @@ export interface ApplicationDetail extends ApplicationRow {
   decidedAt: string | null;
   documents: ApplicationDocument[];
   activity: ActivityEvent[];
+  existingBorrower: MatchedBorrower | null;
+}
+
+export interface MatchedBorrower {
+  id: string;
+  firstName: string;
+  lastName: string;
+  idNumber: string;
+  loanCount: number;
 }
 
 export interface BorrowerAddress {
@@ -199,6 +208,7 @@ export interface LoanDetail extends LoanRow {
   defaultInterest: number;
   overdueAmount: number;
   payoff: number;
+  borrowerDocuments: DocumentRow[];
 }
 
 export interface ExpenseRow {

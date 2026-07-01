@@ -4,7 +4,7 @@ export const PageHeader = ({
   action,
 }: {
   title: string;
-  description?: string;
+  description?: React.ReactNode;
   action?: React.ReactNode;
 }) => (
   <div className="mb-4 flex flex-wrap items-start justify-between gap-3">

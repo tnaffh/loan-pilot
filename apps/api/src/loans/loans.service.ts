@@ -28,6 +28,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService, type AuditEntry } from '../audit/audit.service';
 import { SettingsService } from '../settings/settings.service';
+import { DocumentsService, type DocumentView } from '../documents/documents.service';
 
 export type LoanWithBorrower = Prisma.LoanGetPayload<{
   include: { borrower: { select: { id: true; firstName: true; lastName: true } } };
@@ -47,6 +48,9 @@ export type LoanWithDetails = Prisma.LoanGetPayload<{
   defaultInterest: number;
   overdueAmount: number;
   payoff: number;
+  // The borrower's documents, resolved to openable URLs — shown read-only on the
+  // staff loan page (empty for the borrower's own portal view).
+  borrowerDocuments: DocumentView[];
 };
 
 export interface StatementLine {
@@ -125,6 +129,7 @@ export class LoansService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
     private readonly settings: SettingsService,
+    private readonly documents: DocumentsService,
   ) {}
 
   /**
@@ -268,6 +273,7 @@ export class LoansService {
       defaultInterest: arrears.defaultInterestCents,
       overdueAmount: arrears.overdueCents,
       payoff: loan.balance + arrears.defaultInterestCents,
+      borrowerDocuments: await this.documents.listForBorrower(tenantId, loan.borrowerId),
     };
   }
 
@@ -285,7 +291,8 @@ export class LoansService {
       throw new NotFoundException('Loan not found');
     }
     const arrears = await this.deriveArrears(loan.tenantId, loan.status, loan.schedule);
-    // Borrowers don't see the staff audit trail.
+    // Borrowers don't see the staff audit trail; documents are only surfaced on
+    // the staff loan page.
     return {
       ...loan,
       daysLate: arrears.daysLate,
@@ -294,6 +301,7 @@ export class LoansService {
       defaultInterest: arrears.defaultInterestCents,
       overdueAmount: arrears.overdueCents,
       payoff: loan.balance + arrears.defaultInterestCents,
+      borrowerDocuments: [],
     };
   }
 

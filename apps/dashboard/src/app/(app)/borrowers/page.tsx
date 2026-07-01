@@ -5,15 +5,17 @@ import { useRouter } from 'next/navigation';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Eye, Loader2, Plus, Users, Wallet, FileText } from 'lucide-react';
+import { AlertTriangle, Eye, Loader2, Plus, Users, Wallet, FileText } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
 import {
   EmploymentType,
   createBorrowerSchema,
   formatNad,
+  isUnverifiedId,
   type CreateBorrowerInput,
 } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Sheet,
   SheetContent,
@@ -72,7 +74,24 @@ const baseColumns: ColumnDef<BorrowerRow>[] = [
       </div>
     ),
   },
-  { id: 'id number', header: 'ID number', accessorKey: 'idNumber' },
+  {
+    id: 'id number',
+    header: 'ID number',
+    accessorKey: 'idNumber',
+    cell: ({ row }) => {
+      const value = row.original.idNumber;
+      return (
+        <div className="flex items-center gap-2">
+          <span className="tabular-nums">{value}</span>
+          {isUnverifiedId(value) ? (
+            <Badge variant="destructive" title="Placeholder or invalid ID — needs cleanup">
+              <AlertTriangle />
+            </Badge>
+          ) : null}
+        </div>
+      );
+    },
+  },
   {
     id: 'employer',
     header: 'Employer',

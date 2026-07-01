@@ -60,7 +60,9 @@ export const LoanQuickViewSheet = ({
           <>
             <SheetHeader>
               <SheetTitle className="flex items-center gap-2">
-                {data.borrower.firstName} {data.borrower.lastName}
+                <Link href={`/borrowers/${data.borrower.id}`} className="hover:underline">
+                  {data.borrower.firstName} {data.borrower.lastName}
+                </Link>
                 <StatusBadge value={data.status} />
               </SheetTitle>
               <SheetDescription>

@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { toast } from 'sonner';
-import { FileText, Loader2 } from 'lucide-react';
+import { ArrowUpRight, FileText, Loader2, UserCheck } from 'lucide-react';
 import { ApplicationStatus, formatNad } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import {
@@ -91,6 +92,25 @@ export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Pr
             </SheetHeader>
 
             <div className="space-y-5 px-4 pb-4">
+              {data.existingBorrower ? (
+                <Link
+                  href={`/borrowers/${data.existingBorrower.id}`}
+                  className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm hover:bg-amber-100 dark:border-amber-500/40 dark:bg-amber-500/10 dark:hover:bg-amber-500/20"
+                >
+                  <UserCheck className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                  <span className="min-w-0 flex-1">
+                    <span className="font-medium">Returning borrower</span> — this ID matches{' '}
+                    <span className="font-medium">
+                      {data.existingBorrower.firstName} {data.existingBorrower.lastName}
+                    </span>{' '}
+                    ({data.existingBorrower.idNumber}), {data.existingBorrower.loanCount} loan
+                    {data.existingBorrower.loanCount === 1 ? '' : 's'}. Approving links to this
+                    profile.
+                  </span>
+                  <ArrowUpRight className="mt-0.5 size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+                </Link>
+              ) : null}
+
               <div className="grid grid-cols-2 gap-3 rounded-lg border p-3">
                 <Kv label="Amount" value={formatNad(data.amount)} />
                 <Kv label="Term" value={`${data.termMonths} month(s)`} />
