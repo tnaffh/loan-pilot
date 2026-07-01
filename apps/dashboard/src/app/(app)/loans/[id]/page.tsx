@@ -42,6 +42,7 @@ import { TypeChip } from '@/components/type-chip';
 import { ActivityTimeline } from '@/components/activity-timeline';
 import { AuditLog } from '@/components/audit-log';
 import { BorrowerDocuments } from '@/components/borrowers/borrower-documents';
+import { LoanOpsCard } from '@/components/loans/loan-ops';
 import { EditLoanSheet } from '@/components/loans/edit-loan-sheet';
 import { useCommand } from '@/components/command-provider';
 import { ApiError, apiFetch } from '@/lib/api';
@@ -84,6 +85,7 @@ const LoanDetailPage = () => {
   const open = data.status === LoanStatus.Active || data.status === LoanStatus.Arrears;
   const lender = Boolean(user && isLender(user.role));
   const admin = Boolean(user && can(user, 'loans:manage'));
+  const canWrite = Boolean(user && can(user, 'loans:write'));
   const terminal =
     data.status === LoanStatus.Settled ||
     data.status === LoanStatus.WrittenOff ||
@@ -223,6 +225,8 @@ const LoanDetailPage = () => {
           />
         ) : null}
       </div>
+
+      {lender ? <LoanOpsCard loan={data} canEdit={canWrite} onChanged={refresh} /> : null}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

@@ -16,6 +16,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { StatusBadge } from '@/components/status-badge';
 import { TypeChip } from '@/components/type-chip';
 import { Kv } from '@/components/kv';
+import { CollexiaBadge, DisbursementBadge } from '@/components/loans/loan-ops';
 import { ActivityTimeline } from '@/components/activity-timeline';
 import { useApi } from '@/lib/use-api';
 import { formatDate } from '@/lib/format';
@@ -76,6 +77,11 @@ export const LoanQuickViewSheet = ({
                 <Kv label="Total repayable" value={formatNad(data.total)} />
                 <Kv label="Instalment" value={formatNad(data.instalment)} />
                 <Kv label="Next due" value={formatDate(data.nextDueAt)} />
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <DisbursementBadge released={data.fundsReleased} />
+                <CollexiaBadge status={data.collexiaStatus} />
               </div>
 
               <div className="space-y-1.5">

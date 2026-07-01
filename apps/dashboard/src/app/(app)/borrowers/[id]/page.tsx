@@ -151,6 +151,7 @@ const BorrowerDetailPage = () => {
             <Kv label="Employer" value={data.employer} />
             <Kv label="Occupation" value={data.occupation} />
             <Kv label="Monthly income" value={formatNad(data.monthlyIncome)} />
+            <Kv label="Collexia client no." value={data.collexiaClientNo ?? '—'} />
             {data.gender ? <Kv label="Gender" value={data.gender} /> : null}
             {data.payDay ? <Kv label="Pay day" value={data.payDay} /> : null}
           </dl>

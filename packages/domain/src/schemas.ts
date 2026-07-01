@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import {
   ApplicationStatus,
+  CollexiaStatus,
   EmploymentType,
   ExpenseKind,
   LoanStatus,
@@ -201,6 +202,9 @@ export const createBorrowerSchema = z.object({
   occupation: z.string().min(1, 'Occupation is required'),
   monthlyIncome: z.coerce.number().int().min(1, 'Monthly income is required'),
   employmentType: z.nativeEnum(EmploymentType),
+  // Collexia debt-order client reference (unique per tenant); usually captured
+  // after the client is first loaded, so optional at creation.
+  collexiaClientNo: z.string().max(50).optional(),
   bankAccount: bankAccountSchema,
 });
 export type CreateBorrowerInput = z.infer<typeof createBorrowerSchema>;
@@ -216,6 +220,8 @@ export const updateBorrowerSchema = createBorrowerSchema
     payDay: z.string().max(40).optional().or(z.literal('')),
     status: z.string().max(40).optional().or(z.literal('')),
     since: z.string().optional().or(z.literal('')),
+    // Empty string clears the Collexia reference.
+    collexiaClientNo: z.string().max(50).optional().or(z.literal('')),
   })
   .partial();
 export type UpdateBorrowerInput = z.infer<typeof updateBorrowerSchema>;
@@ -444,6 +450,18 @@ export const cancelLoanSchema = z.object({
   reason: z.string().min(3, 'A reason is required').max(500),
 });
 export type CancelLoanInput = z.infer<typeof cancelLoanSchema>;
+
+/** Mark whether the loan's funds have physically left the lender's account. */
+export const markDisbursementSchema = z.object({
+  released: z.boolean(),
+});
+export type MarkDisbursementInput = z.infer<typeof markDisbursementSchema>;
+
+/** Set the loan's Collexia debt-order loading state. */
+export const markCollexiaSchema = z.object({
+  status: z.nativeEnum(CollexiaStatus),
+});
+export type MarkCollexiaInput = z.infer<typeof markCollexiaSchema>;
 
 /** White-label branding returned by GET /api/tenants/me; bridges the Prisma row to the domain shape. */
 export const tenantBrandingSchema = z.object({

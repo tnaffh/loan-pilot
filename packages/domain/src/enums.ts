@@ -21,6 +21,17 @@ export enum LoanStatus {
   Closed = 'closed',
 }
 
+/**
+ * Whether a disbursed loan has been loaded onto Collexia for debt-order
+ * deductions. `pending` is the reminder state; `manual` means the client opted
+ * to pay outside the debt order.
+ */
+export enum CollexiaStatus {
+  Pending = 'pending',
+  Loaded = 'loaded',
+  Manual = 'manual',
+}
+
 export enum PaymentMethod {
   Eft = 'eft',
   Cash = 'cash',

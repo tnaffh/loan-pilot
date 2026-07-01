@@ -2,6 +2,7 @@ import type {
   ActivityEvent,
   AffordabilityResult,
   ApplicationStatus,
+  CollexiaStatus,
   EmploymentType,
   ExpenseKind,
   LoanStatus,
@@ -159,6 +160,7 @@ export interface BorrowerRow {
   employmentType: EmploymentType;
   gender: string | null;
   payDay: string | null;
+  collexiaClientNo: string | null;
   status: string;
   since: string;
   _count: { loans: number };
@@ -204,11 +206,21 @@ export interface LoanRow {
   note: string | null;
   disbursedAt: string | null;
   nextDueAt: string | null;
+  fundsReleased: boolean;
+  fundsReleasedAt: string | null;
+  collexiaStatus: CollexiaStatus;
+  collexiaMarkedAt: string | null;
   borrower: { id: string; firstName: string; lastName: string };
 }
 
 export interface LoanDetail extends LoanRow {
-  borrower: { id: string; firstName: string; lastName: string; idNumber: string };
+  borrower: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    idNumber: string;
+    collexiaClientNo: string | null;
+  };
   writeOffReason: string | null;
   cancelReason: string | null;
   closedAt: string | null;

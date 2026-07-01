@@ -1,6 +1,7 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type { $Enums, Loan, LoanApplication, Prisma } from '@prisma/client';
 import {
+  CollexiaStatus,
   LoanStatus,
   LoanType,
   RepaymentStatus,
@@ -19,6 +20,8 @@ import {
   type LoanFees,
   type LoanQuote,
   type LoanQuoteInput,
+  type MarkCollexiaInput,
+  type MarkDisbursementInput,
   type RecordRepaymentInput,
   type SessionUser,
   type SettleLoanInput,
@@ -36,7 +39,9 @@ export type LoanWithBorrower = Prisma.LoanGetPayload<{
 
 export type LoanWithDetails = Prisma.LoanGetPayload<{
   include: {
-    borrower: { select: { id: true; firstName: true; lastName: true; idNumber: true } };
+    borrower: {
+      select: { id: true; firstName: true; lastName: true; idNumber: true; collexiaClientNo: true };
+    };
     schedule: true;
     payments: true;
   };
@@ -256,7 +261,9 @@ export class LoansService {
     const loan = await this.prisma.loan.findFirst({
       where: { id, tenantId },
       include: {
-        borrower: { select: { id: true, firstName: true, lastName: true, idNumber: true } },
+        borrower: {
+          select: { id: true, firstName: true, lastName: true, idNumber: true, collexiaClientNo: true },
+        },
         schedule: { orderBy: { number: 'asc' } },
         payments: { orderBy: { paidAt: 'desc' } },
       },
@@ -282,7 +289,9 @@ export class LoansService {
     const loan = await this.prisma.loan.findFirst({
       where: { id, borrowerId },
       include: {
-        borrower: { select: { id: true, firstName: true, lastName: true, idNumber: true } },
+        borrower: {
+          select: { id: true, firstName: true, lastName: true, idNumber: true, collexiaClientNo: true },
+        },
         schedule: { orderBy: { number: 'asc' } },
         payments: { orderBy: { paidAt: 'desc' } },
       },
@@ -763,6 +772,72 @@ export class LoansService {
       );
       return updated;
     });
+  }
+
+  /** Mark whether the loan's funds have physically left the lender's account. */
+  async markDisbursement(
+    tenantId: string,
+    actor: SessionUser,
+    id: string,
+    input: MarkDisbursementInput,
+  ): Promise<Loan> {
+    const loan = await this.prisma.loan.findFirst({ where: { id, tenantId } });
+    if (!loan) {
+      throw new NotFoundException('Loan not found');
+    }
+    if (loan.fundsReleased === input.released) {
+      return loan;
+    }
+    const updated = await this.prisma.loan.update({
+      where: { id },
+      data: {
+        fundsReleased: input.released,
+        fundsReleasedAt: input.released ? (loan.fundsReleasedAt ?? new Date()) : null,
+      },
+    });
+    await this.audit.record(tenantId, actor, {
+      entity: 'loan',
+      entityId: id,
+      action: 'disbursement_updated',
+      changes: [
+        {
+          field: 'disbursedFromAccount',
+          from: loan.fundsReleased ? 'yes' : 'no',
+          to: input.released ? 'yes' : 'no',
+        },
+      ],
+    });
+    return updated;
+  }
+
+  /** Set the loan's Collexia debt-order loading state. */
+  async markCollexia(
+    tenantId: string,
+    actor: SessionUser,
+    id: string,
+    input: MarkCollexiaInput,
+  ): Promise<Loan> {
+    const loan = await this.prisma.loan.findFirst({ where: { id, tenantId } });
+    if (!loan) {
+      throw new NotFoundException('Loan not found');
+    }
+    if (loan.collexiaStatus === input.status) {
+      return loan;
+    }
+    const updated = await this.prisma.loan.update({
+      where: { id },
+      data: {
+        collexiaStatus: input.status,
+        collexiaMarkedAt: input.status === CollexiaStatus.Pending ? null : new Date(),
+      },
+    });
+    await this.audit.record(tenantId, actor, {
+      entity: 'loan',
+      entityId: id,
+      action: 'collexia_updated',
+      changes: [{ field: 'collexiaStatus', from: loan.collexiaStatus, to: input.status }],
+    });
+    return updated;
   }
 
   /** NAMFISA-compliant statement: every charge and payment with a running balance. */

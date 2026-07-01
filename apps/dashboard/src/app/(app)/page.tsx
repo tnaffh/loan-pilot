@@ -15,7 +15,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
-import { LoanStatus, can, formatNad, fromCents } from '@loan-pilot/domain';
+import { CollexiaStatus, LoanStatus, can, formatNad, fromCents } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatCard } from '@/components/stat-card';
+import { Badge } from '@/components/ui/badge';
 import { StatusBadge } from '@/components/status-badge';
 import { TypeChip } from '@/components/type-chip';
 import { InitialsAvatar } from '@/components/initials-avatar';
@@ -87,7 +88,45 @@ const LenderOverview = ({
     })
     .slice(0, 5);
 
+  const isOpen = (loan: LoanRow): boolean =>
+    loan.status === LoanStatus.Active ||
+    loan.status === LoanStatus.Arrears ||
+    loan.status === LoanStatus.PartlyPaid;
+  // Approved but funds not yet released.
+  const awaitingDisbursement = (loans ?? []).filter((loan) => isOpen(loan) && !loan.fundsReleased);
+  // Disbursed but not yet loaded on Collexia (or marked manual).
+  const awaitingCollexia = (loans ?? []).filter(
+    (loan) => isOpen(loan) && loan.fundsReleased && loan.collexiaStatus === CollexiaStatus.Pending,
+  );
+
   const latestApplications = (applications ?? []).slice(0, 4);
+
+  const reminderList = (items: LoanRow[], empty: string) =>
+    items.length === 0 ? (
+      <p className="px-4 py-6 text-sm text-muted-foreground">{empty}</p>
+    ) : (
+      <ul>
+        {items.slice(0, 6).map((loan) => (
+          <li key={loan.id}>
+            <button
+              type="button"
+              onClick={() => command.openLoanQuickView(loan.id)}
+              className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-muted"
+            >
+              <InitialsAvatar name={`${loan.borrower.firstName} ${loan.borrower.lastName}`} />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium">
+                  {loan.borrower.firstName} {loan.borrower.lastName}
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <TypeChip type={loan.type} /> {formatNad(loan.principal)}
+                </div>
+              </div>
+            </button>
+          </li>
+        ))}
+      </ul>
+    );
 
   const exportLoanBook = () => {
     const rows = (loans ?? []).map((loan) => [
@@ -261,6 +300,37 @@ const LenderOverview = ({
           </Card>
         ) : null}
       </div>
+
+      {awaitingDisbursement.length > 0 || awaitingCollexia.length > 0 ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                Awaiting disbursement
+                {awaitingDisbursement.length > 0 ? (
+                  <Badge variant="secondary">{awaitingDisbursement.length}</Badge>
+                ) : null}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-2">
+              {reminderList(awaitingDisbursement, 'All approved loans have been disbursed.')}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                Awaiting Collexia loading
+                {awaitingCollexia.length > 0 ? (
+                  <Badge variant="secondary">{awaitingCollexia.length}</Badge>
+                ) : null}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="px-2">
+              {reminderList(awaitingCollexia, 'Nothing waiting to be loaded.')}
+            </CardContent>
+          </Card>
+        </div>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[1.5fr_1fr]">
         <Card>

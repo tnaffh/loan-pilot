@@ -73,6 +73,7 @@ const borrowerAuditMap = (b: Borrower): Record<string, unknown> => ({
   employmentType: b.employmentType,
   gender: b.gender,
   payDay: b.payDay,
+  collexiaClientNo: b.collexiaClientNo,
   status: b.status,
   since: b.since.toISOString().slice(0, 10),
 });
@@ -126,6 +127,22 @@ const isDuplicateKeyError = (error: unknown): boolean =>
   error !== null &&
   'code' in error &&
   error.code === DUPLICATE_KEY_CODE;
+
+/** The columns named by a P2002 error, joined — lets us tell which unique
+ * constraint was violated (idNumber vs collexiaClientNo). */
+const duplicateConstraint = (error: unknown): string => {
+  if (typeof error !== 'object' || error === null || !('meta' in error)) return '';
+  const meta = error.meta;
+  if (typeof meta !== 'object' || meta === null || !('target' in meta)) return '';
+  const target = meta.target;
+  return Array.isArray(target) ? target.join(',') : String(target ?? '');
+};
+
+/** Map a borrower duplicate-key error to the right human message. */
+const borrowerDuplicateMessage = (error: unknown): string =>
+  duplicateConstraint(error).includes('collexia')
+    ? 'This Collexia client number is already assigned to another borrower'
+    : 'A borrower with this ID number already exists';
 
 @Injectable()
 export class BorrowersService {
@@ -267,13 +284,14 @@ export class BorrowersService {
           occupation: input.occupation,
           monthlyIncome: toCents(input.monthlyIncome),
           employmentType: input.employmentType,
+          collexiaClientNo: input.collexiaClientNo || null,
           addresses: { create: [{ ...addressData(input.address), isActive: true }] },
           bankAccounts: { create: [{ ...bankAccountData(input.bankAccount), isActive: true }] },
         },
       });
     } catch (error) {
       if (isDuplicateKeyError(error)) {
-        throw new ConflictException('A borrower with this ID number already exists');
+        throw new ConflictException(borrowerDuplicateMessage(error));
       }
       throw error;
     }
@@ -373,12 +391,13 @@ export class BorrowersService {
       throw new NotFoundException('Borrower not found');
     }
 
-    const { monthlyIncome, since, gender, payDay, status, ...rest } = input;
+    const { monthlyIncome, since, gender, payDay, status, collexiaClientNo, ...rest } = input;
     const data: Prisma.BorrowerUpdateInput = { ...rest };
     if (monthlyIncome !== undefined) data.monthlyIncome = toCents(monthlyIncome);
     if (since) data.since = new Date(since);
     if (gender !== undefined) data.gender = gender || null;
     if (payDay !== undefined) data.payDay = payDay || null;
+    if (collexiaClientNo !== undefined) data.collexiaClientNo = collexiaClientNo || null;
     if (status) data.status = status;
 
     let updated: Borrower;
@@ -386,7 +405,7 @@ export class BorrowersService {
       updated = await this.prisma.borrower.update({ where: { id }, data });
     } catch (error) {
       if (isDuplicateKeyError(error)) {
-        throw new ConflictException('A borrower with this ID number already exists');
+        throw new ConflictException(borrowerDuplicateMessage(error));
       }
       throw error;
     }

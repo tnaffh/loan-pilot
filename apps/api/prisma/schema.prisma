@@ -52,6 +52,12 @@ enum LoanStatus {
   closed
 }
 
+enum CollexiaStatus {
+  pending
+  loaded
+  manual
+}
+
 enum PaymentMethod {
   eft
   cash
@@ -279,6 +285,8 @@ model Borrower {
   gender         String?
   // Salary pay day; kept as the raw sheet value (e.g. "25" or "25/10/23").
   payDay         String?
+  // Collexia debt-order client reference; unique per tenant, set after loading.
+  collexiaClientNo String?
   status         String         @default("active")
   since          DateTime       @default(now())
   createdAt      DateTime       @default(now())
@@ -291,6 +299,7 @@ model Borrower {
   documents    Document[]
 
   @@unique([tenantId, idNumber])
+  @@unique([tenantId, collexiaClientNo])
   @@index([tenantId])
 }
 
@@ -374,6 +383,13 @@ model Loan {
   nextDueAt        DateTime?
   // When the loan left the active book (settled or written off).
   closedAt         DateTime?
+  // Operational payout confirmation: whether the funds have physically left the
+  // lender's account (separate from approval — a loan can be approved first).
+  fundsReleased    Boolean    @default(false)
+  fundsReleasedAt  DateTime?
+  // Collexia debt-order loading state (reminder to load disbursed loans).
+  collexiaStatus   CollexiaStatus @default(pending)
+  collexiaMarkedAt DateTime?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 

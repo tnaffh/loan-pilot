@@ -65,6 +65,10 @@ const seedLoanForBorrower = async (
       collateral: loan.collateral ?? null,
       daysLate: loan.daysLate ?? 0,
       disbursedAt,
+      // Demo loans are on the book (disbursed); Collexia stays 'pending' (default)
+      // so they surface in the loading reminder.
+      fundsReleased: true,
+      fundsReleasedAt: disbursedAt,
       nextDueAt: loan.status === LoanStatus.Settled ? null : addMonths(disbursedAt, loan.instalmentsPaid + 1),
       schedule: {
         create: loanQuote.schedule.map((item) => ({
@@ -210,6 +214,7 @@ const main = async (): Promise<void> => {
       employmentType: EmploymentType.CivilServant,
       bank: 'Bank Windhoek',
       accountType: 'Savings',
+      collexiaClientNo: 'CLX-100241',
     },
     {
       firstName: 'Trofimus',

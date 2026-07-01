@@ -17,6 +17,7 @@ import { MonthFilter, toMonthKey, useMonthOptions, ALL_MONTHS } from '@/componen
 import { DateRangeFilter, isInRange, type IsoRange } from '@/components/date-range-filter';
 import { StatStrip } from '@/components/stat-strip';
 import { DataTable } from '@/components/data-table';
+import { CollexiaBadge, DisbursementBadge } from '@/components/loans/loan-ops';
 import { useCommand } from '@/components/command-provider';
 import { useApi } from '@/lib/use-api';
 import { formatDate } from '@/lib/format';
@@ -97,6 +98,17 @@ const baseColumns: ColumnDef<LoanRow>[] = [
     header: 'Status',
     accessorKey: 'status',
     cell: ({ row }) => <StatusBadge value={row.original.status} />,
+  },
+  {
+    id: 'ops',
+    header: 'Disbursement',
+    enableSorting: false,
+    cell: ({ row }) => (
+      <div className="flex flex-wrap gap-1">
+        <DisbursementBadge released={row.original.fundsReleased} />
+        <CollexiaBadge status={row.original.collexiaStatus} />
+      </div>
+    ),
   },
 ];
 

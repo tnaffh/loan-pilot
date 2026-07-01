@@ -93,6 +93,14 @@ const baseColumns: ColumnDef<BorrowerRow>[] = [
     },
   },
   {
+    id: 'collexia',
+    header: 'Collexia no.',
+    accessorKey: 'collexiaClientNo',
+    cell: ({ row }) => (
+      <span className="text-muted-foreground">{row.original.collexiaClientNo ?? '—'}</span>
+    ),
+  },
+  {
     id: 'employer',
     header: 'Employer',
     accessorKey: 'employer',

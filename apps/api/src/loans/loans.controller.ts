@@ -15,6 +15,8 @@ import {
   createLoanSchema,
   isBorrower,
   loanQuoteSchema,
+  markCollexiaSchema,
+  markDisbursementSchema,
   recordRepaymentSchema,
   settleLoanSchema,
   updateLoanSchema,
@@ -23,6 +25,8 @@ import {
   type CreateLoanInput,
   type LoanQuote,
   type LoanQuoteInput,
+  type MarkCollexiaInput,
+  type MarkDisbursementInput,
   type RecordRepaymentInput,
   type SessionUser,
   type SettleLoanInput,
@@ -143,6 +147,26 @@ export class LoansController {
     @Body(new ZodValidationPipe(writeOffLoanSchema)) body: WriteOffLoanInput,
   ): Promise<Loan> {
     return this.loans.writeOff(requireTenantId(user), id, body);
+  }
+
+  @Patch(':id/disbursement')
+  @RequirePermissions('loans:write')
+  markDisbursement(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(markDisbursementSchema)) body: MarkDisbursementInput,
+  ): Promise<Loan> {
+    return this.loans.markDisbursement(requireTenantId(user), user, id, body);
+  }
+
+  @Patch(':id/collexia')
+  @RequirePermissions('loans:write')
+  markCollexia(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(markCollexiaSchema)) body: MarkCollexiaInput,
+  ): Promise<Loan> {
+    return this.loans.markCollexia(requireTenantId(user), user, id, body);
   }
 
   @Get(':id/statement')

@@ -313,6 +313,9 @@ const main = async (): Promise<void> => {
         originMonth: row.originMonth,
         externalRef: row.loanKey,
         disbursedAt,
+        // Historical loans were already paid out; Collexia stays 'pending' for review.
+        fundsReleased: true,
+        fundsReleasedAt: disbursedAt,
         nextDueAt,
       },
     });

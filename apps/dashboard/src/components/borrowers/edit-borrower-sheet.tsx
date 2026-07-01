@@ -67,6 +67,7 @@ export const EditBorrowerSheet = ({ borrower, open, onOpenChange, onSaved }: Pro
     employmentType: borrower.employmentType,
     gender: borrower.gender ?? '',
     payDay: borrower.payDay ?? '',
+    collexiaClientNo: borrower.collexiaClientNo ?? '',
     status: borrower.status,
     since: borrower.since ? borrower.since.slice(0, 10) : '',
   });
@@ -181,6 +182,14 @@ export const EditBorrowerSheet = ({ borrower, open, onOpenChange, onSaved }: Pro
             </FormField>
             <FormField label="Borrower since" htmlFor="since">
               <Input id="since" type="date" {...register('since')} />
+            </FormField>
+            <FormField
+              label="Collexia client no."
+              htmlFor="collexiaClientNo"
+              error={errors.collexiaClientNo?.message}
+              optional
+            >
+              <Input id="collexiaClientNo" {...register('collexiaClientNo')} />
             </FormField>
           </div>
           <SheetFooter className="px-0">
