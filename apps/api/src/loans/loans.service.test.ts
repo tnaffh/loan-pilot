@@ -12,6 +12,7 @@ import { LoansService } from './loans.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { SettingsService } from '../settings/settings.service';
+import { DocumentsService } from '../documents/documents.service';
 
 const auditMock = {
   record: jest.fn(),
@@ -86,6 +87,7 @@ describe('LoansService', () => {
         { provide: PrismaService, useValue: prismaMock },
         { provide: AuditService, useValue: auditMock },
         { provide: SettingsService, useValue: settingsMock },
+        { provide: DocumentsService, useValue: { listForBorrower: jest.fn().mockResolvedValue([]) } },
       ],
     }).compile();
 
@@ -278,6 +280,8 @@ describe('LoansService', () => {
     role: UserRole.LenderAdmin,
     tenantId: 'tenant_1',
     tenantSlug: 'rfs',
+    roleId: 'role_admin',
+    permissions: [],
   };
 
   const loanRow = (over: Record<string, unknown> = {}) => ({

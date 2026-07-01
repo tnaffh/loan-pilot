@@ -7,6 +7,8 @@ import {
   LoanType,
   PlanId,
   RepaymentStatus,
+  SYSTEM_ROLE_LABELS,
+  SYSTEM_ROLE_PERMISSIONS,
   TenantStatus,
   UserRole,
   addMonths,
@@ -77,6 +79,31 @@ const seedLoanForBorrower = async (
   });
 };
 
+/** Seed the two built-in system roles for a tenant, from the domain catalog. */
+const seedSystemRoles = async (
+  tenantId: string,
+): Promise<{ adminId: string; staffId: string }> => {
+  const admin = await prisma.role.create({
+    data: {
+      tenantId,
+      name: SYSTEM_ROLE_LABELS.administrator,
+      key: 'administrator',
+      isSystem: true,
+      permissions: SYSTEM_ROLE_PERMISSIONS.administrator,
+    },
+  });
+  const staff = await prisma.role.create({
+    data: {
+      tenantId,
+      name: SYSTEM_ROLE_LABELS.staff,
+      key: 'staff',
+      isSystem: true,
+      permissions: SYSTEM_ROLE_PERMISSIONS.staff,
+    },
+  });
+  return { adminId: admin.id, staffId: staff.id };
+};
+
 const main = async (): Promise<void> => {
   // Clean slate for a deterministic dev seed.
   await prisma.repaymentScheduleItem.deleteMany();
@@ -93,6 +120,8 @@ const main = async (): Promise<void> => {
   await prisma.tenantSettings.deleteMany();
   await prisma.loanProduct.deleteMany();
   await prisma.user.deleteMany();
+  // Roles are tenant-scoped (FK RESTRICT) — clear after users, before tenants.
+  await prisma.role.deleteMany();
   // Borrower delete cascades to its addresses + bank accounts.
   await prisma.borrower.deleteMany();
   await prisma.tenant.deleteMany();
@@ -135,6 +164,11 @@ const main = async (): Promise<void> => {
     ],
   });
 
+  // Built-in roles for every tenant; keep the rfs ids to link its seeded users.
+  const rfsRoles = await seedSystemRoles(rfs.id);
+  const otherTenants = await prisma.tenant.findMany({ where: { slug: { in: ['kala', 'namib'] } } });
+  await Promise.all(otherTenants.map((tenant) => seedSystemRoles(tenant.id)));
+
   await prisma.user.createMany({
     data: [
       {
@@ -149,6 +183,7 @@ const main = async (): Promise<void> => {
         role: UserRole.LenderAdmin,
         passwordHash: DEV_PASSWORD_HASH,
         tenantId: rfs.id,
+        roleId: rfsRoles.adminId,
       },
       {
         email: 'staff@raccoons.na',
@@ -156,6 +191,7 @@ const main = async (): Promise<void> => {
         role: UserRole.LenderStaff,
         passwordHash: DEV_PASSWORD_HASH,
         tenantId: rfs.id,
+        roleId: rfsRoles.staffId,
       },
     ],
   });

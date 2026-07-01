@@ -15,6 +15,8 @@ describe('AuditService', () => {
     role: UserRole.LenderAdmin,
     tenantId: 'tenant_1',
     tenantSlug: 'rfs',
+    roleId: 'role_admin',
+    permissions: [],
   };
 
   beforeEach(async () => {

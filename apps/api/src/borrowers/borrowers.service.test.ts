@@ -65,6 +65,8 @@ describe('BorrowersService', () => {
     role: UserRole.LenderAdmin,
     tenantId: 'tenant_1',
     tenantSlug: 'rfs',
+    roleId: 'role_admin',
+    permissions: [],
   };
 
   const borrower = (over: Record<string, unknown> = {}) => ({

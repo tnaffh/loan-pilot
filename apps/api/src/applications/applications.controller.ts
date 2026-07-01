@@ -11,7 +11,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
-  UserRole,
   createApplicationSchema,
   fromCents,
   updateApplicationStatusSchema,
@@ -23,8 +22,8 @@ import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { requireTenantId } from '../common/tenant';
 import { TenantsService } from '../tenants/tenants.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import {
   ApplicationsService,
@@ -75,8 +74,8 @@ export class ApplicationsController {
   /** Loan-officer-captured application — the tenant comes from the session. */
   @Post('internal')
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('applications:write')
   async createInternal(
     @CurrentUser() user: SessionUser,
     @Body(new ZodValidationPipe(createApplicationSchema)) body: CreateApplicationInput,
@@ -101,22 +100,22 @@ export class ApplicationsController {
   }
 
   @Get()
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('applications:read')
   list(@CurrentUser() user: SessionUser): Promise<ApplicationWithReferences[]> {
     return this.applications.findAllForTenant(requireTenantId(user));
   }
 
   @Get(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('applications:read')
   detail(@CurrentUser() user: SessionUser, @Param('id') id: string): Promise<ApplicationDetail> {
     return this.applications.findOneForTenant(requireTenantId(user), id);
   }
 
   @Patch(':id/status')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @RequirePermissions('applications:decide')
   updateStatus(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,

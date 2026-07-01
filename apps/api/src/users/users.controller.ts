@@ -11,7 +11,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
-  UserRole,
   inviteUserSchema,
   updateUserSchema,
   type InviteUserInput,
@@ -20,14 +19,14 @@ import {
 } from '@loan-pilot/domain';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { UsersService, type UserRow } from './users.service';
 
 @Controller('users')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.LenderAdmin, UserRole.Platform)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@RequirePermissions('users:manage')
 export class UsersController {
   constructor(private readonly users: UsersService) {}
 

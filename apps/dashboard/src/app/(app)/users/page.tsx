@@ -1,18 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Copy, Loader2, Mail, Plus, Trash2 } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
-import {
-  UserRole,
-  UserStatus,
-  assignableRoles,
-  inviteUserSchema,
-  type InviteUserInput,
-} from '@loan-pilot/domain';
+import { UserRole, UserStatus, isPlatform } from '@loan-pilot/domain';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -51,7 +43,7 @@ import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
 import { formatDate } from '@/lib/format';
-import type { UserRow } from '@/lib/types';
+import type { RoleRow, UserRow } from '@/lib/types';
 
 const ROLE_LABELS: Record<string, string> = {
   [UserRole.Platform]: 'Platform',
@@ -60,54 +52,55 @@ const ROLE_LABELS: Record<string, string> = {
   [UserRole.Borrower]: 'Borrower',
 };
 
-const isInviteField = (path: string): path is keyof InviteUserInput => path in inviteUserSchema.shape;
-
 const InviteSheet = ({
-  actorRole,
+  platformActor,
+  roles,
   onInvited,
 }: {
-  actorRole: UserRole;
+  platformActor: boolean;
+  roles: RoleRow[];
   onInvited: (result: { email: string; acceptUrl: string }) => void;
 }) => {
   const { token } = useAuth();
   const [open, setOpen] = useState(false);
-  const roles = assignableRoles(actorRole);
-  // Narrow default that satisfies inviteUserSchema's role union.
-  const defaultRole = actorRole === UserRole.Platform ? UserRole.Platform : UserRole.LenderStaff;
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [roleId, setRoleId] = useState('');
+  const [busy, setBusy] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setError,
-    formState: { errors, isSubmitting },
-  } = useForm<InviteUserInput>({
-    resolver: zodResolver(inviteUserSchema),
-    defaultValues: { name: '', email: '', role: defaultRole },
-  });
+  const effectiveRoleId = roleId || roles[0]?.id || '';
 
-  const onSubmit = handleSubmit(async (values) => {
+  const submit = async () => {
+    if (!name.trim() || !email.trim()) {
+      toast.error('Name and email are required');
+      return;
+    }
+    if (!platformActor && !effectiveRoleId) {
+      toast.error('Select a role');
+      return;
+    }
+    setBusy(true);
     try {
+      const body = platformActor
+        ? { name, email }
+        : { name, email, roleId: effectiveRoleId };
       const result = await apiFetch<{ acceptUrl: string }>('/users/invite', {
         method: 'POST',
-        body: values,
+        body,
         token,
       });
-      toast.success(`Invitation sent to ${values.email}`);
-      reset({ name: '', email: '', role: defaultRole });
+      toast.success(`Invitation sent to ${email}`);
+      setName('');
+      setEmail('');
+      setRoleId('');
       setOpen(false);
-      onInvited({ email: values.email, acceptUrl: result.acceptUrl });
+      onInvited({ email, acceptUrl: result.acceptUrl });
     } catch (error) {
-      if (error instanceof ApiError) {
-        error.issues.forEach((issue) => {
-          if (isInviteField(issue.path)) setError(issue.path, { message: issue.message });
-        });
-        toast.error(error.message);
-      } else {
-        toast.error('Something went wrong');
-      }
+      toast.error(error instanceof ApiError ? error.message : 'Something went wrong');
+    } finally {
+      setBusy(false);
     }
-  });
+  };
 
   return (
     <>
@@ -121,32 +114,44 @@ const InviteSheet = ({
             <SheetTitle>Invite a user</SheetTitle>
             <SheetDescription>They receive an email link to set a password and sign in.</SheetDescription>
           </SheetHeader>
-          <form onSubmit={onSubmit} className="space-y-4 px-4" noValidate>
-            <FormField label="Full name" htmlFor="name" error={errors.name?.message}>
-              <Input id="name" {...register('name')} />
+          <div className="space-y-4 px-4">
+            <FormField label="Full name" htmlFor="name">
+              <Input id="name" value={name} onChange={(event) => setName(event.target.value)} />
             </FormField>
-            <FormField label="Email" htmlFor="email" error={errors.email?.message}>
-              <Input id="email" type="email" {...register('email')} />
+            <FormField label="Email" htmlFor="email">
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
             </FormField>
-            <FormField label="Role" htmlFor="role" error={errors.role?.message}>
-              <select id="role" className={selectClass} {...register('role')}>
-                {roles.map((role) => (
-                  <option key={role} value={role}>
-                    {ROLE_LABELS[role]}
-                  </option>
-                ))}
-              </select>
-            </FormField>
+            {platformActor ? null : (
+              <FormField label="Role" htmlFor="role">
+                <select
+                  id="role"
+                  className={selectClass}
+                  value={effectiveRoleId}
+                  onChange={(event) => setRoleId(event.target.value)}
+                >
+                  {roles.map((role) => (
+                    <option key={role.id} value={role.id}>
+                      {role.name}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+            )}
             <SheetFooter className="px-0">
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? <Loader2 className="animate-spin" /> : null}
+              <Button onClick={submit} disabled={busy}>
+                {busy ? <Loader2 className="animate-spin" /> : null}
                 Send invitation
               </Button>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
+              <Button variant="outline" onClick={() => setOpen(false)} disabled={busy}>
                 Cancel
               </Button>
             </SheetFooter>
-          </form>
+          </div>
         </SheetContent>
       </Sheet>
     </>
@@ -154,27 +159,28 @@ const InviteSheet = ({
 };
 
 const EditSheet = ({
-  actorRole,
+  platformActor,
+  roles,
   target,
   onOpenChange,
   onSaved,
 }: {
-  actorRole: UserRole;
+  platformActor: boolean;
+  roles: RoleRow[];
   target: UserRow | null;
   onOpenChange: (open: boolean) => void;
   onSaved: () => void;
 }) => {
   const { token } = useAuth();
-  const [role, setRole] = useState<string>(UserRole.LenderStaff);
+  const [roleId, setRoleId] = useState<string>('');
   const [status, setStatus] = useState<string>(UserStatus.Active);
   const [busy, setBusy] = useState(false);
-  const roles = assignableRoles(actorRole);
 
   // Sync local state whenever a different user is opened.
   const [syncId, setSyncId] = useState<string | null>(null);
   if (target && target.id !== syncId) {
     setSyncId(target.id);
-    setRole(target.role);
+    setRoleId(target.roleId ?? '');
     setStatus(target.status);
   }
 
@@ -182,7 +188,8 @@ const EditSheet = ({
     if (!target) return;
     setBusy(true);
     try {
-      await apiFetch(`/users/${target.id}`, { method: 'PATCH', body: { role, status }, token });
+      const body = platformActor ? { status } : { roleId: roleId || undefined, status };
+      await apiFetch(`/users/${target.id}`, { method: 'PATCH', body, token });
       toast.success('User updated');
       onOpenChange(false);
       onSaved();
@@ -203,20 +210,22 @@ const EditSheet = ({
               <SheetDescription>{target.email}</SheetDescription>
             </SheetHeader>
             <div className="space-y-4 px-4">
-              <FormField label="Role" htmlFor="edit-role">
-                <select
-                  id="edit-role"
-                  className={selectClass}
-                  value={role}
-                  onChange={(event) => setRole(event.target.value)}
-                >
-                  {roles.map((value) => (
-                    <option key={value} value={value}>
-                      {ROLE_LABELS[value]}
-                    </option>
-                  ))}
-                </select>
-              </FormField>
+              {platformActor ? null : (
+                <FormField label="Role" htmlFor="edit-role">
+                  <select
+                    id="edit-role"
+                    className={selectClass}
+                    value={roleId}
+                    onChange={(event) => setRoleId(event.target.value)}
+                  >
+                    {roles.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </select>
+                </FormField>
+              )}
               <FormField label="Status" htmlFor="edit-status">
                 <select
                   id="edit-status"
@@ -251,12 +260,13 @@ const EditSheet = ({
 const UsersPage = () => {
   const { user, token } = useAuth();
   const { data, loading, error, refresh } = useApi<UserRow[]>('/users');
+  const platformActor = user ? isPlatform(user.role) : false;
+  // Platform operators manage platform operators (no tenant roles to assign).
+  const { data: roles } = useApi<RoleRow[]>(platformActor ? null : '/roles');
   const [editing, setEditing] = useState<UserRow | null>(null);
   const [removing, setRemoving] = useState<UserRow | null>(null);
   const [inviteResult, setInviteResult] = useState<{ email: string; acceptUrl: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  const actorRole = user?.role ?? UserRole.LenderStaff;
 
   const resend = async (row: UserRow) => {
     try {
@@ -305,8 +315,12 @@ const UsersPage = () => {
       {
         id: 'role',
         header: 'Role',
-        accessorKey: 'role',
-        cell: ({ row }) => <Badge variant="outline">{ROLE_LABELS[row.original.role] ?? row.original.role}</Badge>,
+        accessorFn: (row) => row.roleName ?? ROLE_LABELS[row.role] ?? row.role,
+        cell: ({ row }) => (
+          <Badge variant="outline">
+            {row.original.roleName ?? ROLE_LABELS[row.original.role] ?? row.original.role}
+          </Badge>
+        ),
       },
       {
         id: 'status',
@@ -386,7 +400,9 @@ const UsersPage = () => {
       <PageHeader
         title="Users"
         description="Invite teammates and manage their roles and access"
-        action={<InviteSheet actorRole={actorRole} onInvited={setInviteResult} />}
+        action={
+          <InviteSheet platformActor={platformActor} roles={roles ?? []} onInvited={setInviteResult} />
+        }
       />
 
       {loading ? (
@@ -403,7 +419,8 @@ const UsersPage = () => {
       )}
 
       <EditSheet
-        actorRole={actorRole}
+        platformActor={platformActor}
+        roles={roles ?? []}
         target={editing}
         onOpenChange={(open) => (open ? null : setEditing(null))}
         onSaved={refresh}

@@ -126,6 +126,7 @@ model Tenant {
   auditEvents  AuditEvent[]
   settings     TenantSettings?
   products     LoanProduct[]
+  roles        Role[]
 }
 
 /**
@@ -211,6 +212,9 @@ model User {
   // when role = borrower, link to the borrower profile
   borrowerId   String?    @unique
   borrower     Borrower?  @relation(fields: [borrowerId], references: [id])
+  // Custom role carrying granular permissions (lender users; null for platform/borrower).
+  roleId       String?
+  customRole   Role?      @relation(fields: [roleId], references: [id])
   invitedById  String?
   // Single-use, hashed tokens (sha256) for invite acceptance and password reset.
   inviteTokenHash String?
@@ -222,6 +226,27 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
+  @@index([tenantId])
+  @@index([roleId])
+}
+
+model Role {
+  id        String   @id @default(cuid())
+  tenantId  String
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  name      String
+  // Fixed catalog keys from @loan-pilot/domain; validated in the service, not the DB.
+  permissions String[] @default([])
+  // Built-in roles (administrator | staff) seeded per tenant; can't be deleted/renamed.
+  isSystem  Boolean  @default(false)
+  // 'administrator' | 'staff' for system roles; null for custom roles.
+  key       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users User[]
+
+  @@unique([tenantId, name])
   @@index([tenantId])
 }
 

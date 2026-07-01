@@ -9,7 +9,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
-  UserRole,
   createExpenseSchema,
   type CreateExpenseInput,
   type SessionUser,
@@ -18,31 +17,31 @@ import type { Expense } from '@prisma/client';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { requireTenantId } from '../common/tenant';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { ExpensesService, type ExpenseTotals } from './expenses.service';
 
 @Controller('expenses')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class ExpensesController {
   constructor(private readonly expenses: ExpensesService) {}
 
   @Get()
-  @Roles(UserRole.LenderAdmin)
+  @RequirePermissions('finance:read')
   list(@CurrentUser() user: SessionUser, @Query('period') period?: string): Promise<Expense[]> {
     return this.expenses.findAllForTenant(requireTenantId(user), period);
   }
 
   @Get('totals')
-  @Roles(UserRole.LenderAdmin)
+  @RequirePermissions('finance:read')
   totals(@CurrentUser() user: SessionUser): Promise<ExpenseTotals> {
     return this.expenses.totals(requireTenantId(user));
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @Roles(UserRole.LenderAdmin)
+  @RequirePermissions('finance:write')
   create(
     @CurrentUser() user: SessionUser,
     @Body(new ZodValidationPipe(createExpenseSchema)) body: CreateExpenseInput,

@@ -9,7 +9,6 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
-  UserRole,
   createIncomeSchema,
   type CreateIncomeInput,
   type SessionUser,
@@ -18,31 +17,31 @@ import type { Income } from '@prisma/client';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { requireTenantId } from '../common/tenant';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { IncomeService, type IncomeTotals } from './income.service';
 
 @Controller('income')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class IncomeController {
   constructor(private readonly income: IncomeService) {}
 
   @Get()
-  @Roles(UserRole.LenderAdmin)
+  @RequirePermissions('finance:read')
   list(@CurrentUser() user: SessionUser, @Query('period') period?: string): Promise<Income[]> {
     return this.income.findAllForTenant(requireTenantId(user), period);
   }
 
   @Get('totals')
-  @Roles(UserRole.LenderAdmin)
+  @RequirePermissions('finance:read')
   totals(@CurrentUser() user: SessionUser): Promise<IncomeTotals> {
     return this.income.totals(requireTenantId(user));
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @Roles(UserRole.LenderAdmin)
+  @RequirePermissions('finance:write')
   create(
     @CurrentUser() user: SessionUser,
     @Body(new ZodValidationPipe(createIncomeSchema)) body: CreateIncomeInput,

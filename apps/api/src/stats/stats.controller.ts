@@ -1,8 +1,8 @@
 import { Controller, Get, UseGuards } from '@nestjs/common';
-import { UserRole, type SessionUser } from '@loan-pilot/domain';
+import { hasPermission, type SessionUser } from '@loan-pilot/domain';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { requireTenantId } from '../common/tenant';
 import { StatsService, type LenderSeries, type OverviewStats } from './stats.service';
@@ -18,9 +18,9 @@ export class StatsController {
   }
 
   @Get('series')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  @UseGuards(PermissionsGuard)
+  @RequirePermissions('reports:read')
   series(@CurrentUser() user: SessionUser): Promise<LenderSeries> {
-    return this.stats.lenderSeries(requireTenantId(user), user.role === UserRole.LenderAdmin);
+    return this.stats.lenderSeries(requireTenantId(user), hasPermission(user, 'finance:read'));
   }
 }

@@ -12,7 +12,7 @@ import {
   Pencil,
   Wallet,
 } from 'lucide-react';
-import { LoanStatus, UserRole, formatNad, isLender, isUnverifiedId } from '@loan-pilot/domain';
+import { LoanStatus, can, formatNad, isUnverifiedId } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -50,8 +50,8 @@ const BorrowerDetailPage = () => {
   const { data, loading, error, refresh } = useApi<BorrowerDetail>(
     params.id ? `/borrowers/${params.id}` : null,
   );
-  const canEdit = Boolean(user && isLender(user.role));
-  const canMerge = user?.role === UserRole.LenderAdmin;
+  const canEdit = Boolean(user && can(user, 'borrowers:write'));
+  const canMerge = Boolean(user && can(user, 'borrowers:manage'));
 
   if (loading || !data) {
     return (

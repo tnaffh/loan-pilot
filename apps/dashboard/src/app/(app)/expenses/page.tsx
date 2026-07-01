@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { ArrowDownCircle, ArrowUpCircle, Loader2, Plus, Wallet } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { ExpenseKind, UserRole, formatNad, fromCents } from '@loan-pilot/domain';
+import { ExpenseKind, can, formatNad, fromCents } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -262,7 +262,7 @@ const capitalColumns: ColumnDef<InvestmentRow>[] = [
 const FinancePage = () => {
   const { user } = useAuth();
   const router = useRouter();
-  const admin = user?.role === UserRole.LenderAdmin;
+  const admin = Boolean(user && can(user, 'finance:read'));
   const { data: stats } = useApi<OverviewStats>('/stats/overview');
   const { data: expenses, loading } = useApi<ExpenseRow[]>('/expenses');
   const { data: income } = useApi<IncomeRow[]>('/income');

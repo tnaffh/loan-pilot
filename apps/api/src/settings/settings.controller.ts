@@ -12,7 +12,6 @@ import {
 } from '@nestjs/common';
 import type { LoanProduct, TenantSettings } from '@prisma/client';
 import {
-  UserRole,
   feeSettingsSchema,
   loanProductSchema,
   openingBalanceSchema,
@@ -26,24 +25,24 @@ import {
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { requireTenantId } from '../common/tenant';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { SettingsService, type LevyReport } from './settings.service';
 
 @Controller('settings')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class SettingsController {
   constructor(private readonly settings: SettingsService) {}
 
   @Get('fees')
-  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  @RequirePermissions('settings:read')
   getFees(@CurrentUser() user: SessionUser): Promise<TenantSettings> {
     return this.settings.getFeeSettings(requireTenantId(user));
   }
 
   @Patch('fees')
-  @Roles(UserRole.LenderAdmin)
+  @RequirePermissions('settings:write')
   updateFees(
     @CurrentUser() user: SessionUser,
     @Body(new ZodValidationPipe(feeSettingsSchema)) body: FeeSettingsInput,
@@ -52,7 +51,7 @@ export class SettingsController {
   }
 
   @Patch('opening-balance')
-  @Roles(UserRole.LenderAdmin)
+  @RequirePermissions('settings:write')
   updateOpeningBalance(
     @CurrentUser() user: SessionUser,
     @Body(new ZodValidationPipe(openingBalanceSchema)) body: OpeningBalanceInput,
@@ -61,14 +60,14 @@ export class SettingsController {
   }
 
   @Get('products')
-  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  @RequirePermissions('settings:read')
   listProducts(@CurrentUser() user: SessionUser): Promise<LoanProduct[]> {
     return this.settings.listProducts(requireTenantId(user));
   }
 
   @Post('products')
   @HttpCode(HttpStatus.CREATED)
-  @Roles(UserRole.LenderAdmin)
+  @RequirePermissions('settings:write')
   createProduct(
     @CurrentUser() user: SessionUser,
     @Body(new ZodValidationPipe(loanProductSchema)) body: LoanProductInput,
@@ -77,7 +76,7 @@ export class SettingsController {
   }
 
   @Patch('products/:id')
-  @Roles(UserRole.LenderAdmin)
+  @RequirePermissions('settings:write')
   updateProduct(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
@@ -87,7 +86,7 @@ export class SettingsController {
   }
 
   @Delete('products/:id')
-  @Roles(UserRole.LenderAdmin)
+  @RequirePermissions('settings:write')
   deleteProduct(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
@@ -96,7 +95,7 @@ export class SettingsController {
   }
 
   @Get('levies')
-  @Roles(UserRole.LenderAdmin)
+  @RequirePermissions('finance:read')
   levies(@CurrentUser() user: SessionUser): Promise<LevyReport> {
     return this.settings.leviesReport(requireTenantId(user));
   }

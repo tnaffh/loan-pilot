@@ -10,6 +10,7 @@ import { ApplicationsService } from './applications.service';
 import { LoansService } from '../loans/loans.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../documents/storage.service';
+import { DocumentsService } from '../documents/documents.service';
 import { AuditService } from '../audit/audit.service';
 import { SettingsService } from '../settings/settings.service';
 
@@ -68,6 +69,7 @@ describe('ApplicationsService', () => {
         LoansService,
         { provide: PrismaService, useValue: prismaMock },
         { provide: StorageService, useValue: { accessUrl: jest.fn(), save: jest.fn() } },
+        { provide: DocumentsService, useValue: { listForBorrower: jest.fn().mockResolvedValue([]) } },
         {
           provide: AuditService,
           useValue: { record: jest.fn(), diff: jest.fn().mockReturnValue([]), listFor: jest.fn() },

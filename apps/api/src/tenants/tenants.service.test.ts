@@ -30,6 +30,8 @@ describe('TenantsService.brandingForUser', () => {
     role: UserRole.LenderAdmin,
     tenantId: 'tenant_1',
     tenantSlug: 'rfs',
+    roleId: 'role_admin',
+    permissions: [],
   };
 
   it('returns null for a platform user (no tenant)', async () => {

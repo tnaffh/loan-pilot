@@ -1,5 +1,11 @@
 import { Test } from '@nestjs/testing';
-import { ExpenseKind, LoanStatus, UserRole, type SessionUser } from '@loan-pilot/domain';
+import {
+  ExpenseKind,
+  LoanStatus,
+  SYSTEM_ROLE_PERMISSIONS,
+  UserRole,
+  type SessionUser,
+} from '@loan-pilot/domain';
 import { StatsService } from './stats.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -96,8 +102,16 @@ describe('StatsService.lenderOverview', () => {
     role: UserRole.LenderAdmin,
     tenantId: 'tenant_1',
     tenantSlug: 'rfs',
+    roleId: 'role_admin',
+    permissions: [...SYSTEM_ROLE_PERMISSIONS.administrator],
   };
-  const staff: SessionUser = { ...admin, id: 'u2', role: UserRole.LenderStaff };
+  const staff: SessionUser = {
+    ...admin,
+    id: 'u2',
+    role: UserRole.LenderStaff,
+    roleId: 'role_staff',
+    permissions: [...SYSTEM_ROLE_PERMISSIONS.staff],
+  };
 
   const seedOverviewMocks = (): void => {
     loanAggregate

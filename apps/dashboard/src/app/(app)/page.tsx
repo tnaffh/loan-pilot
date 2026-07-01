@@ -15,7 +15,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react';
-import { LoanStatus, UserRole, formatNad, fromCents } from '@loan-pilot/domain';
+import { LoanStatus, can, formatNad, fromCents } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -68,7 +68,7 @@ const LenderOverview = ({
   const router = useRouter();
   const command = useCommand();
   const { user } = useAuth();
-  const admin = user?.role === UserRole.LenderAdmin;
+  const admin = Boolean(user && can(user, 'finance:read'));
   const branding = useTenantBranding();
   const { data: loans } = useApi<LoanRow[]>('/loans');
   const { data: applications } = useApi<ApplicationRow[]>('/applications');

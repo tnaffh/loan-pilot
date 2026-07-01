@@ -14,7 +14,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
-  UserRole,
   createBorrowerAddressSchema,
   createBorrowerBankAccountSchema,
   createBorrowerSchema,
@@ -36,8 +35,8 @@ import { BadRequestException } from '@nestjs/common';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { requireTenantId } from '../common/tenant';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/roles.decorator';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { DocumentsService, type DocumentView } from '../documents/documents.service';
 import { documentUploadOptions } from '../documents/upload.config';
@@ -49,8 +48,7 @@ import {
 } from './borrowers.service';
 
 @Controller('borrowers')
-@UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class BorrowersController {
   constructor(
     private readonly borrowers: BorrowersService,
@@ -58,12 +56,14 @@ export class BorrowersController {
   ) {}
 
   @Get()
+  @RequirePermissions('borrowers:read')
   list(@CurrentUser() user: SessionUser): Promise<BorrowerWithLoanCount[]> {
     return this.borrowers.findAllForTenant(requireTenantId(user));
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
+  @RequirePermissions('borrowers:write')
   create(
     @CurrentUser() user: SessionUser,
     @Body(new ZodValidationPipe(createBorrowerSchema)) body: CreateBorrowerInput,
@@ -72,11 +72,13 @@ export class BorrowersController {
   }
 
   @Get(':id')
+  @RequirePermissions('borrowers:read')
   findOne(@CurrentUser() user: SessionUser, @Param('id') id: string): Promise<BorrowerWithLoans> {
     return this.borrowers.findOneForTenant(requireTenantId(user), id);
   }
 
   @Get(':id/duplicate-suggestions')
+  @RequirePermissions('borrowers:read')
   duplicateSuggestions(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
@@ -86,7 +88,7 @@ export class BorrowersController {
 
   @Post(':id/merge')
   @HttpCode(HttpStatus.OK)
-  @Roles(UserRole.LenderAdmin)
+  @RequirePermissions('borrowers:manage')
   merge(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
@@ -96,6 +98,7 @@ export class BorrowersController {
   }
 
   @Patch(':id')
+  @RequirePermissions('borrowers:write')
   update(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
@@ -106,6 +109,7 @@ export class BorrowersController {
 
   @Post(':id/addresses')
   @HttpCode(HttpStatus.CREATED)
+  @RequirePermissions('borrowers:write')
   addAddress(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
@@ -115,6 +119,7 @@ export class BorrowersController {
   }
 
   @Patch(':id/addresses/:addressId/activate')
+  @RequirePermissions('borrowers:write')
   activateAddress(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
@@ -124,6 +129,7 @@ export class BorrowersController {
   }
 
   @Patch(':id/addresses/:addressId')
+  @RequirePermissions('borrowers:write')
   updateAddress(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
@@ -135,6 +141,7 @@ export class BorrowersController {
 
   @Post(':id/bank-accounts')
   @HttpCode(HttpStatus.CREATED)
+  @RequirePermissions('borrowers:write')
   addBankAccount(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
@@ -144,6 +151,7 @@ export class BorrowersController {
   }
 
   @Patch(':id/bank-accounts/:accountId/activate')
+  @RequirePermissions('borrowers:write')
   activateBankAccount(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
@@ -153,6 +161,7 @@ export class BorrowersController {
   }
 
   @Patch(':id/bank-accounts/:accountId')
+  @RequirePermissions('borrowers:write')
   updateBankAccount(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
@@ -164,6 +173,7 @@ export class BorrowersController {
 
   @Post(':id/documents')
   @HttpCode(HttpStatus.CREATED)
+  @RequirePermissions('borrowers:write')
   @UseInterceptors(FileInterceptor('file', documentUploadOptions))
   uploadDocument(
     @CurrentUser() user: SessionUser,
@@ -179,6 +189,7 @@ export class BorrowersController {
 
   @Delete(':id/documents/:documentId')
   @HttpCode(HttpStatus.NO_CONTENT)
+  @RequirePermissions('borrowers:write')
   deleteDocument(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
@@ -188,6 +199,7 @@ export class BorrowersController {
   }
 
   @Get(':id/statement-letter')
+  @RequirePermissions('borrowers:read')
   statementLetter(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,

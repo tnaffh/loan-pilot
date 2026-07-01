@@ -27,7 +27,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { NavUser } from '@/components/nav-user';
-import { navForRole, type NavItem } from '@/lib/nav';
+import { navForUser, type NavItem } from '@/lib/nav';
 import { useTenantBranding } from '@/lib/tenant-theme';
 
 /**
@@ -91,7 +91,7 @@ const CollapsibleNavItem = ({
 export const AppSidebar = ({ user, pendingCount }: { user: SessionUser; pendingCount: number }) => {
   const pathname = usePathname();
   const branding = useTenantBranding();
-  const groups = navForRole(user.role);
+  const groups = navForUser(user);
 
   const tenantName = branding?.name ?? 'LoanPilot';
   const tenantShort = branding?.short ?? 'LP';

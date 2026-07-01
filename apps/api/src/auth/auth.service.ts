@@ -20,15 +20,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { hashToken, newToken } from '../common/tokens';
 import type { OAuthProfile } from './google.strategy';
-
-type UserWithTenant = Prisma.UserGetPayload<{ include: { tenant: true } }>;
-
-const ROLE_MAP: Record<string, UserRole> = {
-  platform: UserRole.Platform,
-  lender_admin: UserRole.LenderAdmin,
-  lender_staff: UserRole.LenderStaff,
-  borrower: UserRole.Borrower,
-};
+import { buildSessionUser, USER_SESSION_INCLUDE, type UserForSession } from './session';
 
 const BCRYPT_ROUNDS = 10;
 const RESET_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -59,19 +51,8 @@ export class AuthService {
     private readonly mail: MailService,
   ) {}
 
-  private toSessionUser(user: UserWithTenant): SessionUser {
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: ROLE_MAP[user.role] ?? UserRole.Borrower,
-      tenantId: user.tenantId,
-      tenantSlug: user.tenant?.slug ?? null,
-    };
-  }
-
-  private async issue(user: UserWithTenant): Promise<LoginResponse> {
-    const sessionUser = this.toSessionUser(user);
+  private async issue(user: UserForSession): Promise<LoginResponse> {
+    const sessionUser = buildSessionUser(user);
     const payload: JwtPayload = {
       sub: sessionUser.id,
       email: sessionUser.email,
@@ -83,14 +64,14 @@ export class AuthService {
     return { accessToken: await this.jwt.signAsync(payload), user: sessionUser };
   }
 
-  private withTenant(id: string): Promise<UserWithTenant | null> {
-    return this.prisma.user.findUnique({ where: { id }, include: { tenant: true } });
+  private withTenant(id: string): Promise<UserForSession | null> {
+    return this.prisma.user.findUnique({ where: { id }, include: USER_SESSION_INCLUDE });
   }
 
   async login(input: LoginInput): Promise<LoginResponse> {
     const user = await this.prisma.user.findUnique({
       where: { email: input.email.toLowerCase() },
-      include: { tenant: true },
+      include: USER_SESSION_INCLUDE,
     });
     if (!user || !user.passwordHash || !(await compare(input.password, user.passwordHash))) {
       throw new UnauthorizedException('Invalid email or password');
@@ -119,7 +100,7 @@ export class AuthService {
 
     const user = await this.prisma.user.findUnique({
       where: { email: profile.email },
-      include: { tenant: true },
+      include: USER_SESSION_INCLUDE,
     });
     if (!user) {
       return { ok: false, error: 'not_invited' };
@@ -147,7 +128,7 @@ export class AuthService {
         inviteTokenHash: null,
         inviteExpiresAt: null,
       },
-      include: { tenant: true },
+      include: USER_SESSION_INCLUDE,
     });
     const { accessToken } = await this.issue(refreshed);
     return { ok: true, token: accessToken };
@@ -171,7 +152,7 @@ export class AuthService {
         inviteExpiresAt: null,
         lastLoginAt: new Date(),
       },
-      include: { tenant: true },
+      include: USER_SESSION_INCLUDE,
     });
     return this.issue(updated);
   }
@@ -223,7 +204,7 @@ export class AuthService {
         resetExpiresAt: null,
         lastLoginAt: new Date(),
       },
-      include: { tenant: true },
+      include: USER_SESSION_INCLUDE,
     });
     return this.issue(updated);
   }

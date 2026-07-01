@@ -36,11 +36,23 @@ export interface UserRow {
   name: string;
   email: string;
   role: UserRole;
+  roleId: string | null;
+  roleName: string | null;
   status: UserStatus;
   image: string | null;
   hasPassword: boolean;
   providers: string[];
   lastLoginAt: string | null;
+  createdAt: string;
+}
+
+export interface RoleRow {
+  id: string;
+  name: string;
+  permissions: string[];
+  isSystem: boolean;
+  key: string | null;
+  userCount: number;
   createdAt: string;
 }
 

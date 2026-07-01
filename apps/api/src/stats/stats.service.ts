@@ -4,7 +4,7 @@ import {
   ExpenseKind,
   LoanStatus,
   TenantStatus,
-  UserRole,
+  hasPermission,
   isBorrower,
   isPlatform,
   type SessionUser,
@@ -94,8 +94,8 @@ export class StatsService {
     if (isBorrower(user.role)) {
       return this.borrowerOverview(user.id);
     }
-    // Sensitive financials are for lender admins only; staff get the operational subset.
-    return this.lenderOverview(requireTenantId(user), user.role === UserRole.LenderAdmin);
+    // Sensitive financials require the finance permission; others get the operational subset.
+    return this.lenderOverview(requireTenantId(user), hasPermission(user, 'finance:read'));
   }
 
   /**

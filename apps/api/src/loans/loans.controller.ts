@@ -35,6 +35,8 @@ import { requireTenantId } from '../common/tenant';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { PermissionsGuard } from '../auth/permissions.guard';
+import { RequirePermissions } from '../auth/permissions.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import {
   LoansService,
@@ -43,14 +45,17 @@ import {
   type LoanWithDetails,
 } from './loans.service';
 
+// Two guards compose here: RolesGuard still gates the borrower-shared GET
+// routes (borrowers hold no lender permissions), while PermissionsGuard gates
+// the lender mutations. Each guard only enforces routes carrying its metadata.
 @Controller('loans')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, PermissionsGuard)
 export class LoansController {
   constructor(private readonly loans: LoansService) {}
 
   @Post('quote')
   @HttpCode(HttpStatus.OK)
-  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  @RequirePermissions('loans:write')
   quote(
     @CurrentUser() user: SessionUser,
     @Body(new ZodValidationPipe(loanQuoteSchema)) body: LoanQuoteInput,
@@ -60,7 +65,7 @@ export class LoansController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  @RequirePermissions('loans:write')
   create(
     @CurrentUser() user: SessionUser,
     @Body(new ZodValidationPipe(createLoanSchema)) body: CreateLoanInput,
@@ -87,7 +92,7 @@ export class LoansController {
   }
 
   @Patch(':id')
-  @Roles(UserRole.LenderAdmin)
+  @RequirePermissions('loans:manage')
   update(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
@@ -98,7 +103,7 @@ export class LoansController {
 
   @Post(':id/cancel')
   @HttpCode(HttpStatus.CREATED)
-  @Roles(UserRole.LenderAdmin)
+  @RequirePermissions('loans:manage')
   cancel(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
@@ -109,7 +114,7 @@ export class LoansController {
 
   @Post(':id/repayments')
   @HttpCode(HttpStatus.CREATED)
-  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  @RequirePermissions('loans:write')
   recordRepayment(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
@@ -120,7 +125,7 @@ export class LoansController {
 
   @Post(':id/settle')
   @HttpCode(HttpStatus.CREATED)
-  @Roles(UserRole.LenderAdmin, UserRole.LenderStaff)
+  @RequirePermissions('loans:write')
   settle(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
@@ -131,7 +136,7 @@ export class LoansController {
 
   @Post(':id/write-off')
   @HttpCode(HttpStatus.CREATED)
-  @Roles(UserRole.LenderAdmin)
+  @RequirePermissions('loans:manage')
   writeOff(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,

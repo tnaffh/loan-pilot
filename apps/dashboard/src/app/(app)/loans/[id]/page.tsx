@@ -14,7 +14,7 @@ import {
   PieChart,
   Wallet,
 } from 'lucide-react';
-import { LoanStatus, RepaymentStatus, UserRole, formatNad, isLender } from '@loan-pilot/domain';
+import { LoanStatus, RepaymentStatus, can, formatNad, isLender } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -83,7 +83,7 @@ const LoanDetailPage = () => {
 
   const open = data.status === LoanStatus.Active || data.status === LoanStatus.Arrears;
   const lender = Boolean(user && isLender(user.role));
-  const admin = user?.role === UserRole.LenderAdmin;
+  const admin = Boolean(user && can(user, 'loans:manage'));
   const terminal =
     data.status === LoanStatus.Settled ||
     data.status === LoanStatus.WrittenOff ||

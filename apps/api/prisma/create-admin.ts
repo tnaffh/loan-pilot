@@ -10,9 +10,29 @@
  */
 import { PrismaClient } from '@prisma/client';
 import { hashSync } from 'bcryptjs';
-import { UserRole, UserStatus } from '@loan-pilot/domain';
+import {
+  SYSTEM_ROLE_LABELS,
+  SYSTEM_ROLE_PERMISSIONS,
+  UserRole,
+  UserStatus,
+  type SystemRoleKey,
+} from '@loan-pilot/domain';
 
 const prisma = new PrismaClient();
+
+/** Ensure a tenant's built-in system role exists and holds the current catalog. */
+const ensureSystemRole = (tenantId: string, key: SystemRoleKey) =>
+  prisma.role.upsert({
+    where: { tenantId_name: { tenantId, name: SYSTEM_ROLE_LABELS[key] } },
+    update: { permissions: SYSTEM_ROLE_PERMISSIONS[key], isSystem: true, key },
+    create: {
+      tenantId,
+      name: SYSTEM_ROLE_LABELS[key],
+      key,
+      isSystem: true,
+      permissions: SYSTEM_ROLE_PERMISSIONS[key],
+    },
+  });
 
 const main = async (): Promise<void> => {
   const email = process.env.ADMIN_EMAIL?.trim().toLowerCase();
@@ -33,11 +53,30 @@ const main = async (): Promise<void> => {
       data: { slug, name: process.env.TENANT_NAME?.trim() || slug, short: slug.toUpperCase() },
     }));
 
+  // Ensure the tenant has its built-in roles, then grant the admin the full one.
+  const adminRole = await ensureSystemRole(tenant.id, 'administrator');
+  await ensureSystemRole(tenant.id, 'staff');
+
   const passwordHash = hashSync(password, 10);
   const user = await prisma.user.upsert({
     where: { email },
-    update: { name, role: UserRole.LenderAdmin, status: UserStatus.Active, passwordHash, tenantId: tenant.id },
-    create: { email, name, role: UserRole.LenderAdmin, status: UserStatus.Active, passwordHash, tenantId: tenant.id },
+    update: {
+      name,
+      role: UserRole.LenderAdmin,
+      status: UserStatus.Active,
+      passwordHash,
+      tenantId: tenant.id,
+      roleId: adminRole.id,
+    },
+    create: {
+      email,
+      name,
+      role: UserRole.LenderAdmin,
+      status: UserStatus.Active,
+      passwordHash,
+      tenantId: tenant.id,
+      roleId: adminRole.id,
+    },
   });
 
   console.log(`Admin ready: ${user.email} (${user.role}) on tenant "${tenant.slug}".`);

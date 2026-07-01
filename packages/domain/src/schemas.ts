@@ -12,6 +12,7 @@ import {
 } from './enums';
 import { ageOnDate, isAdult, isPlausibleId, isPlausiblePhone, parseNamibianId } from './identity';
 import { MAX_FINANCE_CHARGE_RATE, MAX_TERM_MONTHS } from './loan-math';
+import { isPermission, type Permission } from './permissions';
 
 /** A personal reference, as required by the loan agreement (minimum one). */
 export const referenceSchema = z.object({
@@ -115,28 +116,42 @@ export type LoginInput = z.infer<typeof loginSchema>;
 /** A new password — shared minimum used by invite-accept and reset. */
 const passwordField = z.string().min(8, 'Password must be at least 8 characters');
 
+/** A single known permission key (validated against the fixed catalog). */
+const permissionSchema = z.custom<Permission>(
+  (value) => typeof value === 'string' && isPermission(value),
+  'Unknown permission',
+);
+
 /**
- * Invite a staff user. `role` is constrained to the staff roles here; the API
- * re-validates that the acting admin may actually assign it (see assignableRoles).
+ * Invite a user. Lender admins assign a tenant `roleId`; platform operators
+ * assign `role: Platform` (no roleId). The API re-validates that the actor may
+ * assign the chosen role/roleId and that it belongs to their tenant.
  */
 export const inviteUserSchema = z.object({
   name: z.string().min(1, 'A name is required'),
   email: z.string().email('A valid email is required'),
-  role: z.union([
-    z.literal(UserRole.LenderAdmin),
-    z.literal(UserRole.LenderStaff),
-    z.literal(UserRole.Platform),
-  ]),
+  roleId: z.string().min(1).optional(),
+  role: z.nativeEnum(UserRole).optional(),
 });
 export type InviteUserInput = z.infer<typeof inviteUserSchema>;
 
-/** Update a user's name, role, and/or status. */
+/** Update a user's name, assigned role, and/or status. */
 export const updateUserSchema = z.object({
   name: z.string().min(1).optional(),
-  role: z.nativeEnum(UserRole).optional(),
+  roleId: z.string().min(1).optional(),
   status: z.nativeEnum(UserStatus).optional(),
 });
 export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+
+/** Create or edit a custom role: a name plus a set of catalog permissions. */
+export const createRoleSchema = z.object({
+  name: z.string().min(1, 'A role name is required').max(60),
+  permissions: z.array(permissionSchema).default([]),
+});
+export type CreateRoleInput = z.infer<typeof createRoleSchema>;
+
+export const updateRoleSchema = createRoleSchema.partial();
+export type UpdateRoleInput = z.infer<typeof updateRoleSchema>;
 
 /** Accept an invitation by setting an initial password. */
 export const acceptInviteSchema = z.object({

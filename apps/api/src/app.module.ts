@@ -6,6 +6,7 @@ import { ApplicationsModule } from './applications/applications.module';
 import { TenantsModule } from './tenants/tenants.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
+import { RolesModule } from './roles/roles.module';
 import { BorrowersModule } from './borrowers/borrowers.module';
 import { LoansModule } from './loans/loans.module';
 import { PaymentsModule } from './payments/payments.module';
@@ -25,6 +26,7 @@ import { SettingsModule } from './settings/settings.module';
     TenantsModule,
     AuthModule,
     UsersModule,
+    RolesModule,
     BorrowersModule,
     LoansModule,
     PaymentsModule,
