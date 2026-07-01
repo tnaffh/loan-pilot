@@ -5,7 +5,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
-import { LoanStatus, fromCents, updateLoanSchema, type UpdateLoanInput } from '@loan-pilot/domain';
+import {
+  LoanStatus,
+  fromCents,
+  toCents,
+  updateLoanSchema,
+  type UpdateLoanInput,
+} from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
@@ -20,8 +26,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { FormField, selectClass } from '@/components/form-field';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
+import { useApi } from '@/lib/use-api';
 import { bumpRevalidation } from '@/lib/revalidate';
 import type { LoanDetail } from '@/lib/types';
+
+/** Fee settings (mirrors GET /settings/fees) used to keep amount-derived fees in sync. */
+interface FeeSettings {
+  namfisaLevyRate: number; // fraction of the loan amount
+  insuranceRate: number; // fraction of the loan amount
+  insuranceFlat: number; // flat cents
+}
 
 const STATUS_OPTIONS: { value: LoanStatus; label: string }[] = [
   { value: LoanStatus.Active, label: 'Active' },
@@ -49,6 +63,7 @@ interface Props {
 
 export const EditLoanSheet = ({ loan, open, onOpenChange, onSaved }: Props) => {
   const { token } = useAuth();
+  const { data: feeSettings } = useApi<FeeSettings>(open ? '/settings/fees' : null);
   const hasPayments = loan.payments.length > 0;
 
   const defaults = (): UpdateLoanInput => ({
@@ -71,6 +86,8 @@ export const EditLoanSheet = ({ loan, open, onOpenChange, onSaved }: Props) => {
     handleSubmit,
     reset,
     setError,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<UpdateLoanInput>({
     resolver: zodResolver(updateLoanSchema),
@@ -81,6 +98,18 @@ export const EditLoanSheet = ({ loan, open, onOpenChange, onSaved }: Props) => {
     if (open) reset(defaults());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, loan.id]);
+
+  // NAMFISA levy (and insurance) are a fraction of the loan amount, so keep them
+  // in step with the principal: when the amount is edited away from the loan's
+  // original, recompute from the tenant's fee rates. Left untouched at the
+  // original amount so a stored/custom levy is preserved.
+  const watchedAmount = watch('amount');
+  useEffect(() => {
+    if (!feeSettings || hasPayments) return;
+    const amountCents = toCents(Number(watchedAmount) || 0);
+    if (amountCents === loan.principal) return;
+    setValue('namfisaLevy', fromCents(Math.round(amountCents * feeSettings.namfisaLevyRate)));
+  }, [watchedAmount, feeSettings, hasPayments, loan.principal, setValue]);
 
   const onSubmit = handleSubmit(async (values) => {
     try {

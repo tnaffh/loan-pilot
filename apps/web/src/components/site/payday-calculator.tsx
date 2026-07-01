@@ -9,21 +9,21 @@ import { computeQuote, fetchPricingConfig, type PricingConfig } from '@/lib/pric
 
 export const PaydayCalculator = () => {
   const [amount, setAmount] = useState(5000);
-  const [term, setTerm] = useState(1);
   const [config, setConfig] = useState<PricingConfig | null>(null);
 
   useEffect(() => {
     fetchPricingConfig().then(setConfig);
   }, []);
 
-  const result = computeQuote(config, { amount, termMonths: term, type: LoanType.Payday });
+  // Payday loans are repaid in a single month.
+  const result = computeQuote(config, { amount, termMonths: 1, type: LoanType.Payday });
 
   return (
     <Card className="w-full shadow-lg">
       <CardHeader>
         <CardTitle className="text-xl">Payday loan calculator</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Borrow now, repay over up to five months. A flat 30% finance charge — shown upfront.
+          Borrow now, repay in one month. A flat 30% finance charge — shown upfront.
         </p>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -44,23 +44,9 @@ export const PaydayCalculator = () => {
           />
         </div>
 
-        <div className="space-y-2">
-          <div className="flex items-baseline justify-between text-sm">
-            <span className="font-medium text-foreground/70">Repayment term</span>
-            <span className="font-heading text-xl font-semibold">
-              {term} month{term > 1 ? 's' : ''}
-            </span>
-          </div>
-          <input
-            type="range"
-            min={1}
-            max={5}
-            step={1}
-            value={term}
-            onChange={(event) => setTerm(Number(event.target.value))}
-            className="w-full accent-primary"
-            aria-label="Repayment term"
-          />
+        <div className="flex items-baseline justify-between text-sm">
+          <span className="font-medium text-foreground/70">Repayment term</span>
+          <span className="font-heading text-xl font-semibold">1 month</span>
         </div>
 
         <div className="rounded-xl bg-secondary p-5">

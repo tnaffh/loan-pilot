@@ -149,6 +149,7 @@ export const ApplyForm = () => {
     control,
     handleSubmit,
     trigger,
+    setValue,
     formState: { errors, isSubmitting },
   } = form;
 
@@ -160,6 +161,14 @@ export const ApplyForm = () => {
   });
   const watchedAmount = Number(watchedAmountRaw) || 0;
   const watchedTerm = Number(watchedTermRaw) || 1;
+  // Payday loans are repaid in a single month; the term isn't applicant-adjustable.
+  const isPayday = watchedType === LoanType.Payday;
+
+  useEffect(() => {
+    if (isPayday && watchedTerm !== 1) {
+      setValue('termMonths', 1);
+    }
+  }, [isPayday, watchedTerm, setValue]);
   const estimate =
     watchedAmount >= 500
       ? computeQuote(pricing, { amount: watchedAmount, termMonths: watchedTerm, type: watchedType })
@@ -365,6 +374,7 @@ export const ApplyForm = () => {
                     label="Repayment term"
                     htmlFor="termMonths"
                     error={errors.termMonths?.message}
+                    description={isPayday ? 'Payday loans are repaid in one month.' : undefined}
                   >
                     <Controller
                       control={control}
@@ -373,12 +383,13 @@ export const ApplyForm = () => {
                         <Select
                           value={String(field.value)}
                           onValueChange={(value) => field.onChange(Number(value))}
+                          disabled={isPayday}
                         >
                           <SelectTrigger id="termMonths" className="w-full">
                             <SelectValue placeholder="Select term" />
                           </SelectTrigger>
                           <SelectContent>
-                            {[1, 2, 3, 4, 5].map((month) => (
+                            {(isPayday ? [1] : [1, 2, 3, 4, 5]).map((month) => (
                               <SelectItem key={month} value={String(month)}>
                                 {month} month{month > 1 ? 's' : ''}
                               </SelectItem>

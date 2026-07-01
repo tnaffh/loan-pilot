@@ -632,15 +632,22 @@ export class LoansService {
             'The amount, term or rate of a loan with payments cannot be changed',
           );
         }
+        const feeSettings = await this.settings.resolveFeeSettings(tenantId);
+        // The NAMFISA levy and insurance are a fraction of the loan amount, so
+        // recompute them from the new principal unless the edit explicitly
+        // overrides them. Stamp duty and bank charges are flat — keep the loan's
+        // (or the overridden) value.
+        const scaled = computeFees(newPrincipal, feeSettings);
         const effectiveFees: LoanFees = {
           namfisaLevyCents:
-            input.namfisaLevy !== undefined ? toCents(input.namfisaLevy) : loan.namfisaLevy,
+            input.namfisaLevy !== undefined ? toCents(input.namfisaLevy) : scaled.namfisaLevyCents,
           stampDutyCents: input.stampDuty !== undefined ? toCents(input.stampDuty) : loan.stampDuty,
-          insuranceCents: input.insurance !== undefined ? toCents(input.insurance) : loan.insurance,
+          insuranceCents:
+            input.insurance !== undefined ? toCents(input.insurance) : scaled.insuranceCents,
           bankChargesCents:
             input.bankCharges !== undefined ? toCents(input.bankCharges) : loan.bankCharges,
         };
-        const { monthlyRate } = await this.settings.resolveFeeSettings(tenantId);
+        const { monthlyRate } = feeSettings;
         const q = quote({
           principalCents: newPrincipal,
           termMonths: newTerm,
@@ -660,6 +667,12 @@ export class LoansService {
         data.instalmentsTotal = q.termMonths;
         data.balance = q.totalCents;
         data.interestRate = newRate;
+        // Persist the fee amounts the re-price used so the stored columns track
+        // the new principal (e.g. the NAMFISA levy, which scales with the amount).
+        data.namfisaLevy = effectiveFees.namfisaLevyCents;
+        data.stampDuty = effectiveFees.stampDutyCents;
+        data.insurance = effectiveFees.insuranceCents;
+        data.bankCharges = effectiveFees.bankChargesCents;
         await tx.repaymentScheduleItem.deleteMany({ where: { loanId: id } });
         data.schedule = {
           create: q.schedule.map((item) => ({

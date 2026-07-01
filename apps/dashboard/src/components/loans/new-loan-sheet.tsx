@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
-import { Loader2 } from 'lucide-react';
+import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import {
   LoanType,
   createLoanSchema,
@@ -30,10 +30,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
 import { bumpRevalidation } from '@/lib/revalidate';
+import { cn } from '@/lib/utils';
 import { FormField } from '@/components/form-field';
 import type { BorrowerRow } from '@/lib/types';
 
@@ -70,6 +80,7 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
   const [customRate, setCustomRate] = useState('');
   const [quote, setQuote] = useState<LoanQuote | null>(null);
   const [quoting, setQuoting] = useState(false);
+  const [borrowerOpen, setBorrowerOpen] = useState(false);
 
   const {
     register,
@@ -181,20 +192,59 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
             <Controller
               control={control}
               name="borrowerId"
-              render={({ field }) => (
-                <Select value={field.value || undefined} onValueChange={field.onChange}>
-                  <SelectTrigger id="borrowerId" className="w-full">
-                    <SelectValue placeholder="Select a borrower…" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {(borrowers ?? []).map((borrower) => (
-                      <SelectItem key={borrower.id} value={borrower.id}>
-                        {borrower.firstName} {borrower.lastName} — {borrower.idNumber}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              )}
+              render={({ field }) => {
+                const selected = (borrowers ?? []).find((borrower) => borrower.id === field.value);
+                return (
+                  <Popover open={borrowerOpen} onOpenChange={setBorrowerOpen}>
+                    <PopoverTrigger
+                      render={
+                        <Button
+                          type="button"
+                          variant="outline"
+                          role="combobox"
+                          id="borrowerId"
+                          className="w-full justify-between font-normal"
+                        />
+                      }
+                    >
+                      <span className={cn('truncate', !selected && 'text-muted-foreground')}>
+                        {selected
+                          ? `${selected.firstName} ${selected.lastName} — ${selected.idNumber}`
+                          : 'Select a borrower…'}
+                      </span>
+                      <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+                    </PopoverTrigger>
+                    <PopoverContent align="start" className="w-(--anchor-width) p-0">
+                      <Command>
+                        <CommandInput placeholder="Search by name or ID…" />
+                        <CommandList>
+                          <CommandEmpty>No borrower found.</CommandEmpty>
+                          <CommandGroup>
+                            {(borrowers ?? []).map((borrower) => (
+                              <CommandItem
+                                key={borrower.id}
+                                value={`${borrower.firstName} ${borrower.lastName} ${borrower.idNumber}`}
+                                onSelect={() => {
+                                  field.onChange(borrower.id);
+                                  setBorrowerOpen(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    'mr-2 size-4',
+                                    field.value === borrower.id ? 'opacity-100' : 'opacity-0',
+                                  )}
+                                />
+                                {borrower.firstName} {borrower.lastName} — {borrower.idNumber}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                );
+              }}
             />
           </FormField>
           <div className="grid gap-4 sm:grid-cols-2">

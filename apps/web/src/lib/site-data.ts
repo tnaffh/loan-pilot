@@ -20,10 +20,18 @@ export const COMPANY = {
   email: 'apply@raccoonsfinance.com',
   // Both numbers are reachable on WhatsApp Business and for normal calls.
   phones: [
-    { display: '+264 81 725 8138', tel: 'tel:+264817258138', whatsapp: 'https://wa.me/264817258138' },
-    { display: '+264 81 692 6592', tel: 'tel:+264816926592', whatsapp: 'https://wa.me/264816926592' },
+    {
+      display: '+264 81 725 8138',
+      tel: 'tel:+264817258138',
+      whatsapp: 'https://wa.me/264817258138',
+    },
+    {
+      display: '+264 81 692 6592',
+      tel: 'tel:+264816926592',
+      whatsapp: 'https://wa.me/264816926592',
+    },
   ],
-  address: 'Erf 3026, Chaldeer street, Soweto, Windhoek',
+  address: 'Chaldeer street, Soweto',
   town: 'Windhoek, Namibia',
 } as const;
 
