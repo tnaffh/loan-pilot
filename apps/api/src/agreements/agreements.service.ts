@@ -17,7 +17,7 @@ const AGREEMENT_INCLUDE = {
       references: true,
     },
   },
-  tenant: { select: { name: true, town: true } },
+  tenant: { select: { name: true, town: true, logoUrl: true } },
   schedule: { orderBy: { number: 'asc' as const } },
 } as const;
 
@@ -47,25 +47,37 @@ export class AgreementsService {
     ]);
     // The captured signature image, when the loan carries one (absent for
     // legacy/imported loans and loans created directly against a borrower).
-    let signaturePng: Buffer | null = null;
-    if (loan.signatureDocumentId) {
-      const signature = await this.prisma.document.findUnique({
-        where: { id: loan.signatureDocumentId },
-        select: { url: true },
-      });
-      if (signature) {
-        try {
-          signaturePng = await this.storage.read(signature.url);
-        } catch (error) {
-          this.logger.error(
-            `Failed to read signature for loan ${loanId}`,
-            error instanceof Error ? error.stack : String(error),
-          );
-        }
-      }
-    }
-    const data = toAgreementData(loan, lender, fees.monthlyRate, signaturePng, new Date());
+    const signaturePng = loan.signatureDocumentId
+      ? await this.readSignature(loan.signatureDocumentId, loanId)
+      : null;
+    // The tenant's uploaded logo, when set (stored as a storage key).
+    const logoPng = await this.readImageKey(loan.tenant.logoUrl, `logo for loan ${loanId}`);
+
+    const data = toAgreementData(loan, lender, fees.monthlyRate, signaturePng, logoPng, new Date());
     return { loan, data };
+  }
+
+  private async readSignature(documentId: string, loanId: string): Promise<Buffer | null> {
+    const signature = await this.prisma.document.findUnique({
+      where: { id: documentId },
+      select: { url: true },
+    });
+    return signature ? this.readImageKey(signature.url, `signature for loan ${loanId}`) : null;
+  }
+
+  /** Read an image by storage key, degrading to null (with a log) on failure. */
+  private async readImageKey(key: string | null, label: string): Promise<Buffer | null> {
+    // Only storage keys are embeddable; skip external/legacy URL values.
+    if (!key || /^https?:\/\//i.test(key)) return null;
+    try {
+      return await this.storage.read(key);
+    } catch (error) {
+      this.logger.error(
+        `Failed to read ${label}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      return null;
+    }
   }
 
   /** Generate a fresh signed-agreement PDF, store it, and link it to the loan. */

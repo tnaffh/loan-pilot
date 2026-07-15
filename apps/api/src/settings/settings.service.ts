@@ -11,9 +11,14 @@ import {
   type UpdateLoanProductInput,
 } from '@loan-pilot/domain';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../documents/storage.service';
 
-/** The lender's legal identity for the header of generated loan agreements. */
+/** The business's identity for the header of generated loan agreements. */
 export interface LenderIdentity {
+  // Display name + town live on the Tenant record; logo is a resolved URL.
+  name: string | null;
+  town: string | null;
+  logoUrl: string | null;
   legalName: string | null;
   namfisaLicenceNo: string | null;
   registrationNo: string | null;
@@ -39,7 +44,10 @@ export interface LevyReport {
 
 @Injectable()
 export class SettingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   /** Fetch the tenant's fee settings, creating the default row on first access. */
   async getFeeSettings(tenantId: string): Promise<TenantSettings> {
@@ -77,10 +85,19 @@ export class SettingsService {
     });
   }
 
-  /** The lender's legal identity (as shown on generated loan agreements). */
+  /** The business identity (as shown on generated loan agreements). */
   async getLenderIdentity(tenantId: string): Promise<LenderIdentity> {
-    const s = await this.getFeeSettings(tenantId);
+    const [s, tenant] = await Promise.all([
+      this.getFeeSettings(tenantId),
+      this.prisma.tenant.findUnique({
+        where: { id: tenantId },
+        select: { name: true, town: true, logoUrl: true },
+      }),
+    ]);
     return {
+      name: tenant?.name ?? null,
+      town: tenant?.town ?? null,
+      logoUrl: await this.resolveLogo(tenant?.logoUrl ?? null),
       legalName: s.legalName,
       namfisaLicenceNo: s.namfisaLicenceNo,
       registrationNo: s.registrationNo,
@@ -91,7 +108,8 @@ export class SettingsService {
     };
   }
 
-  /** Update the lender's legal identity. Empty strings clear a field. */
+  /** Update the business identity. Empty strings clear a settings field; the
+   * display name is only overwritten when a non-empty value is given. */
   async updateLenderIdentity(
     tenantId: string,
     input: LenderIdentityInput,
@@ -110,7 +128,35 @@ export class SettingsService {
       update: data,
       create: { tenantId, ...data },
     });
+    // Update the tenant's display name (only when provided) and town.
+    const tenantData: { name?: string; town?: string | null } = {};
+    if (input.name) tenantData.name = input.name;
+    if (input.town !== undefined) tenantData.town = input.town || null;
+    if (Object.keys(tenantData).length > 0) {
+      await this.prisma.tenant.update({ where: { id: tenantId }, data: tenantData });
+    }
     return this.getLenderIdentity(tenantId);
+  }
+
+  /** Store an uploaded logo and point the tenant at it. Returns the openable URL. */
+  async uploadLogo(
+    tenantId: string,
+    file: Express.Multer.File,
+  ): Promise<{ logoUrl: string | null }> {
+    const { key } = await this.storage.save({
+      buffer: file.buffer,
+      contentType: file.mimetype,
+      originalName: file.originalname,
+    });
+    await this.prisma.tenant.update({ where: { id: tenantId }, data: { logoUrl: key } });
+    return { logoUrl: await this.resolveLogo(key) };
+  }
+
+  /** Resolve a stored logo key to an openable URL; pass through external URLs. */
+  private async resolveLogo(value: string | null): Promise<string | null> {
+    if (!value) return null;
+    if (/^https?:\/\//i.test(value)) return value;
+    return this.storage.safeAccessUrl(value);
   }
 
   /** Set the lender's opening/bank balance. `openingBalance` arrives in major N$. */

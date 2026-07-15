@@ -62,6 +62,7 @@ const sampleData = (signaturePng: Buffer | null): AgreementData => ({
   terms: getTerms(),
   tcAcceptedAt: new Date('2026-07-14T09:00:00Z'),
   signaturePng,
+  logoPng: signaturePng,
   generatedAt: new Date('2026-07-14T10:00:00Z'),
 });
 

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -8,8 +9,11 @@ import {
   Param,
   Patch,
   Post,
+  UploadedFile,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import type { LoanProduct, TenantSettings } from '@prisma/client';
 import {
   feeSettingsSchema,
@@ -25,6 +29,7 @@ import {
   type UpdateLoanProductInput,
 } from '@loan-pilot/domain';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
+import { documentUploadOptions } from '../documents/upload.config';
 import { requireTenantId } from '../common/tenant';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/permissions.guard';
@@ -115,5 +120,19 @@ export class SettingsController {
     @Body(new ZodValidationPipe(lenderIdentitySchema)) body: LenderIdentityInput,
   ): Promise<LenderIdentity> {
     return this.settings.updateLenderIdentity(requireTenantId(user), body);
+  }
+
+  @Post('logo')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions('settings:write')
+  @UseInterceptors(FileInterceptor('file', documentUploadOptions))
+  uploadLogo(
+    @CurrentUser() user: SessionUser,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ): Promise<{ logoUrl: string | null }> {
+    if (!file) {
+      throw new BadRequestException('A file is required');
+    }
+    return this.settings.uploadLogo(requireTenantId(user), file);
   }
 }

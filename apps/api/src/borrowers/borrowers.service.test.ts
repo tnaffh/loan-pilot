@@ -5,6 +5,7 @@ import { BorrowersService } from './borrowers.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { DocumentsService } from '../documents/documents.service';
+import { StorageService } from '../documents/storage.service';
 import { SettingsService } from '../settings/settings.service';
 
 describe('BorrowersService', () => {
@@ -106,6 +107,7 @@ describe('BorrowersService', () => {
         { provide: AuditService, useValue: auditMock },
         { provide: DocumentsService, useValue: documentsMock },
         { provide: SettingsService, useValue: settingsMock },
+        { provide: StorageService, useValue: { safeAccessUrl: jest.fn().mockResolvedValue(null) } },
       ],
     }).compile();
     service = moduleRef.get(BorrowersService);

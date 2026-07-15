@@ -12,7 +12,7 @@ export type AgreementLoan = Prisma.LoanGetPayload<{
         references: true;
       };
     };
-    tenant: { select: { name: true; town: true } };
+    tenant: { select: { name: true; town: true; logoUrl: true } };
     schedule: { orderBy: { number: 'asc' } };
   };
 }>;
@@ -72,6 +72,8 @@ export interface AgreementData {
   tcAcceptedAt: Date | null;
   /** The captured signature image, or null for legacy/imported loans. */
   signaturePng: Buffer | null;
+  /** The tenant's logo image, or null when none is uploaded. */
+  logoPng: Buffer | null;
   generatedAt: Date;
 }
 
@@ -108,6 +110,7 @@ export const toAgreementData = (
   lender: LenderIdentity,
   penaltyMonthlyRate: number,
   signaturePng: Buffer | null,
+  logoPng: Buffer | null,
   generatedAt: Date,
 ): AgreementData => {
   const borrower = loan.borrower;
@@ -177,6 +180,7 @@ export const toAgreementData = (
     terms: getTerms(loan.tcVersion ?? undefined),
     tcAcceptedAt: loan.tcAcceptedAt,
     signaturePng,
+    logoPng,
     generatedAt,
   };
 };

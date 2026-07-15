@@ -22,6 +22,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService, type AuditEntry } from '../audit/audit.service';
 import { DocumentsService, type DocumentView } from '../documents/documents.service';
+import { StorageService } from '../documents/storage.service';
 import { SettingsService } from '../settings/settings.service';
 
 export type BorrowerWithLoanCount = Prisma.BorrowerGetPayload<{
@@ -151,6 +152,7 @@ export class BorrowersService {
     private readonly audit: AuditService,
     private readonly documents: DocumentsService,
     private readonly settings: SettingsService,
+    private readonly storage: StorageService,
   ) {}
 
   findAllForTenant(tenantId: string): Promise<BorrowerWithLoanCount[]> {
@@ -240,13 +242,20 @@ export class BorrowersService {
       .reduce((sum, loan) => sum + loan.payoff, 0);
 
     const address = borrower.addresses[0];
+    // Resolve an uploaded logo (storage key) to an openable URL; pass external
+    // URLs through unchanged.
+    const logoValue = tenant?.logoUrl ?? null;
+    const logoUrl =
+      logoValue && !/^https?:\/\//i.test(logoValue)
+        ? await this.storage.safeAccessUrl(logoValue)
+        : logoValue;
     return {
       generatedAt: now.toISOString(),
       lender: {
         name: tenant?.name ?? '',
         short: tenant?.short ?? '',
         town: tenant?.town ?? null,
-        logoUrl: tenant?.logoUrl ?? null,
+        logoUrl,
         accent: tenant?.accent ?? '#25397a',
       },
       borrower: {

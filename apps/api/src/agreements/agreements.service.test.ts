@@ -32,7 +32,7 @@ const loanPayload = {
   tcVersion: '2026-01',
   tcAcceptedAt: new Date('2026-07-14'),
   signatureDocumentId: null,
-  tenant: { name: 'Raccoons Financial Services', town: 'Windhoek' },
+  tenant: { name: 'Raccoons Financial Services', town: 'Windhoek', logoUrl: null },
   borrower: {
     firstName: 'Selma',
     lastName: 'N',

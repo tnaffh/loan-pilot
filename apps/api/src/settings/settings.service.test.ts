@@ -3,6 +3,7 @@ import { BadRequestException } from '@nestjs/common';
 import { LoanType } from '@loan-pilot/domain';
 import { SettingsService } from './settings.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { StorageService } from '../documents/storage.service';
 
 describe('SettingsService', () => {
   const productFindFirst = jest.fn();
@@ -28,7 +29,14 @@ describe('SettingsService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     const moduleRef = await Test.createTestingModule({
-      providers: [SettingsService, { provide: PrismaService, useValue: prismaMock }],
+      providers: [
+        SettingsService,
+        { provide: PrismaService, useValue: prismaMock },
+        {
+          provide: StorageService,
+          useValue: { save: jest.fn(), safeAccessUrl: jest.fn().mockResolvedValue(null) },
+        },
+      ],
     }).compile();
     service = moduleRef.get(SettingsService);
   });

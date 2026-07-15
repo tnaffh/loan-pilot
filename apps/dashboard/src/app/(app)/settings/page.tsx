@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { toast } from 'sonner';
-import { Loader2, Plus, Power, Trash2 } from 'lucide-react';
+import { ImageUp, Loader2, Plus, Power, Trash2 } from 'lucide-react';
 import { LoanType, formatNad, fromCents } from '@loan-pilot/domain';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,7 +44,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/page-header';
 import { FormField, selectClass } from '@/components/form-field';
-import { ApiError, apiFetch } from '@/lib/api';
+import { API_URL, ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
 
@@ -608,9 +608,12 @@ const LeviesCard = () => {
   );
 };
 
-// ----- lender identity -------------------------------------------------------
+// ----- business details ------------------------------------------------------
 
 interface LenderIdentity {
+  name: string | null;
+  town: string | null;
+  logoUrl: string | null;
   legalName: string | null;
   namfisaLicenceNo: string | null;
   registrationNo: string | null;
@@ -620,17 +623,24 @@ interface LenderIdentity {
   contactEmail: string | null;
 }
 
-const LENDER_FIELDS: { key: keyof LenderIdentity; label: string; description?: string }[] = [
+/** Editable text fields (logo is handled separately via upload). */
+type LenderTextKey = Exclude<keyof LenderIdentity, 'logoUrl'>;
+
+const LENDER_FIELDS: { key: LenderTextKey; label: string; description?: string }[] = [
+  { key: 'name', label: 'Business name', description: 'Your trading name, shown across the app.' },
   { key: 'legalName', label: 'Legal name', description: 'As registered with NAMFISA.' },
   { key: 'namfisaLicenceNo', label: 'NAMFISA licence no.' },
   { key: 'registrationNo', label: 'Registration no.' },
   { key: 'physicalAddress', label: 'Physical address' },
   { key: 'postalAddress', label: 'Postal address' },
+  { key: 'town', label: 'Town / city' },
   { key: 'contactPhone', label: 'Contact phone' },
   { key: 'contactEmail', label: 'Contact email' },
 ];
 
-const EMPTY_IDENTITY: LenderIdentity = {
+const EMPTY_IDENTITY: Record<LenderTextKey, string> = {
+  name: '',
+  town: '',
   legalName: '',
   namfisaLicenceNo: '',
   registrationNo: '',
@@ -643,33 +653,54 @@ const EMPTY_IDENTITY: LenderIdentity = {
 const LenderIdentityCard = () => {
   const { token } = useAuth();
   const { data, loading, refresh } = useApi<LenderIdentity>('/settings/lender-identity');
-  const [form, setForm] = useState<LenderIdentity>(EMPTY_IDENTITY);
+  const [form, setForm] = useState<Record<LenderTextKey, string>>(EMPTY_IDENTITY);
   const [seeded, setSeeded] = useState<LenderIdentity | null>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   if (data && data !== seeded) {
     setSeeded(data);
-    setForm({
-      legalName: data.legalName ?? '',
-      namfisaLicenceNo: data.namfisaLicenceNo ?? '',
-      registrationNo: data.registrationNo ?? '',
-      physicalAddress: data.physicalAddress ?? '',
-      postalAddress: data.postalAddress ?? '',
-      contactPhone: data.contactPhone ?? '',
-      contactEmail: data.contactEmail ?? '',
-    });
+    setLogoUrl(data.logoUrl);
+    setForm(
+      LENDER_FIELDS.reduce(
+        (acc, field) => ({ ...acc, [field.key]: data[field.key] ?? '' }),
+        {} as Record<LenderTextKey, string>,
+      ),
+    );
   }
 
   const save = async () => {
     setBusy(true);
     try {
       await apiFetch('/settings/lender-identity', { method: 'PATCH', token, body: form });
-      toast.success('Lender identity saved');
+      toast.success('Business details saved');
       refresh();
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : 'Something went wrong');
     } finally {
       setBusy(false);
+    }
+  };
+
+  const uploadLogo = async (file: File) => {
+    setUploadingLogo(true);
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const response = await fetch(`${API_URL}/settings/logo`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body,
+      });
+      if (!response.ok) throw new Error('Upload failed');
+      const result: { logoUrl: string | null } = await response.json();
+      setLogoUrl(result.logoUrl);
+      toast.success('Logo uploaded');
+    } catch {
+      toast.error('Could not upload the logo');
+    } finally {
+      setUploadingLogo(false);
     }
   };
 
@@ -680,13 +711,45 @@ const LenderIdentityCard = () => {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Lender identity</CardTitle>
+        <CardTitle>Business details</CardTitle>
         <CardDescription>
-          Shown on the header of every generated loan agreement. NAMFISA requires the microlender&apos;s
-          licence details and contact information to appear on the agreement.
+          Shown on the header of every generated loan agreement. NAMFISA requires the
+          microlender&apos;s licence details and contact information to appear on the agreement.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-5">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex h-16 w-32 items-center justify-center overflow-hidden rounded-md border bg-muted/30">
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt="Business logo" className="max-h-14 max-w-28 object-contain" />
+            ) : (
+              <span className="text-xs text-muted-foreground">No logo</span>
+            )}
+          </div>
+          <div className="space-y-1">
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted">
+              {uploadingLogo ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <ImageUp className="size-4" />
+              )}
+              Upload logo
+              <input
+                type="file"
+                accept="image/png,image/jpeg"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadLogo(file);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+            <p className="text-xs text-muted-foreground">PNG or JPG. Appears on loan agreements.</p>
+          </div>
+        </div>
+
         <div className="grid gap-4 sm:grid-cols-2">
           {LENDER_FIELDS.map((field) => (
             <FormField
@@ -698,7 +761,7 @@ const LenderIdentityCard = () => {
             >
               <Input
                 id={field.key}
-                value={form[field.key] ?? ''}
+                value={form[field.key]}
                 onChange={(e) => setForm((current) => ({ ...current, [field.key]: e.target.value }))}
               />
             </FormField>
@@ -706,7 +769,7 @@ const LenderIdentityCard = () => {
         </div>
         <Button onClick={save} disabled={busy}>
           {busy ? <Loader2 className="animate-spin" /> : null}
-          Save lender identity
+          Save business details
         </Button>
       </CardContent>
     </Card>
@@ -724,7 +787,7 @@ const SettingsPage = () => (
         <TabsTrigger value="fees">Levies &amp; fees</TabsTrigger>
         <TabsTrigger value="products">Rate plans</TabsTrigger>
         <TabsTrigger value="levies">Levies collected</TabsTrigger>
-        <TabsTrigger value="identity">Lender identity</TabsTrigger>
+        <TabsTrigger value="identity">Business details</TabsTrigger>
       </TabsList>
       <TabsContent value="fees" className="mt-4">
         <FeeSettingsCard />

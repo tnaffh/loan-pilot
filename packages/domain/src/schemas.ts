@@ -375,6 +375,11 @@ export type UpdateLoanProductInput = z.infer<typeof updateLoanProductSchema>;
  * in incrementally; the agreement falls back to the tenant name where blank.
  */
 export const lenderIdentitySchema = z.object({
+  // The business's display name and town live on the Tenant record; the rest are
+  // TenantSettings. Editing them here keeps all agreement-header details in one
+  // place. `name`/`town` are trimmed but not required (fall back to existing).
+  name: z.string().max(120).optional().or(z.literal('')),
+  town: z.string().max(120).optional().or(z.literal('')),
   legalName: z.string().max(160).optional().or(z.literal('')),
   namfisaLicenceNo: z.string().max(80).optional().or(z.literal('')),
   registrationNo: z.string().max(80).optional().or(z.literal('')),
