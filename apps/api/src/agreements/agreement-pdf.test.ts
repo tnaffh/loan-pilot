@@ -58,6 +58,12 @@ const sampleData = (signaturePng: Buffer | null): AgreementData => ({
     lastDueDate: '14 September 2026',
     periodEndDate: '14 September 2026',
     disbursedAt: '14 July 2026',
+    breakdown: [
+      { label: 'Principal advanced (paid to Borrower)', amount: 'N$ 6,000', kind: 'item' },
+      { label: 'NAMFISA levy', amount: 'N$ 62', kind: 'item' },
+      { label: 'Finance charge (30% of principal debt)', amount: 'N$ 1,800', kind: 'item' },
+      { label: 'Total repayable', amount: 'N$ 7,800', kind: 'total' },
+    ],
   },
   terms: getTerms(),
   tcAcceptedAt: new Date('2026-07-14T09:00:00Z'),

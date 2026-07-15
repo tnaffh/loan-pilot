@@ -243,6 +243,40 @@ export const renderAgreementPdf = (data: AgreementData): Promise<Buffer> =>
       ['First instalment due', data.loan.firstDueDate ?? DASH],
       ['Last instalment due', data.loan.lastDueDate ?? DASH],
     ]);
+
+    // ── Itemised cost breakdown ──────────────────────────────────────────
+    sectionHeading('Cost breakdown');
+    data.loan.breakdown.forEach((line) => {
+      ensureSpace(24);
+      const isTotal = line.kind === 'total';
+      const y = doc.y;
+      if (isTotal) {
+        doc
+          .moveTo(M, y - 1)
+          .lineTo(right, y - 1)
+          .lineWidth(0.75)
+          .strokeColor(COLORS.rule)
+          .stroke();
+      }
+      const font = isTotal ? 'Helvetica-Bold' : 'Helvetica';
+      const size = isTotal ? 10 : 9;
+      const labelColor = line.kind === 'extra' ? COLORS.muted : COLORS.ink;
+      const amountColor =
+        isTotal ? COLORS.accent : line.kind === 'extra' ? COLORS.muted : COLORS.ink;
+      const top = y + (isTotal ? 6 : 3);
+      doc
+        .font(font)
+        .fontSize(size)
+        .fillColor(labelColor)
+        .text(line.label, M, top, { width: W * 0.68, lineBreak: false });
+      doc
+        .font(font)
+        .fontSize(size)
+        .fillColor(amountColor)
+        .text(line.amount, M + W * 0.5, top, { width: W * 0.5, align: 'right', lineBreak: false });
+      doc.y = y + (isTotal ? 25 : 19);
+    });
+
     ensureSpace(60);
     doc
       .font('Helvetica')
@@ -384,12 +418,16 @@ export const renderAgreementPdf = (data: AgreementData): Promise<Buffer> =>
     });
 
     // ── Footer (rule + lender contact + page numbers) on every page ──────
+    // Drawing in the bottom margin would push pdfkit past the page and spawn a
+    // blank page per footer, so zero the bottom margin while writing it.
     const range = doc.bufferedPageRange();
     const footerContact =
       [data.lender.contactPhone, data.lender.contactEmail].filter(Boolean).join('   ·   ') ||
       [data.lender.name, data.lender.town].filter(Boolean).join(', ');
     Array.from({ length: range.count }, (_, i) => range.start + i).forEach((pageIndex, i) => {
       doc.switchToPage(pageIndex);
+      const savedBottom = doc.page.margins.bottom;
+      doc.page.margins.bottom = 0;
       const fy = doc.page.height - 34;
       doc
         .moveTo(M, fy - 6)
@@ -404,6 +442,7 @@ export const renderAgreementPdf = (data: AgreementData): Promise<Buffer> =>
         align: 'right',
         lineBreak: false,
       });
+      doc.page.margins.bottom = savedBottom;
     });
 
     doc.end();

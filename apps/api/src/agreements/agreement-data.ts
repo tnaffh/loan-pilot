@@ -1,6 +1,21 @@
 import type { Prisma } from '@prisma/client';
-import { addMonths, formatNad, getTerms, type Terms } from '@loan-pilot/domain';
+import {
+  addMonths,
+  assessArrears,
+  formatNad,
+  getTerms,
+  RepaymentStatus,
+  type Terms,
+} from '@loan-pilot/domain';
 import type { LenderIdentity } from '../settings/settings.service';
+
+/** A single line of the itemised cost breakdown. */
+export interface BreakdownLine {
+  label: string;
+  amount: string;
+  /** 'item' = a charge component, 'total' = total repayable, 'extra' = accrued/payoff. */
+  kind: 'item' | 'total' | 'extra';
+}
 
 /** The loan payload the agreement builder needs (borrower, addresses, bank, references, schedule). */
 export type AgreementLoan = Prisma.LoanGetPayload<{
@@ -67,6 +82,8 @@ export interface AgreementData {
     lastDueDate: string | null;
     periodEndDate: string | null;
     disbursedAt: string | null;
+    /** Itemised charges that make up the total repayable (+ any accrued penalty). */
+    breakdown: BreakdownLine[];
   };
   terms: Terms;
   tcAcceptedAt: Date | null;
@@ -127,6 +144,47 @@ export const toAgreementData = (
   const lastItem = loan.schedule[loan.schedule.length - 1] ?? null;
   const periodEnd = disbursedAt ? addMonths(disbursedAt, loan.termMonths) : null;
 
+  // Itemised charges that build up to the total repayable. Zero fees are
+  // omitted, so a loan without a given fee reads cleanly. The components sum
+  // exactly to `total` (principal debt + finance charge + bank charges).
+  const breakdown: BreakdownLine[] = (
+    [
+      { label: 'Principal advanced (paid to Borrower)', cents: loan.principal },
+      { label: 'Stamp duty', cents: loan.stampDuty },
+      { label: 'Insurance', cents: loan.insurance },
+      { label: 'NAMFISA levy', cents: loan.namfisaLevy },
+      { label: `Finance charge (${formatPct(loan.interestRate)} of principal debt)`, cents: loan.financeCharge },
+      { label: 'Bank charges', cents: loan.bankCharges },
+    ] as const
+  )
+    .filter((item) => item.cents > 0)
+    .map((item) => ({ label: item.label, amount: formatNad(item.cents), kind: 'item' as const }));
+  breakdown.push({ label: 'Total repayable', amount: formatNad(loan.total), kind: 'total' });
+
+  // Default (penalty) interest accrued to date — only present when the loan is
+  // currently overdue (zero for a freshly disbursed loan).
+  const arrears = assessArrears(
+    loan.schedule.map((item) => ({
+      amountCents: item.amount,
+      dueAt: item.dueAt,
+      paid: item.status === RepaymentStatus.Paid,
+    })),
+    generatedAt,
+    penaltyMonthlyRate,
+  );
+  if (arrears.defaultInterestCents > 0) {
+    breakdown.push({
+      label: 'Default interest accrued to date',
+      amount: formatNad(arrears.defaultInterestCents),
+      kind: 'extra',
+    });
+    breakdown.push({
+      label: 'Payoff to date',
+      amount: formatNad(loan.total + arrears.defaultInterestCents),
+      kind: 'extra',
+    });
+  }
+
   return {
     lender: {
       name: lender.legalName || loan.tenant.name,
@@ -176,6 +234,7 @@ export const toAgreementData = (
       lastDueDate: formatDate(lastItem?.dueAt),
       periodEndDate: formatDate(periodEnd),
       disbursedAt: formatDate(disbursedAt),
+      breakdown,
     },
     terms: getTerms(loan.tcVersion ?? undefined),
     tcAcceptedAt: loan.tcAcceptedAt,
