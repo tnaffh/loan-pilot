@@ -13,10 +13,12 @@ import {
 import type { LoanProduct, TenantSettings } from '@prisma/client';
 import {
   feeSettingsSchema,
+  lenderIdentitySchema,
   loanProductSchema,
   openingBalanceSchema,
   updateLoanProductSchema,
   type FeeSettingsInput,
+  type LenderIdentityInput,
   type LoanProductInput,
   type OpeningBalanceInput,
   type SessionUser,
@@ -28,7 +30,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/permissions.guard';
 import { RequirePermissions } from '../auth/permissions.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
-import { SettingsService, type LevyReport } from './settings.service';
+import { SettingsService, type LenderIdentity, type LevyReport } from './settings.service';
 
 @Controller('settings')
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -98,5 +100,20 @@ export class SettingsController {
   @RequirePermissions('finance:read')
   levies(@CurrentUser() user: SessionUser): Promise<LevyReport> {
     return this.settings.leviesReport(requireTenantId(user));
+  }
+
+  @Get('lender-identity')
+  @RequirePermissions('settings:read')
+  getLenderIdentity(@CurrentUser() user: SessionUser): Promise<LenderIdentity> {
+    return this.settings.getLenderIdentity(requireTenantId(user));
+  }
+
+  @Patch('lender-identity')
+  @RequirePermissions('settings:write')
+  updateLenderIdentity(
+    @CurrentUser() user: SessionUser,
+    @Body(new ZodValidationPipe(lenderIdentitySchema)) body: LenderIdentityInput,
+  ): Promise<LenderIdentity> {
+    return this.settings.updateLenderIdentity(requireTenantId(user), body);
   }
 }

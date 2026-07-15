@@ -158,6 +158,15 @@ model TenantSettings {
   // Opening/bank balance (cents) so the computed available balance reconciles to
   // the lender's actual bank account.
   openingBalance  Int      @default(0)
+  // Lender legal identity for the header of generated NAMFISA loan agreements.
+  // Optional; the agreement falls back to the tenant name where blank.
+  legalName        String?
+  namfisaLicenceNo String?
+  registrationNo   String?
+  physicalAddress  String?
+  postalAddress    String?
+  contactPhone     String?
+  contactEmail     String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -279,10 +288,17 @@ model Borrower {
   phone          String
   email          String
   employer       String
+  // Employer contact details, captured for the loan agreement.
+  employerPhone   String?
+  employerAddress String?
+  // Payslip / employee number, captured for the loan agreement.
+  employeeNo      String?
   occupation     String
   monthlyIncome  Int
   employmentType EmploymentType
   gender         String?
+  // Marital status, captured for the loan agreement.
+  maritalStatus  String?
   // Salary pay day; kept as the raw sheet value (e.g. "25" or "25/10/23").
   payDay         String?
   // Collexia debt-order client reference; unique per tenant, set after loading.
@@ -296,6 +312,7 @@ model Borrower {
   user         User?
   addresses    BorrowerAddress[]
   bankAccounts BorrowerBankAccount[]
+  references   BorrowerReference[]
   documents    Document[]
 
   @@unique([tenantId, idNumber])
@@ -336,6 +353,19 @@ model BorrowerBankAccount {
   isActive          Boolean  @default(false)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+
+  @@index([borrowerId])
+}
+
+// A personal reference persisted to the borrower (carried over from the
+// application on approval) so loan agreements can be regenerated with them.
+model BorrowerReference {
+  id         String   @id @default(cuid())
+  borrowerId String
+  borrower   Borrower @relation(fields: [borrowerId], references: [id], onDelete: Cascade)
+  name       String
+  phone      String
+  createdAt  DateTime @default(now())
 
   @@index([borrowerId])
 }
@@ -390,11 +420,17 @@ model Loan {
   // Collexia debt-order loading state (reminder to load disbursed loans).
   collexiaStatus   CollexiaStatus @default(pending)
   collexiaMarkedAt DateTime?
+  // Loan-agreement facts carried over from the application at approval: which
+  // T&C version the borrower accepted, when, and the captured signature image.
+  tcVersion           String?
+  tcAcceptedAt        DateTime?
+  signatureDocumentId String?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
-  schedule RepaymentScheduleItem[]
-  payments Payment[]
+  schedule  RepaymentScheduleItem[]
+  payments  Payment[]
+  documents Document[]
 
   @@unique([tenantId, externalRef])
   @@index([tenantId])
@@ -431,6 +467,13 @@ model LoanApplication {
   addrCity       String
   addrRegion     String?
   addrCountry    String              @default("Namibia")
+  // Postal address snapshot (distinct from residential); becomes a labelled
+  // "Postal" borrower address on approval. Omitted when same as residential.
+  postalStreet   String?
+  postalSuburb   String?
+  postalCity     String?
+  postalRegion   String?
+  postalCountry  String?
   maritalStatus  String?
   type           LoanType
   amount         Int
@@ -439,6 +482,9 @@ model LoanApplication {
   declaredIncome Int
   employmentType EmploymentType
   employer       String
+  employerPhone   String?
+  employerAddress String?
+  employeeNo      String?
   occupation     String
   // Full bank-account snapshot (becomes the borrower's active account on approval).
   bankName          String
@@ -451,6 +497,11 @@ model LoanApplication {
   quotedTotal       Int
   quotedInstalment  Int
   affordabilityRatio Float
+  // Terms acceptance + captured signature (draw or photo) at intake. The
+  // signature is stored as a Document (kind 'signature'); this points at it.
+  tcVersion           String?
+  tcAcceptedAt        DateTime?
+  signatureDocumentId String?
   status         ApplicationStatus   @default(pending)
   affordability  AffordabilityResult @default(review)
   // Reason captured when an application is declined; shown in its activity timeline.
@@ -486,6 +537,10 @@ model Document {
   // approval) so they persist across the borrower's loans.
   borrowerId    String?
   borrower      Borrower?        @relation(fields: [borrowerId], references: [id], onDelete: Cascade)
+  // A generated (or wet-signed) loan agreement attaches to its loan. SetNull so
+  // the agreement survives on the borrower if the loan is later cancelled.
+  loanId        String?
+  loan          Loan?            @relation(fields: [loanId], references: [id], onDelete: SetNull)
   kind          String
   url           String
   fileName      String
@@ -495,6 +550,7 @@ model Document {
 
   @@index([applicationId])
   @@index([borrowerId])
+  @@index([loanId])
 }
 
 model Invoice {

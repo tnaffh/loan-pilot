@@ -16,6 +16,9 @@ import {
   DocumentKind,
   EmploymentType,
   LoanType,
+  NAMIBIAN_REGIONS,
+  TERMS_AND_CONDITIONS,
+  TERMS_VERSION,
   createApplicationSchema,
   formatNad,
   toCents,
@@ -27,6 +30,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DatePicker } from '@/components/ui/date-picker';
 import { FileUpload } from '@/components/ui/file-upload';
 import { Input } from '@/components/ui/input';
+import { SignaturePad } from '@/components/ui/signature-pad';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import {
   Select,
@@ -46,7 +50,7 @@ import {
 import { computeQuote, fetchPricingConfig, type PricingConfig } from '@/lib/pricing';
 import { PRODUCTS } from '@/lib/site-data';
 
-const STEPS = ['Your loan', 'Personal', 'Employment & bank', 'References & docs'] as const;
+const STEPS = ['Your loan', 'Personal', 'Employment & bank', 'References & docs', 'Review & sign'] as const;
 
 const STEP_FIELDS: FieldPath<CreateApplicationInput>[][] = [
   ['loanType', 'amount', 'termMonths', 'purpose'],
@@ -60,11 +64,16 @@ const STEP_FIELDS: FieldPath<CreateApplicationInput>[][] = [
     'address.street',
     'address.city',
     'address.country',
+    'postalSameAsResidential',
+    'postalAddress',
     'maritalStatus',
   ],
   [
     'employmentType',
     'employer',
+    'employerPhone',
+    'employerAddress',
+    'employeeNo',
     'occupation',
     'monthlyIncome',
     'bankAccount.bankName',
@@ -73,6 +82,7 @@ const STEP_FIELDS: FieldPath<CreateApplicationInput>[][] = [
     'bankAccount.accountType',
   ],
   ['references', 'consent'],
+  ['tcAccepted', 'tcVersion', 'signature'],
 ];
 
 const DOCUMENT_SLOTS: { kind: DocumentKind; label: string; required?: boolean }[] = [
@@ -126,9 +136,16 @@ export const ApplyForm = () => {
       phone: '',
       email: '',
       address: { label: 'Residential', street: '', suburb: '', city: '', region: '', country: 'Namibia' },
+      postalSameAsResidential: true,
+      // Left undefined so the optional postal address doesn't validate an empty
+      // object while it's hidden; it's populated only when the box is unticked.
+      postalAddress: undefined,
       maritalStatus: '',
       employmentType: EmploymentType.PermanentlyEmployed,
       employer: '',
+      employerPhone: '',
+      employerAddress: '',
+      employeeNo: '',
       occupation: '',
       monthlyIncome: 0,
       bankAccount: {
@@ -139,8 +156,11 @@ export const ApplyForm = () => {
         accountHolderName: '',
         accountType: 'Savings',
       },
+      // Only the first reference is required; a second is optional (added on demand).
       references: [{ name: '', phone: '' }],
-      // consent intentionally omitted — defaults to unchecked so the gate is real.
+      tcVersion: TERMS_VERSION,
+      signature: { dataUrl: '' },
+      // consent & tcAccepted intentionally omitted — default unchecked so the gates are real.
     },
   });
 
@@ -161,6 +181,7 @@ export const ApplyForm = () => {
   });
   const watchedAmount = Number(watchedAmountRaw) || 0;
   const watchedTerm = Number(watchedTermRaw) || 1;
+  const postalSameAsResidential = useWatch({ control, name: 'postalSameAsResidential' });
   // Payday loans are repaid in a single month; the term isn't applicant-adjustable.
   const isPayday = watchedType === LoanType.Payday;
 
@@ -178,10 +199,44 @@ export const ApplyForm = () => {
     const valid = await trigger(STEP_FIELDS[step]);
     if (valid) {
       setStep((current) => Math.min(current + 1, STEPS.length - 1));
+      return;
     }
+    // Surface why the step is blocked — some failing fields (e.g. a hidden
+    // postal address) aren't on screen, so an inline error alone is invisible.
+    const messages = collectStepErrors(form.formState.errors, STEP_FIELDS[step] ?? []);
+    const { toast } = await import('sonner');
+    toast.error('Please fix the highlighted fields', {
+      description: messages.length ? messages.join(' · ') : undefined,
+    });
   };
 
   const back = () => setStep((current) => Math.max(current - 1, 0));
+
+  /** Collect every validation message under the given step's field roots, so a
+   * blocked "Continue" can list them (some failing fields may be off-screen). */
+  const collectStepErrors = (
+    errs: FieldErrors<CreateApplicationInput>,
+    fieldsForStep: FieldPath<CreateApplicationInput>[],
+  ): string[] => {
+    const messages: string[] = [];
+    const seen = new Set<string>();
+    const visit = (node: unknown): void => {
+      if (!node || typeof node !== 'object') return;
+      const record = node as Record<string, unknown>;
+      if (typeof record.message === 'string' && !seen.has(record.message)) {
+        seen.add(record.message);
+        messages.push(record.message);
+      }
+      for (const key of Object.keys(record)) {
+        if (key === 'message' || key === 'type' || key === 'ref') continue;
+        visit(record[key]);
+      }
+    };
+    for (const root of new Set(fieldsForStep.map((field) => field.split('.')[0] ?? field))) {
+      visit((errs as Record<string, unknown>)[root]);
+    }
+    return messages;
+  };
 
   /** First step that owns a field with a validation error, so a blocked submit
    * jumps back to it instead of failing silently. */
@@ -504,7 +559,24 @@ export const ApplyForm = () => {
                     <Input id="address.city" {...register('address.city')} />
                   </FormField>
                   <FormField label="Region" htmlFor="address.region" optional>
-                    <Input id="address.region" {...register('address.region')} />
+                    <Controller
+                      control={control}
+                      name="address.region"
+                      render={({ field }) => (
+                        <Select value={field.value || undefined} onValueChange={field.onChange}>
+                          <SelectTrigger id="address.region" className="w-full">
+                            <SelectValue placeholder="Select region" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {NAMIBIAN_REGIONS.map((region) => (
+                              <SelectItem key={region} value={region}>
+                                {region}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
                   </FormField>
                   <FormField
                     label="Country"
@@ -533,6 +605,80 @@ export const ApplyForm = () => {
                       )}
                     />
                   </FormField>
+                </div>
+
+                <div className="space-y-3 border-t pt-4">
+                  <Controller
+                    control={control}
+                    name="postalSameAsResidential"
+                    render={({ field }) => (
+                      <label className="flex items-center gap-3 text-sm">
+                        <Checkbox
+                          checked={field.value ?? false}
+                          onCheckedChange={(checked) => {
+                            field.onChange(checked === true);
+                            // Drop any entered postal address so it can't linger
+                            // as a hidden, half-filled (and failing) value.
+                            if (checked === true) setValue('postalAddress', undefined);
+                          }}
+                        />
+                        <span>My postal address is the same as my residential address</span>
+                      </label>
+                    )}
+                  />
+                  {!postalSameAsResidential && (
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      <FormField
+                        label="Postal street / PO Box"
+                        htmlFor="postalAddress.street"
+                        error={errors.postalAddress?.street?.message}
+                        className="sm:col-span-2"
+                      >
+                        <Input
+                          id="postalAddress.street"
+                          placeholder="e.g. PO Box 123"
+                          {...register('postalAddress.street')}
+                        />
+                      </FormField>
+                      <FormField label="Suburb" htmlFor="postalAddress.suburb" optional>
+                        <Input id="postalAddress.suburb" {...register('postalAddress.suburb')} />
+                      </FormField>
+                      <FormField
+                        label="City / town"
+                        htmlFor="postalAddress.city"
+                        error={errors.postalAddress?.city?.message}
+                      >
+                        <Input id="postalAddress.city" {...register('postalAddress.city')} />
+                      </FormField>
+                      <FormField label="Region" htmlFor="postalAddress.region" optional>
+                        <Controller
+                          control={control}
+                          name="postalAddress.region"
+                          render={({ field }) => (
+                            <Select value={field.value || undefined} onValueChange={field.onChange}>
+                              <SelectTrigger id="postalAddress.region" className="w-full">
+                                <SelectValue placeholder="Select region" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {NAMIBIAN_REGIONS.map((region) => (
+                                  <SelectItem key={region} value={region}>
+                                    {region}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        />
+                      </FormField>
+                      <FormField
+                        label="Country"
+                        htmlFor="postalAddress.country"
+                        error={errors.postalAddress?.country?.message}
+                      >
+                        <Input id="postalAddress.country" {...register('postalAddress.country')} />
+                      </FormField>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -589,6 +735,20 @@ export const ApplyForm = () => {
                   </FormField>
                   <FormField label="Occupation" htmlFor="occupation" error={errors.occupation?.message}>
                     <Input id="occupation" {...register('occupation')} />
+                  </FormField>
+                  <FormField label="Employer telephone" htmlFor="employerPhone" optional>
+                    <Input id="employerPhone" type="tel" inputMode="tel" {...register('employerPhone')} />
+                  </FormField>
+                  <FormField label="Payslip / employee no." htmlFor="employeeNo" optional>
+                    <Input id="employeeNo" {...register('employeeNo')} />
+                  </FormField>
+                  <FormField
+                    label="Employer address"
+                    htmlFor="employerAddress"
+                    optional
+                    className="sm:col-span-2"
+                  >
+                    <Input id="employerAddress" {...register('employerAddress')} />
                   </FormField>
                 </div>
 
@@ -769,6 +929,70 @@ export const ApplyForm = () => {
                 {errors.consent?.message && (
                   <p className="-mt-3 text-xs text-destructive">{errors.consent.message}</p>
                 )}
+              </div>
+            )}
+
+            {step === 4 && (
+              <div className="space-y-6">
+                <div className="space-y-1">
+                  <h2 className="text-2xl tracking-tight">Review &amp; sign</h2>
+                  <p className="text-muted-foreground">
+                    Please read the Terms &amp; Conditions in full, then sign to complete your
+                    application.
+                  </p>
+                </div>
+
+                <div className="max-h-72 space-y-4 overflow-y-auto rounded-xl border bg-muted/30 p-5 text-sm">
+                  <p className="italic text-muted-foreground">{TERMS_AND_CONDITIONS.preamble}</p>
+                  {TERMS_AND_CONDITIONS.sections.map((section) => (
+                    <div key={section.title} className="space-y-1.5">
+                      <h3 className="font-medium">{section.title}</h3>
+                      {section.body.map((paragraph, index) => (
+                        <p key={index} className="text-muted-foreground">
+                          {paragraph}
+                        </p>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+
+                <Controller
+                  control={control}
+                  name="tcAccepted"
+                  render={({ field }) => (
+                    <label className="flex items-start gap-3 rounded-xl border p-4 text-sm">
+                      <Checkbox
+                        checked={field.value ?? false}
+                        onCheckedChange={(checked) => field.onChange(checked === true)}
+                        className="mt-0.5"
+                      />
+                      <span className="text-muted-foreground">
+                        I have read, understood and agree to the Terms &amp; Conditions above
+                        (version {TERMS_VERSION}).
+                      </span>
+                    </label>
+                  )}
+                />
+                {errors.tcAccepted?.message && (
+                  <p className="-mt-3 text-xs text-destructive">{errors.tcAccepted.message}</p>
+                )}
+
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Your signature</div>
+                  <Controller
+                    control={control}
+                    name="signature.dataUrl"
+                    render={({ field }) => (
+                      <SignaturePad
+                        value={field.value ?? null}
+                        onChange={(dataUrl) => field.onChange(dataUrl ?? '')}
+                      />
+                    )}
+                  />
+                  {errors.signature?.dataUrl?.message && (
+                    <p className="text-xs text-destructive">{errors.signature.dataUrl.message}</p>
+                  )}
+                </div>
               </div>
             )}
 

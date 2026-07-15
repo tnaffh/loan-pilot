@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, extname, join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
@@ -81,6 +81,29 @@ export class StorageService {
       await writeFile(destination, buffer);
     }
     return { key };
+  }
+
+  /**
+   * Read a stored object's bytes back into memory. Used server-side to embed a
+   * stored image (e.g. the captured signature) into a generated PDF — not for
+   * serving to clients, which go through {@link accessUrl}.
+   */
+  async read(key: string): Promise<Buffer> {
+    if (this.driver === 'gcs') {
+      const [contents] = await this.gcsBucket().file(key).download();
+      return contents;
+    }
+    if (this.driver === 's3') {
+      const response = await this.client().send(
+        new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+      );
+      const bytes = await response.Body?.transformToByteArray();
+      if (!bytes) {
+        throw new Error(`Empty object for key "${key}"`);
+      }
+      return Buffer.from(bytes);
+    }
+    return readFile(join(uploadsDir, key));
   }
 
   /** Resolve a storage key to a URL a browser can open. */

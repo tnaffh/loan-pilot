@@ -21,6 +21,11 @@ const bootstrap = async (): Promise<void> => {
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: false });
 
+  // Applications carry an inline signature image (a downscaled PNG data-URL) in
+  // their JSON body, which exceeds Nest's ~100 KB default. Raise the limit
+  // modestly — the client downscales signatures to well under this.
+  app.useBodyParser('json', { limit: '5mb' });
+
   app.setGlobalPrefix('api');
   app.enableCors({
     origin: (process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:3001').split(','),

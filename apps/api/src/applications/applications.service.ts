@@ -1,7 +1,8 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { LoanApplication, Prisma } from '@prisma/client';
 import {
   ApplicationStatus,
+  DocumentKind,
   LoanType,
   assessAffordability,
   buildApplicationActivity,
@@ -16,6 +17,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { LoansService } from '../loans/loans.service';
 import { SettingsService } from '../settings/settings.service';
 import { StorageService } from '../documents/storage.service';
+import { AgreementsService } from '../agreements/agreements.service';
 
 export type ApplicationWithReferences = Prisma.LoanApplicationGetPayload<{
   include: { references: true };
@@ -63,11 +65,14 @@ export interface PricingConfig {
 
 @Injectable()
 export class ApplicationsService {
+  private readonly logger = new Logger(ApplicationsService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly loans: LoansService,
     private readonly settings: SettingsService,
     private readonly storage: StorageService,
+    private readonly agreements: AgreementsService,
   ) {}
 
   /**
@@ -97,7 +102,10 @@ export class ApplicationsService {
 
   /**
    * Price the requested loan and assess affordability, then persist the
-   * application (with its references) under the resolved tenant.
+   * application (with its references, postal address, and captured signature)
+   * under the resolved tenant. Serves both the public apply site and in-branch
+   * dashboard capture — both submit the same shape, including the inline
+   * signature data-URL and terms acceptance.
    */
   async create(tenantId: string, input: CreateApplicationInput): Promise<LoanApplication> {
     const principalCents = toCents(input.amount);
@@ -114,6 +122,15 @@ export class ApplicationsService {
       instalmentCents: loanQuote.instalmentCents,
     });
 
+    // Persist the captured signature image to storage first (an external side
+    // effect, outside the DB transaction). An orphaned file on a later DB
+    // failure is harmless; a missing file for a committed row would not be.
+    const signature = await this.saveSignature(input.signature.dataUrl);
+
+    // A postal address distinct from the residential one; omitted (null) when
+    // the applicant marks it the same, in which case approval reuses residential.
+    const postal = input.postalSameAsResidential ? null : input.postalAddress;
+
     const data: Prisma.LoanApplicationCreateInput = {
       tenant: { connect: { id: tenantId } },
       firstName: input.firstName,
@@ -127,6 +144,11 @@ export class ApplicationsService {
       addrCity: input.address.city,
       addrRegion: input.address.region || null,
       addrCountry: input.address.country,
+      postalStreet: postal?.street || null,
+      postalSuburb: postal?.suburb || null,
+      postalCity: postal?.city || null,
+      postalRegion: postal?.region || null,
+      postalCountry: postal?.country || null,
       maritalStatus: input.maritalStatus || null,
       type: input.loanType,
       amount: principalCents,
@@ -135,6 +157,9 @@ export class ApplicationsService {
       declaredIncome: monthlyIncomeCents,
       employmentType: input.employmentType,
       employer: input.employer,
+      employerPhone: input.employerPhone || null,
+      employerAddress: input.employerAddress || null,
+      employeeNo: input.employeeNo || null,
       occupation: input.occupation,
       bankName: input.bankAccount.bankName,
       bankAccountNumber: input.bankAccount.accountNumber,
@@ -146,6 +171,8 @@ export class ApplicationsService {
       quotedInstalment: loanQuote.instalmentCents,
       affordabilityRatio: assessment.ratio,
       affordability: assessment.result,
+      tcVersion: input.tcVersion,
+      tcAcceptedAt: new Date(),
       references: {
         create: input.references.map((reference) => ({
           name: reference.name,
@@ -154,7 +181,35 @@ export class ApplicationsService {
       },
     };
 
-    return this.prisma.loanApplication.create({ data });
+    return this.prisma.$transaction(async (tx) => {
+      const application = await tx.loanApplication.create({ data });
+      const signatureDocument = await tx.document.create({
+        data: {
+          application: { connect: { id: application.id } },
+          kind: DocumentKind.Signature,
+          url: signature.key,
+          fileName: 'signature.png',
+          mimeType: 'image/png',
+          sizeBytes: signature.sizeBytes,
+        },
+      });
+      return tx.loanApplication.update({
+        where: { id: application.id },
+        data: { signatureDocumentId: signatureDocument.id },
+      });
+    });
+  }
+
+  /** Decode a PNG signature data-URL and persist it via the storage driver. */
+  private async saveSignature(dataUrl: string): Promise<{ key: string; sizeBytes: number }> {
+    const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
+    const buffer = Buffer.from(base64, 'base64');
+    const { key } = await this.storage.save({
+      buffer,
+      contentType: 'image/png',
+      originalName: 'signature.png',
+    });
+    return { key, sizeBytes: buffer.length };
   }
 
   findAllForTenant(tenantId: string): Promise<ApplicationWithReferences[]> {
@@ -230,12 +285,12 @@ export class ApplicationsService {
    * new) and disburses the quoted loan atomically with the status change;
    * Review is a triage step; Decline records the reason.
    */
-  updateStatus(
+  async updateStatus(
     tenantId: string,
     id: string,
     input: UpdateApplicationStatusInput,
   ): Promise<ApplicationDecision> {
-    return this.prisma.$transaction(async (tx) => {
+    const decision = await this.prisma.$transaction(async (tx) => {
       const application = await tx.loanApplication.findFirst({ where: { id, tenantId } });
       if (!application) {
         throw new NotFoundException('Application not found');
@@ -263,5 +318,23 @@ export class ApplicationsService {
 
       return { application: updated, loanId: loan?.id ?? null };
     });
+
+    // On approval, generate the signed agreement and email the borrower a copy —
+    // AFTER the transaction commits, so a PDF/storage/mail failure never rolls
+    // back the disbursement (staff can regenerate from the loan page).
+    if (decision.loanId) {
+      const loanId = decision.loanId;
+      try {
+        await this.agreements.generateForLoan(tenantId, loanId);
+        await this.agreements.emailToBorrower(tenantId, loanId);
+      } catch (error) {
+        this.logger.error(
+          `Failed to generate/email agreement for loan ${loanId}`,
+          error instanceof Error ? error.stack : String(error),
+        );
+      }
+    }
+
+    return decision;
   }
 }

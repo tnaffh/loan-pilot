@@ -5,11 +5,23 @@ import {
   toCents,
   type FeeSettings,
   type FeeSettingsInput,
+  type LenderIdentityInput,
   type LoanProductInput,
   type LoanType,
   type UpdateLoanProductInput,
 } from '@loan-pilot/domain';
 import { PrismaService } from '../prisma/prisma.service';
+
+/** The lender's legal identity for the header of generated loan agreements. */
+export interface LenderIdentity {
+  legalName: string | null;
+  namfisaLicenceNo: string | null;
+  registrationNo: string | null;
+  physicalAddress: string | null;
+  postalAddress: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
+}
 
 /** A single calendar year's NAMFISA levy liability, for the annual remittance. */
 export interface LevyYear {
@@ -63,6 +75,42 @@ export class SettingsService {
       update: data,
       create: { tenantId, ...data },
     });
+  }
+
+  /** The lender's legal identity (as shown on generated loan agreements). */
+  async getLenderIdentity(tenantId: string): Promise<LenderIdentity> {
+    const s = await this.getFeeSettings(tenantId);
+    return {
+      legalName: s.legalName,
+      namfisaLicenceNo: s.namfisaLicenceNo,
+      registrationNo: s.registrationNo,
+      physicalAddress: s.physicalAddress,
+      postalAddress: s.postalAddress,
+      contactPhone: s.contactPhone,
+      contactEmail: s.contactEmail,
+    };
+  }
+
+  /** Update the lender's legal identity. Empty strings clear a field. */
+  async updateLenderIdentity(
+    tenantId: string,
+    input: LenderIdentityInput,
+  ): Promise<LenderIdentity> {
+    const data = {
+      legalName: input.legalName || null,
+      namfisaLicenceNo: input.namfisaLicenceNo || null,
+      registrationNo: input.registrationNo || null,
+      physicalAddress: input.physicalAddress || null,
+      postalAddress: input.postalAddress || null,
+      contactPhone: input.contactPhone || null,
+      contactEmail: input.contactEmail || null,
+    };
+    await this.prisma.tenantSettings.upsert({
+      where: { tenantId },
+      update: data,
+      create: { tenantId, ...data },
+    });
+    return this.getLenderIdentity(tenantId);
   }
 
   /** Set the lender's opening/bank balance. `openingBalance` arrives in major N$. */

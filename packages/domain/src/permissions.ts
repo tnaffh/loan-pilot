@@ -30,6 +30,8 @@ export const PERMISSIONS = [
   'settings:read',
   'settings:write',
   'reports:read',
+  'agreements:read',
+  'agreements:generate',
   'users:manage',
   'roles:manage',
 ] as const;
@@ -60,6 +62,8 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   'settings:read': 'View rates & fees',
   'settings:write': 'Edit rates, fees & products',
   'reports:read': 'View reports & analytics',
+  'agreements:read': 'View & download loan agreements',
+  'agreements:generate': 'Generate, upload & email loan agreements',
   'users:manage': 'Manage team members',
   'roles:manage': 'Manage roles & permissions',
 };
@@ -81,6 +85,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
   { label: 'Finance', permissions: ['finance:read', 'finance:write'] },
   { label: 'Settings', permissions: ['settings:read', 'settings:write'] },
   { label: 'Reports', permissions: ['reports:read'] },
+  { label: 'Agreements', permissions: ['agreements:read', 'agreements:generate'] },
   { label: 'Administration', permissions: ['users:manage', 'roles:manage'] },
 ];
 
@@ -105,6 +110,8 @@ const STAFF_PERMISSIONS: Permission[] = [
   'payments:write',
   'settings:read',
   'reports:read',
+  'agreements:read',
+  'agreements:generate',
 ];
 
 /** Permission sets for the built-in roles — single-sourced so the migration,

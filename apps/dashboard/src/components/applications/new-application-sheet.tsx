@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Controller, useFieldArray, useForm } from 'react-hook-form';
+import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
@@ -9,10 +9,15 @@ import {
   DocumentKind,
   EmploymentType,
   LoanType,
+  NAMIBIAN_REGIONS,
+  TERMS_AND_CONDITIONS,
+  TERMS_VERSION,
   createApplicationSchema,
   type CreateApplicationInput,
 } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { SignaturePad } from '@/components/ui/signature-pad';
 import {
   Sheet,
   SheetContent,
@@ -63,7 +68,14 @@ const DEFAULTS: Partial<CreateApplicationInput> = {
   purpose: '',
   dateOfBirth: '',
   employmentType: EmploymentType.PermanentlyEmployed,
+  employerPhone: '',
+  employerAddress: '',
+  employeeNo: '',
   address: { label: 'Residential', street: '', suburb: '', city: '', region: '', country: 'Namibia' },
+  postalSameAsResidential: true,
+  // Undefined while hidden so the optional postal address isn't validated as an
+  // empty object; populated only when "same as residential" is unticked.
+  postalAddress: undefined,
   bankAccount: {
     bankName: '',
     accountNumber: '',
@@ -72,8 +84,12 @@ const DEFAULTS: Partial<CreateApplicationInput> = {
     accountHolderName: '',
     accountType: 'Savings',
   },
+  // Only the first reference is required; a second is optional (added on demand).
   references: [{ name: '', phone: '' }],
   consent: true,
+  tcVersion: TERMS_VERSION,
+  signature: { dataUrl: '' },
+  // tcAccepted intentionally omitted — the applicant must tick + sign in person.
 };
 
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
@@ -97,6 +113,7 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
     handleSubmit,
     reset,
     setError,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<CreateApplicationInput>({
     resolver: zodResolver(createApplicationSchema),
@@ -104,6 +121,7 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
   });
 
   const { fields, append, remove } = useFieldArray({ control, name: 'references' });
+  const postalSameAsResidential = useWatch({ control, name: 'postalSameAsResidential' });
 
   useEffect(() => {
     if (open) reset(DEFAULTS);
@@ -116,7 +134,8 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
     if (open) setDocs({});
   }
 
-  const onSubmit = handleSubmit(async (values) => {
+  const onSubmit = handleSubmit(
+    async (values) => {
     try {
       const created = await apiFetch<{ id: string }>('/applications/internal', {
         method: 'POST',
@@ -156,7 +175,30 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
         toast.error('Something went wrong');
       }
     }
-  });
+    },
+    (formErrors) => {
+      // Surface client-side validation blocks (e.g. a missing signature or T&C
+      // acceptance) that would otherwise make "Submit" appear to do nothing.
+      const messages: string[] = [];
+      const seen = new Set<string>();
+      const visit = (node: unknown): void => {
+        if (!node || typeof node !== 'object') return;
+        const record = node as Record<string, unknown>;
+        if (typeof record.message === 'string' && !seen.has(record.message)) {
+          seen.add(record.message);
+          messages.push(record.message);
+        }
+        for (const key of Object.keys(record)) {
+          if (key === 'message' || key === 'type' || key === 'ref') continue;
+          visit(record[key]);
+        }
+      };
+      visit(formErrors);
+      toast.error('Please fix the highlighted fields', {
+        description: messages.length ? messages.join(' · ') : undefined,
+      });
+    },
+  );
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -256,12 +298,94 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
                 <Input id="addr-suburb" {...register('address.suburb')} />
               </FormField>
               <FormField label="Region" htmlFor="addr-region" optional>
-                <Input id="addr-region" {...register('address.region')} />
+                <Controller
+                  control={control}
+                  name="address.region"
+                  render={({ field }) => (
+                    <Select value={field.value || undefined} onValueChange={field.onChange}>
+                      <SelectTrigger id="addr-region" className="w-full">
+                        <SelectValue placeholder="Select region" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {NAMIBIAN_REGIONS.map((region) => (
+                          <SelectItem key={region} value={region}>
+                            {region}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </FormField>
               <FormField label="Country" htmlFor="addr-country" error={errors.address?.country?.message}>
                 <Input id="addr-country" {...register('address.country')} />
               </FormField>
             </div>
+            <Controller
+              control={control}
+              name="postalSameAsResidential"
+              render={({ field }) => (
+                <label className="flex items-center gap-3 text-sm">
+                  <Checkbox
+                    checked={field.value ?? false}
+                    onCheckedChange={(checked) => {
+                      field.onChange(checked === true);
+                      if (checked === true) setValue('postalAddress', undefined);
+                    }}
+                  />
+                  <span>Postal address same as residential</span>
+                </label>
+              )}
+            />
+            {!postalSameAsResidential && (
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  label="Postal street / PO Box"
+                  htmlFor="postal-street"
+                  error={errors.postalAddress?.street?.message}
+                  className="sm:col-span-2"
+                >
+                  <Input id="postal-street" {...register('postalAddress.street')} />
+                </FormField>
+                <FormField
+                  label="City / town"
+                  htmlFor="postal-city"
+                  error={errors.postalAddress?.city?.message}
+                >
+                  <Input id="postal-city" {...register('postalAddress.city')} />
+                </FormField>
+                <FormField label="Suburb" htmlFor="postal-suburb" optional>
+                  <Input id="postal-suburb" {...register('postalAddress.suburb')} />
+                </FormField>
+                <FormField label="Region" htmlFor="postal-region" optional>
+                  <Controller
+                    control={control}
+                    name="postalAddress.region"
+                    render={({ field }) => (
+                      <Select value={field.value || undefined} onValueChange={field.onChange}>
+                        <SelectTrigger id="postal-region" className="w-full">
+                          <SelectValue placeholder="Select region" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {NAMIBIAN_REGIONS.map((region) => (
+                            <SelectItem key={region} value={region}>
+                              {region}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                </FormField>
+                <FormField
+                  label="Country"
+                  htmlFor="postal-country"
+                  error={errors.postalAddress?.country?.message}
+                >
+                  <Input id="postal-country" {...register('postalAddress.country')} />
+                </FormField>
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -299,6 +423,20 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
               </FormField>
               <FormField label="Occupation" htmlFor="occupation" error={errors.occupation?.message}>
                 <Input id="occupation" {...register('occupation')} />
+              </FormField>
+              <FormField label="Employer telephone" htmlFor="employerPhone" optional>
+                <Input id="employerPhone" type="tel" inputMode="tel" {...register('employerPhone')} />
+              </FormField>
+              <FormField label="Payslip / employee no." htmlFor="employeeNo" optional>
+                <Input id="employeeNo" {...register('employeeNo')} />
+              </FormField>
+              <FormField
+                label="Employer address"
+                htmlFor="employerAddress"
+                optional
+                className="sm:col-span-2"
+              >
+                <Input id="employerAddress" {...register('employerAddress')} />
               </FormField>
             </div>
           </div>
@@ -431,6 +569,63 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
                   />
                 </FormField>
               ))}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <SectionTitle>Terms &amp; signature</SectionTitle>
+            <p className="text-xs text-muted-foreground">
+              Have the applicant read the Terms &amp; Conditions, then tick to agree and sign on this
+              device. This is embedded in the generated loan agreement.
+            </p>
+            <div className="max-h-56 space-y-3 overflow-y-auto rounded-md border bg-muted/30 p-4 text-xs">
+              <p className="italic text-muted-foreground">{TERMS_AND_CONDITIONS.preamble}</p>
+              {TERMS_AND_CONDITIONS.sections.map((section) => (
+                <div key={section.title} className="space-y-1">
+                  <h4 className="font-semibold">{section.title}</h4>
+                  {section.body.map((paragraph, index) => (
+                    <p key={index} className="text-muted-foreground">
+                      {paragraph}
+                    </p>
+                  ))}
+                </div>
+              ))}
+            </div>
+            <Controller
+              control={control}
+              name="tcAccepted"
+              render={({ field }) => (
+                <label className="flex items-start gap-3 rounded-md border p-3 text-sm">
+                  <Checkbox
+                    checked={field.value ?? false}
+                    onCheckedChange={(checked) => field.onChange(checked === true)}
+                    className="mt-0.5"
+                  />
+                  <span className="text-muted-foreground">
+                    The applicant has read and agrees to the Terms &amp; Conditions (version{' '}
+                    {TERMS_VERSION}).
+                  </span>
+                </label>
+              )}
+            />
+            {errors.tcAccepted?.message && (
+              <p className="-mt-2 text-xs text-destructive">{errors.tcAccepted.message}</p>
+            )}
+            <div className="space-y-2">
+              <div className="text-sm font-medium">Applicant signature</div>
+              <Controller
+                control={control}
+                name="signature.dataUrl"
+                render={({ field }) => (
+                  <SignaturePad
+                    value={field.value ?? null}
+                    onChange={(dataUrl) => field.onChange(dataUrl ?? '')}
+                  />
+                )}
+              />
+              {errors.signature?.dataUrl?.message && (
+                <p className="text-xs text-destructive">{errors.signature.dataUrl.message}</p>
+              )}
             </div>
           </div>
 

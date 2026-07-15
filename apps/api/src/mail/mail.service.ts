@@ -51,12 +51,53 @@ export class MailService {
     );
   }
 
-  private async send(to: string, subject: string, html: string): Promise<void> {
+  /**
+   * Email the borrower their signed loan agreement PDF (NAMFISA requires the
+   * borrower receive a copy at no cost). The PDF rides as an attachment.
+   */
+  async sendAgreement(
+    email: string,
+    name: string,
+    lenderName: string,
+    pdf: Buffer,
+  ): Promise<void> {
+    await this.send(
+      email,
+      `Your loan agreement — ${lenderName}`,
+      this.template({
+        heading: `Hi ${name}`,
+        body: `Please find attached your signed loan agreement with ${lenderName}. Keep it for your records — you can request another copy at any time.`,
+        cta: 'Contact us',
+        url: 'mailto:' + (this.from.match(/<(.+)>/)?.[1] ?? this.from),
+        note: 'This copy is provided at no cost in line with NAMFISA requirements.',
+      }),
+      [{ filename: 'loan-agreement.pdf', content: pdf }],
+    );
+  }
+
+  private async send(
+    to: string,
+    subject: string,
+    html: string,
+    attachments?: { filename: string; content: Buffer }[],
+  ): Promise<void> {
     if (!this.client) {
-      this.logger.warn(`[mail disabled] to=${to} subject="${subject}" — set RESEND_API_KEY to send`);
+      this.logger.warn(
+        `[mail disabled] to=${to} subject="${subject}"${
+          attachments ? ` (+${attachments.length} attachment)` : ''
+        } — set RESEND_API_KEY to send`,
+      );
       return;
     }
-    const { error } = await this.client.emails.send({ from: this.from, to, subject, html });
+    const { error } = await this.client.emails.send({
+      from: this.from,
+      to,
+      subject,
+      html,
+      ...(attachments
+        ? { attachments: attachments.map((a) => ({ filename: a.filename, content: a.content })) }
+        : {}),
+    });
     if (error) {
       // Don't fail the request — the caller surfaces the link as a fallback.
       this.logger.error(`Resend failed for ${to}: ${error.message}`);

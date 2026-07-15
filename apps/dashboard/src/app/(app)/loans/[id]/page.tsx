@@ -42,6 +42,7 @@ import { TypeChip } from '@/components/type-chip';
 import { ActivityTimeline } from '@/components/activity-timeline';
 import { AuditLog } from '@/components/audit-log';
 import { BorrowerDocuments } from '@/components/borrowers/borrower-documents';
+import { LoanAgreementCard } from '@/components/loans/loan-agreement-card';
 import { LoanOpsCard } from '@/components/loans/loan-ops';
 import { EditLoanSheet } from '@/components/loans/edit-loan-sheet';
 import { useCommand } from '@/components/command-provider';
@@ -381,6 +382,13 @@ const LoanDetailPage = () => {
               <ActivityTimeline events={data.activity} />
             </CardContent>
           </Card>
+
+          <LoanAgreementCard
+            loanId={data.id}
+            user={user}
+            token={token}
+            hasSignature={Boolean(data.signatureDocumentId)}
+          />
 
           <BorrowerDocuments
             borrowerId={data.borrower.id}

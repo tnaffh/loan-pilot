@@ -608,6 +608,111 @@ const LeviesCard = () => {
   );
 };
 
+// ----- lender identity -------------------------------------------------------
+
+interface LenderIdentity {
+  legalName: string | null;
+  namfisaLicenceNo: string | null;
+  registrationNo: string | null;
+  physicalAddress: string | null;
+  postalAddress: string | null;
+  contactPhone: string | null;
+  contactEmail: string | null;
+}
+
+const LENDER_FIELDS: { key: keyof LenderIdentity; label: string; description?: string }[] = [
+  { key: 'legalName', label: 'Legal name', description: 'As registered with NAMFISA.' },
+  { key: 'namfisaLicenceNo', label: 'NAMFISA licence no.' },
+  { key: 'registrationNo', label: 'Registration no.' },
+  { key: 'physicalAddress', label: 'Physical address' },
+  { key: 'postalAddress', label: 'Postal address' },
+  { key: 'contactPhone', label: 'Contact phone' },
+  { key: 'contactEmail', label: 'Contact email' },
+];
+
+const EMPTY_IDENTITY: LenderIdentity = {
+  legalName: '',
+  namfisaLicenceNo: '',
+  registrationNo: '',
+  physicalAddress: '',
+  postalAddress: '',
+  contactPhone: '',
+  contactEmail: '',
+};
+
+const LenderIdentityCard = () => {
+  const { token } = useAuth();
+  const { data, loading, refresh } = useApi<LenderIdentity>('/settings/lender-identity');
+  const [form, setForm] = useState<LenderIdentity>(EMPTY_IDENTITY);
+  const [seeded, setSeeded] = useState<LenderIdentity | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  if (data && data !== seeded) {
+    setSeeded(data);
+    setForm({
+      legalName: data.legalName ?? '',
+      namfisaLicenceNo: data.namfisaLicenceNo ?? '',
+      registrationNo: data.registrationNo ?? '',
+      physicalAddress: data.physicalAddress ?? '',
+      postalAddress: data.postalAddress ?? '',
+      contactPhone: data.contactPhone ?? '',
+      contactEmail: data.contactEmail ?? '',
+    });
+  }
+
+  const save = async () => {
+    setBusy(true);
+    try {
+      await apiFetch('/settings/lender-identity', { method: 'PATCH', token, body: form });
+      toast.success('Lender identity saved');
+      refresh();
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : 'Something went wrong');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  if (loading && !data) {
+    return <Skeleton className="h-72 w-full rounded-xl" />;
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Lender identity</CardTitle>
+        <CardDescription>
+          Shown on the header of every generated loan agreement. NAMFISA requires the microlender&apos;s
+          licence details and contact information to appear on the agreement.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          {LENDER_FIELDS.map((field) => (
+            <FormField
+              key={field.key}
+              label={field.label}
+              htmlFor={field.key}
+              description={field.description}
+              optional
+            >
+              <Input
+                id={field.key}
+                value={form[field.key] ?? ''}
+                onChange={(e) => setForm((current) => ({ ...current, [field.key]: e.target.value }))}
+              />
+            </FormField>
+          ))}
+        </div>
+        <Button onClick={save} disabled={busy}>
+          {busy ? <Loader2 className="animate-spin" /> : null}
+          Save lender identity
+        </Button>
+      </CardContent>
+    </Card>
+  );
+};
+
 const SettingsPage = () => (
   <div>
     <PageHeader
@@ -619,6 +724,7 @@ const SettingsPage = () => (
         <TabsTrigger value="fees">Levies &amp; fees</TabsTrigger>
         <TabsTrigger value="products">Rate plans</TabsTrigger>
         <TabsTrigger value="levies">Levies collected</TabsTrigger>
+        <TabsTrigger value="identity">Lender identity</TabsTrigger>
       </TabsList>
       <TabsContent value="fees" className="mt-4">
         <FeeSettingsCard />
@@ -628,6 +734,9 @@ const SettingsPage = () => (
       </TabsContent>
       <TabsContent value="levies" className="mt-4">
         <LeviesCard />
+      </TabsContent>
+      <TabsContent value="identity" className="mt-4">
+        <LenderIdentityCard />
       </TabsContent>
     </Tabs>
   </div>

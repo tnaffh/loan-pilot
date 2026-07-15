@@ -11,9 +11,20 @@ import {
   UserRole,
   UserStatus,
 } from './enums';
-import { ageOnDate, isAdult, isPlausibleId, isPlausiblePhone, parseNamibianId } from './identity';
+import {
+  ageOnDate,
+  isAdult,
+  isPlausibleId,
+  isPlausiblePhone,
+  isPngDataUrl,
+  parseNamibianId,
+} from './identity';
 import { MAX_FINANCE_CHARGE_RATE, MAX_TERM_MONTHS } from './loan-math';
 import { isPermission, type Permission } from './permissions';
+import { TERMS_VERSION } from './terms';
+
+/** Upper bound on the inline base64 signature payload (~1.9 MB decoded). */
+const MAX_SIGNATURE_DATA_URL_LENGTH = 2_600_000;
 
 /** A personal reference, as required by the loan agreement (minimum one). */
 export const referenceSchema = z.object({
@@ -51,6 +62,39 @@ export const addressSchema = z.object({
 export type AddressInput = z.infer<typeof addressSchema>;
 
 /**
+ * A fully-optional address — every field may be blank. Used for the postal
+ * address, which is rarely captured; nothing here is required, so an empty or
+ * partial postal address never blocks a submission.
+ */
+export const optionalAddressSchema = z.object({
+  label: z.string().max(40).optional().or(z.literal('')),
+  street: z.string().max(200).optional().or(z.literal('')),
+  suburb: z.string().max(120).optional().or(z.literal('')),
+  city: z.string().max(120).optional().or(z.literal('')),
+  region: z.string().max(120).optional().or(z.literal('')),
+  country: z.string().max(120).optional().or(z.literal('')),
+});
+export type OptionalAddressInput = z.infer<typeof optionalAddressSchema>;
+
+/** Namibia's 14 administrative regions, for region dropdowns. */
+export const NAMIBIAN_REGIONS = [
+  'Erongo',
+  'Hardap',
+  'Karas',
+  'Kavango East',
+  'Kavango West',
+  'Khomas',
+  'Kunene',
+  'Ohangwena',
+  'Omaheke',
+  'Omusati',
+  'Oshana',
+  'Oshikoto',
+  'Otjozondjupa',
+  'Zambezi',
+] as const;
+
+/**
  * The public loan-application payload. Monetary values are submitted in
  * major Namibian Dollar units and converted to cents server-side.
  */
@@ -79,11 +123,19 @@ export const createApplicationSchema = z.object({
     .refine(isPlausiblePhone, 'Enter a valid phone number'),
   email: z.string().email('A valid email is required'),
   address: addressSchema,
+  // Postal address, distinct from the residential one above. Fully optional —
+  // rarely used, so it never blocks a submission. `postalSameAsResidential`
+  // (default true) simply hides the fields and reuses the residential address.
+  postalSameAsResidential: z.boolean().optional(),
+  postalAddress: optionalAddressSchema.optional(),
   maritalStatus: z.string().optional().or(z.literal('')),
 
   // Step 3 — employment & bank
   employmentType: z.nativeEnum(EmploymentType),
   employer: z.string().min(1, 'Employer is required'),
+  employerPhone: z.string().max(40).optional().or(z.literal('')),
+  employerAddress: z.string().max(200).optional().or(z.literal('')),
+  employeeNo: z.string().max(60).optional().or(z.literal('')),
   occupation: z.string().min(1, 'Occupation is required'),
   monthlyIncome: z.coerce.number().int().min(1, 'Monthly income is required'),
   bankAccount: bankAccountSchema,
@@ -92,6 +144,21 @@ export const createApplicationSchema = z.object({
   references: z.array(referenceSchema).min(1, 'At least one reference is required').max(4),
   consent: z.literal(true, {
     errorMap: () => ({ message: 'You must agree to the terms to continue' }),
+  }),
+
+  // Step 5 — review & sign. The applicant reads the full NAMFISA-approved terms,
+  // agrees to them, and signs. `tcVersion` pins which wording was accepted; the
+  // signature is a normalized PNG data-URL (drawn or photographed), stored
+  // server-side and embedded into the generated agreement PDF.
+  tcAccepted: z.literal(true, {
+    errorMap: () => ({ message: 'You must read and agree to the Terms & Conditions' }),
+  }),
+  tcVersion: z.string().min(1, 'Missing terms version'),
+  signature: z.object({
+    dataUrl: z
+      .string()
+      .max(MAX_SIGNATURE_DATA_URL_LENGTH, 'Signature image is too large')
+      .refine(isPngDataUrl, 'A signature is required'),
   }),
 }).superRefine((value, ctx) => {
   // When the ID is a Namibian national ID, its encoded birth date must agree
@@ -102,6 +169,15 @@ export const createApplicationSchema = z.object({
       code: z.ZodIssueCode.custom,
       path: ['dateOfBirth'],
       message: 'Date of birth does not match the ID number',
+    });
+  }
+  // The accepted terms version must match the current wording; a mismatch means
+  // the applicant read stale terms (e.g. a cached form) and must re-read.
+  if (value.tcVersion !== TERMS_VERSION) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['tcVersion'],
+      message: 'The terms have been updated — please re-read and agree',
     });
   }
 });
@@ -291,6 +367,33 @@ export type LoanProductInput = z.infer<typeof loanProductSchema>;
 /** Edit an existing product (incl. toggling `active`). All fields optional. */
 export const updateLoanProductSchema = loanProductSchema.partial();
 export type UpdateLoanProductInput = z.infer<typeof updateLoanProductSchema>;
+
+/**
+ * The lender's legal identity as it appears on the header of generated loan
+ * agreements (NAMFISA requires the microlender's licence details and contact
+ * information on the agreement). All fields optional so a tenant can fill them
+ * in incrementally; the agreement falls back to the tenant name where blank.
+ */
+export const lenderIdentitySchema = z.object({
+  legalName: z.string().max(160).optional().or(z.literal('')),
+  namfisaLicenceNo: z.string().max(80).optional().or(z.literal('')),
+  registrationNo: z.string().max(80).optional().or(z.literal('')),
+  physicalAddress: z.string().max(240).optional().or(z.literal('')),
+  postalAddress: z.string().max(240).optional().or(z.literal('')),
+  contactPhone: z
+    .string()
+    .max(40)
+    .optional()
+    .or(z.literal(''))
+    .refine((v) => !v || isPlausiblePhone(v), 'Enter a valid phone number'),
+  contactEmail: z
+    .string()
+    .max(160)
+    .optional()
+    .or(z.literal(''))
+    .refine((v) => !v || z.string().email().safeParse(v).success, 'Enter a valid email'),
+});
+export type LenderIdentityInput = z.infer<typeof lenderIdentitySchema>;
 
 /**
  * Inputs for a loan quote preview. `amount` is in major N$ units. An optional

@@ -118,4 +118,8 @@ export enum DocumentKind {
   IdDocument = 'id_document',
   Payslip = 'payslip',
   BankStatement = 'bank_statement',
+  // The applicant's captured signature image (drawn or uploaded at intake).
+  Signature = 'signature',
+  // A generated (or wet-signed, uploaded) NAMFISA loan agreement PDF.
+  LoanAgreement = 'loan_agreement',
 }

@@ -4,6 +4,7 @@ import {
   ApplicationStatus,
   EmploymentType,
   LoanType,
+  TERMS_VERSION,
   type CreateApplicationInput,
 } from '@loan-pilot/domain';
 import { ApplicationsService } from './applications.service';
@@ -13,6 +14,7 @@ import { StorageService } from '../documents/storage.service';
 import { DocumentsService } from '../documents/documents.service';
 import { AuditService } from '../audit/audit.service';
 import { SettingsService } from '../settings/settings.service';
+import { AgreementsService } from '../agreements/agreements.service';
 
 // Zero fees + no product + 0% monthly rate, so pricing matches the original
 // loan-amount-only, flat-charge math.
@@ -31,15 +33,20 @@ describe('ApplicationsService', () => {
   const create = jest.fn();
   const applicationFindFirst = jest.fn();
   const applicationUpdate = jest.fn();
+  const documentCreate = jest.fn();
   const borrowerUpsert = jest.fn();
   const loanCreate = jest.fn();
+  const generateForLoan = jest.fn();
+  const emailToBorrower = jest.fn();
 
   const txMock = {
-    loanApplication: { findFirst: applicationFindFirst, update: applicationUpdate },
+    loanApplication: { findFirst: applicationFindFirst, update: applicationUpdate, create },
     borrower: { upsert: borrowerUpsert },
     borrowerAddress: { updateMany: jest.fn(), create: jest.fn() },
     borrowerBankAccount: { updateMany: jest.fn(), create: jest.fn() },
-    document: { updateMany: jest.fn() },
+    applicationReference: { findMany: jest.fn().mockResolvedValue([]) },
+    borrowerReference: { deleteMany: jest.fn(), createMany: jest.fn() },
+    document: { updateMany: jest.fn(), create: documentCreate },
     loan: { create: loanCreate },
   };
 
@@ -58,23 +65,31 @@ describe('ApplicationsService', () => {
     applicationUpdate.mockImplementation((args: { data: Record<string, unknown> }) =>
       Promise.resolve({ id: 'app_1', ...args.data }),
     );
+    documentCreate.mockResolvedValue({ id: 'doc_sig' });
+    txMock.applicationReference.findMany.mockResolvedValue([]);
     borrowerUpsert.mockResolvedValue({ id: 'bor_new' });
     loanCreate.mockImplementation((args: { data: Record<string, unknown> }) =>
       Promise.resolve({ id: 'loan_new', ...args.data }),
     );
+    generateForLoan.mockResolvedValue({ id: 'doc_agreement' });
+    emailToBorrower.mockResolvedValue({ sent: true });
 
     const moduleRef = await Test.createTestingModule({
       providers: [
         ApplicationsService,
         LoansService,
         { provide: PrismaService, useValue: prismaMock },
-        { provide: StorageService, useValue: { accessUrl: jest.fn(), save: jest.fn() } },
+        {
+          provide: StorageService,
+          useValue: { accessUrl: jest.fn(), save: jest.fn().mockResolvedValue({ key: 'documents/sig.png' }) },
+        },
         { provide: DocumentsService, useValue: { listForBorrower: jest.fn().mockResolvedValue([]) } },
         {
           provide: AuditService,
           useValue: { record: jest.fn(), diff: jest.fn().mockReturnValue([]), listFor: jest.fn() },
         },
         { provide: SettingsService, useValue: settingsMock },
+        { provide: AgreementsService, useValue: { generateForLoan, emailToBorrower } },
       ],
     }).compile();
 
@@ -107,6 +122,10 @@ describe('ApplicationsService', () => {
       { name: 'Petrus H', phone: '+264814455667' },
     ],
     consent: true,
+    tcAccepted: true,
+    tcVersion: TERMS_VERSION,
+    postalSameAsResidential: true,
+    signature: { dataUrl: 'data:image/png;base64,iVBORw0KGgo=' },
   };
 
   it('prices the loan in cents and stores an affordability assessment', async () => {

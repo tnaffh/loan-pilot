@@ -372,9 +372,13 @@ export class LoansService {
         phone: application.phone,
         email: application.email,
         employer: application.employer,
+        employerPhone: application.employerPhone,
+        employerAddress: application.employerAddress,
+        employeeNo: application.employeeNo,
         occupation: application.occupation,
         monthlyIncome: application.declaredIncome,
         employmentType: application.employmentType,
+        maritalStatus: application.maritalStatus,
       },
       create: {
         tenant: { connect: { id: application.tenantId } },
@@ -384,9 +388,13 @@ export class LoansService {
         phone: application.phone,
         email: application.email,
         employer: application.employer,
+        employerPhone: application.employerPhone,
+        employerAddress: application.employerAddress,
+        employeeNo: application.employeeNo,
         occupation: application.occupation,
         monthlyIncome: application.declaredIncome,
         employmentType: application.employmentType,
+        maritalStatus: application.maritalStatus,
       },
     });
 
@@ -425,8 +433,41 @@ export class LoansService {
       },
     });
 
-    // Carry the application's uploaded documents onto the borrower so they
-    // persist beyond the application.
+    // A distinct postal address (labelled), when the applicant supplied one.
+    if (application.postalStreet && application.postalCity) {
+      await tx.borrowerAddress.create({
+        data: {
+          borrowerId: borrower.id,
+          label: 'Postal',
+          street: application.postalStreet,
+          suburb: application.postalSuburb,
+          city: application.postalCity,
+          region: application.postalRegion,
+          country: application.postalCountry ?? 'Namibia',
+          isActive: false,
+        },
+      });
+    }
+
+    // Carry the application's references onto the borrower (replacing any prior
+    // set) so agreements can be regenerated with them.
+    const references = await tx.applicationReference.findMany({
+      where: { applicationId: application.id },
+      select: { name: true, phone: true },
+    });
+    await tx.borrowerReference.deleteMany({ where: { borrowerId: borrower.id } });
+    if (references.length > 0) {
+      await tx.borrowerReference.createMany({
+        data: references.map((reference) => ({
+          borrowerId: borrower.id,
+          name: reference.name,
+          phone: reference.phone,
+        })),
+      });
+    }
+
+    // Carry the application's uploaded documents (incl. the captured signature)
+    // onto the borrower so they persist beyond the application.
     await tx.document.updateMany({
       where: { applicationId: application.id },
       data: { borrowerId: borrower.id },
@@ -455,6 +496,11 @@ export class LoansService {
         productId,
         collateral: null,
         disbursedAt: new Date(),
+        agreement: {
+          tcVersion: application.tcVersion,
+          tcAcceptedAt: application.tcAcceptedAt,
+          signatureDocumentId: application.signatureDocumentId,
+        },
       }),
     });
   }
@@ -984,6 +1030,7 @@ export class LoansService {
     productId,
     collateral,
     disbursedAt,
+    agreement,
   }: {
     tenantId: string;
     borrowerId: string;
@@ -992,11 +1039,21 @@ export class LoansService {
     productId: string | null;
     collateral: string | null;
     disbursedAt: Date;
+    // Terms acceptance + signature carried from the application (absent for
+    // loans created directly against an existing borrower).
+    agreement?: {
+      tcVersion: string | null;
+      tcAcceptedAt: Date | null;
+      signatureDocumentId: string | null;
+    };
   }): Prisma.LoanCreateInput {
     return {
       tenant: { connect: { id: tenantId } },
       borrower: { connect: { id: borrowerId } },
       ...(productId ? { product: { connect: { id: productId } } } : {}),
+      tcVersion: agreement?.tcVersion ?? null,
+      tcAcceptedAt: agreement?.tcAcceptedAt ?? null,
+      signatureDocumentId: agreement?.signatureDocumentId ?? null,
       type,
       principal: loanQuote.principalCents,
       financeCharge: loanQuote.financeChargeCents,

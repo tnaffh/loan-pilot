@@ -224,6 +224,8 @@ export interface LoanDetail extends LoanRow {
   writeOffReason: string | null;
   cancelReason: string | null;
   closedAt: string | null;
+  // Points at the captured-signature Document, when the loan carries one.
+  signatureDocumentId: string | null;
   schedule: ScheduleItem[];
   payments: PaymentRow[];
   activity: ActivityEvent[];

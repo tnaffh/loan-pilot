@@ -112,6 +112,15 @@ export const normalizePhone = (value: string): string => compact(value);
 export const isPlausiblePhone = (value: string): boolean =>
   /^\+?\d{8,15}$/.test(normalizePhone(value));
 
+/**
+ * True for a PNG data-URL (`data:image/png;base64,…`). Used to validate the
+ * captured signature image before it is decoded and stored server-side. The
+ * signature-pad component normalizes both drawn and photo-uploaded signatures to
+ * a PNG data-URL, so this is the single accepted shape.
+ */
+export const isPngDataUrl = (value: string): boolean =>
+  /^data:image\/png;base64,[A-Za-z0-9+/]+=*$/.test(value.trim());
+
 /** Whole years between a `YYYY-MM-DD` birth date and `on`; null when unparseable. */
 export const ageOnDate = (dateOfBirth: string, on: Date = new Date()): number | null => {
   const parts = parseIsoDate(dateOfBirth);

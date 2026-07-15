@@ -16,6 +16,7 @@ import { IncomeModule } from './income/income.module';
 import { StatsModule } from './stats/stats.module';
 import { DocumentsModule } from './documents/documents.module';
 import { SettingsModule } from './settings/settings.module';
+import { AgreementsModule } from './agreements/agreements.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { SettingsModule } from './settings/settings.module';
     StatsModule,
     DocumentsModule,
     SettingsModule,
+    AgreementsModule,
   ],
 })
 export class AppModule {}

@@ -112,6 +112,7 @@ const main = async (): Promise<void> => {
   // Clean slate for a deterministic dev seed.
   await prisma.repaymentScheduleItem.deleteMany();
   await prisma.applicationReference.deleteMany();
+  await prisma.borrowerReference.deleteMany();
   await prisma.document.deleteMany();
   await prisma.loanApplication.deleteMany();
   await prisma.payment.deleteMany();

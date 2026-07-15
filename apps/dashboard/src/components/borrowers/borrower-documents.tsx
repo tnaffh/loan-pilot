@@ -26,10 +26,19 @@ const KIND_LABELS: Record<string, string> = {
   [DocumentKind.IdDocument]: 'ID document',
   [DocumentKind.Payslip]: 'Payslip',
   [DocumentKind.BankStatement]: 'Bank statement',
+  [DocumentKind.Signature]: 'Signature',
+  [DocumentKind.LoanAgreement]: 'Loan agreement',
   other: 'Other',
 };
 
 const KIND_OPTIONS = [...Object.values(DocumentKind), 'other'];
+
+// Kinds a user may manually upload here. The captured signature and generated
+// loan agreement are produced by the system, not hand-uploaded, so they are
+// excluded from the picker (agreements are managed on the loan page).
+const UPLOAD_KINDS = KIND_OPTIONS.filter(
+  (kind) => kind !== DocumentKind.Signature && kind !== DocumentKind.LoanAgreement,
+);
 
 /** The standard documents a complete borrower file should hold. */
 const REQUIRED_KINDS = [
@@ -226,7 +235,7 @@ export const BorrowerDocuments = ({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {KIND_OPTIONS.map((value) => (
+                  {UPLOAD_KINDS.map((value) => (
                     <SelectItem key={value} value={value}>
                       {KIND_LABELS[value] ?? value}
                     </SelectItem>
