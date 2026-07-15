@@ -17,7 +17,6 @@ import {
   EmploymentType,
   LoanType,
   NAMIBIAN_REGIONS,
-  TERMS_AND_CONDITIONS,
   TERMS_VERSION,
   createApplicationSchema,
   formatNad,
@@ -40,6 +39,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { FormField } from '@/components/site/form-field';
+import { TermsContent } from '@/components/site/terms-content';
 import { cn } from '@/lib/utils';
 import {
   ApiError,
@@ -942,18 +942,8 @@ export const ApplyForm = () => {
                   </p>
                 </div>
 
-                <div className="max-h-72 space-y-4 overflow-y-auto rounded-xl border bg-muted/30 p-5 text-sm">
-                  <p className="italic text-muted-foreground">{TERMS_AND_CONDITIONS.preamble}</p>
-                  {TERMS_AND_CONDITIONS.sections.map((section) => (
-                    <div key={section.title} className="space-y-1.5">
-                      <h3 className="font-medium">{section.title}</h3>
-                      {section.body.map((paragraph, index) => (
-                        <p key={index} className="text-muted-foreground">
-                          {paragraph}
-                        </p>
-                      ))}
-                    </div>
-                  ))}
+                <div className="max-h-80 overflow-y-auto rounded-xl border bg-muted/20 p-6">
+                  <TermsContent />
                 </div>
 
                 <Controller

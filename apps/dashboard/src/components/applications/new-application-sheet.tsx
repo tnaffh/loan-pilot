@@ -10,7 +10,6 @@ import {
   EmploymentType,
   LoanType,
   NAMIBIAN_REGIONS,
-  TERMS_AND_CONDITIONS,
   TERMS_VERSION,
   createApplicationSchema,
   type CreateApplicationInput,
@@ -18,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { SignaturePad } from '@/components/ui/signature-pad';
+import { TermsContent } from '@/components/applications/terms-content';
 import {
   Sheet,
   SheetContent,
@@ -578,18 +578,8 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
               Have the applicant read the Terms &amp; Conditions, then tick to agree and sign on this
               device. This is embedded in the generated loan agreement.
             </p>
-            <div className="max-h-56 space-y-3 overflow-y-auto rounded-md border bg-muted/30 p-4 text-xs">
-              <p className="italic text-muted-foreground">{TERMS_AND_CONDITIONS.preamble}</p>
-              {TERMS_AND_CONDITIONS.sections.map((section) => (
-                <div key={section.title} className="space-y-1">
-                  <h4 className="font-semibold">{section.title}</h4>
-                  {section.body.map((paragraph, index) => (
-                    <p key={index} className="text-muted-foreground">
-                      {paragraph}
-                    </p>
-                  ))}
-                </div>
-              ))}
+            <div className="max-h-64 overflow-y-auto rounded-md border bg-muted/20 p-4">
+              <TermsContent />
             </div>
             <Controller
               control={control}
