@@ -222,7 +222,7 @@ export const renderAgreementPdf = (data: AgreementData): Promise<Buffer> =>
       sectionHeading('References');
       fieldGrid(
         data.borrower.references.map(
-          (reference) => [reference.name, reference.phone] as readonly [string, string],
+          (reference) => [reference.name, reference.phone] as const,
         ),
       );
     }
@@ -348,6 +348,47 @@ export const renderAgreementPdf = (data: AgreementData): Promise<Buffer> =>
       .moveTo(M + sigW + sigGap, lineY)
       .lineTo(right, lineY)
       .stroke();
+
+    // The lender's digital stamp — drawn (not uploaded) as a rounded, double-bordered
+    // seal over the lender signature line, slightly rotated for a rubber-stamp feel.
+    const stampCx = M + sigW + sigGap + sigW / 2;
+    const stampCy = imgTop + 16;
+    const stampW = 155;
+    const stampH = 52;
+    const sx = stampCx - stampW / 2;
+    const sy = stampCy - stampH / 2;
+    doc.save();
+    doc.rotate(-6, { origin: [stampCx, stampCy] });
+    doc.strokeColor(COLORS.accent).strokeOpacity(0.7).fillOpacity(0.8).fillColor(COLORS.accent);
+    doc.lineWidth(1.4).roundedRect(sx, sy, stampW, stampH, 7).stroke();
+    doc.lineWidth(0.6).roundedRect(sx + 3.5, sy + 3.5, stampW - 7, stampH - 7, 5).stroke();
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(7)
+      .text('APPROVED', sx, sy + 7, { width: stampW, align: 'center', characterSpacing: 2.5 });
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(7.5)
+      .text(data.lender.name, sx + 6, sy + 18, { width: stampW - 12, align: 'center', lineBreak: false });
+    doc
+      .font('Helvetica')
+      .fontSize(6)
+      .text(
+        data.lender.namfisaLicenceNo ? `NAMFISA ${data.lender.namfisaLicenceNo}` : (data.lender.town ?? ''),
+        sx,
+        sy + 30,
+        { width: stampW, align: 'center' },
+      );
+    doc
+      .font('Helvetica')
+      .fontSize(6)
+      .text(data.loan.disbursedAt ?? longDate(data.generatedAt), sx, sy + 39, {
+        width: stampW,
+        align: 'center',
+      });
+    doc.restore();
+    doc.strokeOpacity(1).fillOpacity(1);
+
     doc.font('Helvetica-Bold').fontSize(8.5).fillColor(COLORS.ink);
     doc.text('Signature of Borrower', M, lineY + 5, { width: sigW });
     doc.text('Signature of Lender', M + sigW + sigGap, lineY + 5, { width: sigW });
