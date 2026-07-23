@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import type { $Enums, Loan, LoanApplication, Prisma } from '@prisma/client';
 import {
   CollexiaStatus,
+  DocumentKind,
   LoanStatus,
   LoanType,
   RepaymentStatus,
@@ -56,6 +57,8 @@ export type LoanWithDetails = Prisma.LoanGetPayload<{
   // The borrower's documents, resolved to openable URLs — shown read-only on the
   // staff loan page (empty for the borrower's own portal view).
   borrowerDocuments: DocumentView[];
+  // Photos of the pledged collateral (collateral loans), resolved to openable URLs.
+  collateralPhotos: DocumentView[];
 };
 
 export interface StatementLine {
@@ -281,6 +284,7 @@ export class LoansService {
       overdueAmount: arrears.overdueCents,
       payoff: loan.balance + arrears.defaultInterestCents,
       borrowerDocuments: await this.documents.listForBorrower(tenantId, loan.borrowerId),
+      collateralPhotos: await this.documents.listForLoan(tenantId, id, DocumentKind.CollateralPhoto),
     };
   }
 
@@ -311,6 +315,7 @@ export class LoansService {
       overdueAmount: arrears.overdueCents,
       payoff: loan.balance + arrears.defaultInterestCents,
       borrowerDocuments: [],
+      collateralPhotos: [],
     };
   }
 
@@ -487,14 +492,30 @@ export class LoansService {
       fees,
     });
 
-    return tx.loan.create({
+    // Structured collateral (collateral loans) + a legacy free-text summary so
+    // the loan list / edit form keep rendering the single `collateral` string.
+    const collateralDetail = application.collateralItem
+      ? {
+          item: application.collateralItem,
+          identifier: application.collateralIdentifier,
+          description: application.collateralDescription,
+          condition: application.collateralCondition,
+          value: application.collateralValue,
+        }
+      : null;
+    const collateralSummary = application.collateralItem
+      ? [application.collateralItem, application.collateralIdentifier].filter(Boolean).join(' · ')
+      : null;
+
+    const loan = await tx.loan.create({
       data: this.buildLoanCreateData({
         tenantId: application.tenantId,
         borrowerId: borrower.id,
         loanQuote,
         type,
         productId,
-        collateral: null,
+        collateral: collateralSummary,
+        collateralDetail,
         disbursedAt: new Date(),
         agreement: {
           tcVersion: application.tcVersion,
@@ -503,6 +524,15 @@ export class LoansService {
         },
       }),
     });
+
+    // Attach the collateral photos to the loan too (they're already relinked to
+    // the borrower above); this lets the loan page + collateral agreement use them.
+    await tx.document.updateMany({
+      where: { applicationId: application.id, kind: DocumentKind.CollateralPhoto },
+      data: { loanId: loan.id },
+    });
+
+    return loan;
   }
 
   /**
@@ -1029,6 +1059,7 @@ export class LoansService {
     type,
     productId,
     collateral,
+    collateralDetail,
     disbursedAt,
     agreement,
   }: {
@@ -1038,6 +1069,14 @@ export class LoansService {
     type: LoanType;
     productId: string | null;
     collateral: string | null;
+    // Structured collateral carried from the application (collateral loans only).
+    collateralDetail?: {
+      item: string | null;
+      identifier: string | null;
+      description: string | null;
+      condition: string | null;
+      value: number | null;
+    } | null;
     disbursedAt: Date;
     // Terms acceptance + signature carried from the application (absent for
     // loans created directly against an existing borrower).
@@ -1070,6 +1109,11 @@ export class LoansService {
       balance: loanQuote.totalCents,
       status: LoanStatus.Active,
       collateral,
+      collateralItem: collateralDetail?.item ?? null,
+      collateralIdentifier: collateralDetail?.identifier ?? null,
+      collateralDescription: collateralDetail?.description ?? null,
+      collateralCondition: collateralDetail?.condition ?? null,
+      collateralValue: collateralDetail?.value ?? null,
       disbursedAt,
       nextDueAt: addMonths(disbursedAt, 1),
       schedule: {

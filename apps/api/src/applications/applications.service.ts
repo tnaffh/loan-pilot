@@ -154,6 +154,12 @@ export class ApplicationsService {
       amount: principalCents,
       termMonths: input.termMonths,
       purpose: input.purpose || null,
+      collateralItem: input.collateral?.item || null,
+      collateralIdentifier: input.collateral?.identifier || null,
+      collateralDescription: input.collateral?.description || null,
+      collateralCondition: input.collateral?.condition || null,
+      collateralValue:
+        input.collateral?.estimatedValue != null ? toCents(input.collateral.estimatedValue) : null,
       declaredIncome: monthlyIncomeCents,
       employmentType: input.employmentType,
       employer: input.employer,
@@ -332,6 +338,20 @@ export class ApplicationsService {
           `Failed to generate/email agreement for loan ${loanId}`,
           error instanceof Error ? error.stack : String(error),
         );
+      }
+      // Collateral loans additionally get a signed collateral (pledge) agreement.
+      // Separate try/catch so a collateral-PDF failure can't affect the loan
+      // agreement or the committed disbursement.
+      if (decision.application.type === LoanType.Collateral) {
+        try {
+          await this.agreements.generateCollateralForLoan(tenantId, loanId);
+          await this.agreements.emailCollateralToBorrower(tenantId, loanId);
+        } catch (error) {
+          this.logger.error(
+            `Failed to generate/email collateral agreement for loan ${loanId}`,
+            error instanceof Error ? error.stack : String(error),
+          );
+        }
       }
     }
 

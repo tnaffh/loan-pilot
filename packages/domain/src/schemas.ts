@@ -95,6 +95,21 @@ export const NAMIBIAN_REGIONS = [
 ] as const;
 
 /**
+ * The pledged asset for a collateral loan. All fields are loose so a
+ * non-collateral application (which omits this object) always validates; the
+ * required-when-collateral rule is enforced in `createApplicationSchema`'s
+ * refinement. `estimatedValue` is major N$ and converted to cents server-side.
+ */
+export const collateralItemSchema = z.object({
+  item: z.string().max(120).optional().or(z.literal('')),
+  identifier: z.string().max(120).optional().or(z.literal('')),
+  description: z.string().max(500).optional().or(z.literal('')),
+  condition: z.string().max(120).optional().or(z.literal('')),
+  estimatedValue: z.coerce.number().min(0).optional(),
+});
+export type CollateralItemInput = z.infer<typeof collateralItemSchema>;
+
+/**
  * The public loan-application payload. Monetary values are submitted in
  * major Namibian Dollar units and converted to cents server-side.
  */
@@ -104,6 +119,9 @@ export const createApplicationSchema = z.object({
   amount: z.coerce.number().int().min(500, 'Minimum amount is N$ 500').max(500000),
   termMonths: z.coerce.number().int().min(1).max(MAX_TERM_MONTHS),
   purpose: z.string().max(280).optional().or(z.literal('')),
+  // The pledged asset — only meaningful for collateral loans (required-when-
+  // collateral is enforced in the refinement below). Left undefined otherwise.
+  collateral: collateralItemSchema.optional(),
 
   // Step 2 — personal
   firstName: z.string().min(1, 'First name is required'),
@@ -179,6 +197,39 @@ export const createApplicationSchema = z.object({
       path: ['tcVersion'],
       message: 'The terms have been updated — please re-read and agree',
     });
+  }
+  // Collateral loans must describe the pledged asset. (Photos are gated in the
+  // form, outside zod, like the required supporting-document uploads.)
+  if (value.loanType === LoanType.Collateral) {
+    const collateral = value.collateral;
+    if (!collateral?.item) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['collateral', 'item'],
+        message: 'Describe what is being put up as collateral',
+      });
+    }
+    if (!collateral?.identifier) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['collateral', 'identifier'],
+        message: 'A serial number, registration or other identifier is required',
+      });
+    }
+    if (!collateral?.description) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['collateral', 'description'],
+        message: 'A brief description is required',
+      });
+    }
+    if (!collateral?.condition) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['collateral', 'condition'],
+        message: 'The condition of the item is required',
+      });
+    }
   }
 });
 export type CreateApplicationInput = z.infer<typeof createApplicationSchema>;

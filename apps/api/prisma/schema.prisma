@@ -397,7 +397,14 @@ model Loan {
   instalmentsTotal Int
   balance          Int
   status           LoanStatus @default(active)
+  // Legacy free-text collateral summary (kept for the loan list / edit form).
   collateral       String?
+  // Structured collateral (collateral loans): the pledged asset details.
+  collateralItem        String?
+  collateralIdentifier  String?
+  collateralDescription String?
+  collateralCondition   String?
+  collateralValue       Int?      // estimated value in cents
   daysLate         Int        @default(0)
   // Reporting bucket from the source register, e.g. "October 2023".
   originMonth      String?
@@ -479,6 +486,12 @@ model LoanApplication {
   amount         Int
   termMonths     Int
   purpose        String?
+  // Structured collateral snapshot (collateral loans); carried onto the loan on approval.
+  collateralItem        String?
+  collateralIdentifier  String?
+  collateralDescription String?
+  collateralCondition   String?
+  collateralValue       Int?      // estimated value in cents
   declaredIncome Int
   employmentType EmploymentType
   employer       String

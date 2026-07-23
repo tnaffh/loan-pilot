@@ -38,6 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { PhotoUpload } from '@/components/ui/photo-upload';
 import { FormField } from '@/components/site/form-field';
 import { TermsContent } from '@/components/site/terms-content';
 import { cn } from '@/lib/utils';
@@ -53,7 +54,17 @@ import { PRODUCTS } from '@/lib/site-data';
 const STEPS = ['Your loan', 'Personal', 'Employment & bank', 'References & docs', 'Review & sign'] as const;
 
 const STEP_FIELDS: FieldPath<CreateApplicationInput>[][] = [
-  ['loanType', 'amount', 'termMonths', 'purpose'],
+  [
+    'loanType',
+    'amount',
+    'termMonths',
+    'purpose',
+    'collateral.item',
+    'collateral.identifier',
+    'collateral.description',
+    'collateral.condition',
+    'collateral.estimatedValue',
+  ],
   [
     'firstName',
     'lastName',
@@ -115,6 +126,8 @@ export const ApplyForm = () => {
   const [result, setResult] = useState<ApplicationResult | null>(null);
   const [docs, setDocs] = useState<Partial<Record<DocumentKind, File>>>({});
   const [docErrors, setDocErrors] = useState<Partial<Record<DocumentKind, string>>>({});
+  const [collateralPhotos, setCollateralPhotos] = useState<File[]>([]);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [pricing, setPricing] = useState<PricingConfig | null>(null);
 
   useEffect(() => {
@@ -158,6 +171,9 @@ export const ApplyForm = () => {
       },
       // Only the first reference is required; a second is optional (added on demand).
       references: [{ name: '', phone: '' }],
+      // Undefined while hidden so the optional collateral object isn't validated
+      // for non-collateral loans; required-when-collateral is enforced in zod.
+      collateral: undefined,
       tcVersion: TERMS_VERSION,
       signature: { dataUrl: '' },
       // consent & tcAccepted intentionally omitted — default unchecked so the gates are real.
@@ -181,6 +197,7 @@ export const ApplyForm = () => {
   });
   const watchedAmount = Number(watchedAmountRaw) || 0;
   const watchedTerm = Number(watchedTermRaw) || 1;
+  const isCollateral = watchedType === LoanType.Collateral;
   const postalSameAsResidential = useWatch({ control, name: 'postalSameAsResidential' });
   // Payday loans are repaid in a single month; the term isn't applicant-adjustable.
   const isPayday = watchedType === LoanType.Payday;
@@ -257,18 +274,26 @@ export const ApplyForm = () => {
     toast.error('Please fix the highlighted fields before submitting.');
   };
 
+  /** Whether a slot is required for the current loan type. Collateral loans make
+   * payslip & bank statement optional (the collateral secures the loan instead). */
+  const slotRequired = (slot: (typeof DOCUMENT_SLOTS)[number]): boolean =>
+    Boolean(slot.required) &&
+    !(isCollateral && (slot.kind === DocumentKind.Payslip || slot.kind === DocumentKind.BankStatement));
+
   /** Required supporting documents aren't part of the zod schema (they upload
    * separately), so gate them here. Returns true when all required files are
-   * attached, otherwise sets per-slot errors. */
+   * attached, otherwise sets per-slot errors. Collateral loans also require a photo. */
   const validateDocs = (): boolean => {
     const errs: Partial<Record<DocumentKind, string>> = {};
     for (const slot of DOCUMENT_SLOTS) {
-      if (slot.required && !docs[slot.kind]) {
+      if (slotRequired(slot) && !docs[slot.kind]) {
         errs[slot.kind] = 'This document is required';
       }
     }
     setDocErrors(errs);
-    return Object.keys(errs).length === 0;
+    const photosMissing = isCollateral && collateralPhotos.length < 1;
+    setPhotoError(photosMissing ? 'At least one photo of the collateral is required' : null);
+    return Object.keys(errs).length === 0 && !photosMissing;
   };
 
   const onSubmit = handleSubmit(async (values) => {
@@ -280,12 +305,17 @@ export const ApplyForm = () => {
     try {
       const response = await submitApplication(values);
 
-      // Best-effort: upload any chosen documents against the new application.
+      // Best-effort: upload any chosen documents + collateral photos against the
+      // new application.
       const chosen = Object.entries(docs).filter(([, file]) => file) as [DocumentKind, File][];
-      if (chosen.length > 0) {
-        const outcomes = await Promise.allSettled(
-          chosen.map(([kind, file]) => uploadApplicationDocument(response.id, kind, file)),
-        );
+      const uploads = [
+        ...chosen.map(([kind, file]) => uploadApplicationDocument(response.id, kind, file)),
+        ...collateralPhotos.map((file) =>
+          uploadApplicationDocument(response.id, DocumentKind.CollateralPhoto, file),
+        ),
+      ];
+      if (uploads.length > 0) {
+        const outcomes = await Promise.allSettled(uploads);
         if (outcomes.some((outcome) => outcome.status === 'rejected')) {
           const { toast } = await import('sonner');
           toast.warning('Application submitted, but some documents failed to upload.', {
@@ -481,6 +511,78 @@ export const ApplyForm = () => {
                       {formatNad(estimate.instalmentCents)} per month over {watchedTerm} month
                       {watchedTerm > 1 ? 's' : ''}
                     </div>
+                  </div>
+                )}
+
+                {isCollateral && (
+                  <div className="space-y-5 rounded-xl border p-5">
+                    <div className="space-y-1">
+                      <h3 className="font-heading text-lg font-medium">Collateral</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Tell us about the asset you are putting up as security, and add clear photos of it.
+                      </p>
+                    </div>
+                    <div className="grid gap-5 sm:grid-cols-2">
+                      <FormField
+                        label="Item / asset"
+                        htmlFor="collateral.item"
+                        error={errors.collateral?.item?.message}
+                        description="e.g. Toyota Corolla 2015, laptop, generator"
+                      >
+                        <Input id="collateral.item" {...register('collateral.item')} />
+                      </FormField>
+                      <FormField
+                        label="Identification"
+                        htmlFor="collateral.identifier"
+                        error={errors.collateral?.identifier?.message}
+                        description="Serial no., car registration, VIN, etc."
+                      >
+                        <Input id="collateral.identifier" {...register('collateral.identifier')} />
+                      </FormField>
+                      <FormField
+                        label="Condition"
+                        htmlFor="collateral.condition"
+                        error={errors.collateral?.condition?.message}
+                        description="e.g. Good, Fair, as new"
+                      >
+                        <Input id="collateral.condition" {...register('collateral.condition')} />
+                      </FormField>
+                      <FormField
+                        label="Estimated value (N$)"
+                        htmlFor="collateral.estimatedValue"
+                        optional
+                        error={errors.collateral?.estimatedValue?.message}
+                      >
+                        <Input
+                          id="collateral.estimatedValue"
+                          type="number"
+                          inputMode="numeric"
+                          min={0}
+                          {...register('collateral.estimatedValue', { valueAsNumber: true })}
+                        />
+                      </FormField>
+                      <FormField
+                        label="Brief description"
+                        htmlFor="collateral.description"
+                        error={errors.collateral?.description?.message}
+                        className="sm:col-span-2"
+                      >
+                        <Input
+                          id="collateral.description"
+                          placeholder="Colour, make/model, condition notes, accessories…"
+                          {...register('collateral.description')}
+                        />
+                      </FormField>
+                    </div>
+                    <FormField label="Photos of the collateral" error={photoError ?? undefined}>
+                      <PhotoUpload
+                        value={collateralPhotos}
+                        onChange={(files) => {
+                          setCollateralPhotos(files);
+                          if (files.length > 0) setPhotoError(null);
+                        }}
+                      />
+                    </FormField>
                   </div>
                 )}
               </div>
@@ -885,8 +987,10 @@ export const ApplyForm = () => {
                   <div className="space-y-1">
                     <h3 className="font-heading text-lg font-medium">Supporting documents</h3>
                     <p className="text-sm text-muted-foreground">
-                      PDF, JPG or PNG. Your ID, latest payslip and a 3-month bank statement are
-                      required; proof of residence is optional.
+                      PDF, JPG or PNG. Your ID document is required.{' '}
+                      {isCollateral
+                        ? 'For collateral loans, payslip and bank statement are optional.'
+                        : 'A latest payslip and 3-month bank statement are also required.'}
                     </p>
                   </div>
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -894,7 +998,7 @@ export const ApplyForm = () => {
                       <FormField
                         key={slot.kind}
                         label={slot.label}
-                        optional={!slot.required}
+                        optional={!slotRequired(slot)}
                         error={docErrors[slot.kind]}
                       >
                         <FileUpload

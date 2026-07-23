@@ -97,6 +97,15 @@ export class DocumentsService {
     return Promise.all(documents.map((document) => this.toView(document)));
   }
 
+  /** A loan's documents of a given kind (tenant-scoped), resolved to openable URLs. */
+  async listForLoan(tenantId: string, loanId: string, kind: string): Promise<DocumentView[]> {
+    const documents = await this.prisma.document.findMany({
+      where: { loanId, kind, loan: { tenantId } },
+      orderBy: { uploadedAt: 'asc' },
+    });
+    return Promise.all(documents.map((document) => this.toView(document)));
+  }
+
   /** Delete a borrower document after verifying it belongs to the tenant. */
   async removeForBorrower(tenantId: string, borrowerId: string, documentId: string): Promise<void> {
     const document = await this.prisma.document.findFirst({

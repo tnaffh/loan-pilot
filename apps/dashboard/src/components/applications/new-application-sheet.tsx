@@ -17,6 +17,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { SignaturePad } from '@/components/ui/signature-pad';
+import { PhotoUpload } from '@/components/ui/photo-upload';
 import { TermsContent } from '@/components/applications/terms-content';
 import {
   Sheet,
@@ -86,6 +87,8 @@ const DEFAULTS: Partial<CreateApplicationInput> = {
   },
   // Only the first reference is required; a second is optional (added on demand).
   references: [{ name: '', phone: '' }],
+  // Undefined while hidden; required-when-collateral is enforced in zod.
+  collateral: undefined,
   consent: true,
   tcVersion: TERMS_VERSION,
   signature: { dataUrl: '' },
@@ -107,6 +110,7 @@ interface Props {
 export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
   const { token, user } = useAuth();
   const [docs, setDocs] = useState<Record<string, File>>({});
+  const [collateralPhotos, setCollateralPhotos] = useState<File[]>([]);
   const {
     register,
     control,
@@ -122,6 +126,8 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
 
   const { fields, append, remove } = useFieldArray({ control, name: 'references' });
   const postalSameAsResidential = useWatch({ control, name: 'postalSameAsResidential' });
+  const loanType = useWatch({ control, name: 'loanType' });
+  const isCollateral = loanType === LoanType.Collateral;
 
   useEffect(() => {
     if (open) reset(DEFAULTS);
@@ -131,7 +137,10 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
   const [docsOpen, setDocsOpen] = useState(false);
   if (open !== docsOpen) {
     setDocsOpen(open);
-    if (open) setDocs({});
+    if (open) {
+      setDocs({});
+      setCollateralPhotos([]);
+    }
   }
 
   const onSubmit = handleSubmit(
@@ -142,19 +151,26 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
         body: values,
         token,
       });
-      // Upload any attached documents to the new application. The endpoint
-      // resolves the tenant from the x-tenant header.
-      const files = Object.entries(docs);
-      if (files.length > 0) {
-        const results = await Promise.allSettled(
-          files.map(([kind, file]) =>
-            uploadDocument(
-              `/applications/${created.id}/documents`,
-              { kind, file },
-              { tenant: user?.tenantSlug },
-            ),
+      // Upload any attached documents + collateral photos to the new
+      // application. The endpoint resolves the tenant from the x-tenant header.
+      const uploads = [
+        ...Object.entries(docs).map(([kind, file]) =>
+          uploadDocument(
+            `/applications/${created.id}/documents`,
+            { kind, file },
+            { tenant: user?.tenantSlug },
           ),
-        );
+        ),
+        ...collateralPhotos.map((file) =>
+          uploadDocument(
+            `/applications/${created.id}/documents`,
+            { kind: DocumentKind.CollateralPhoto, file },
+            { tenant: user?.tenantSlug },
+          ),
+        ),
+      ];
+      if (uploads.length > 0) {
+        const results = await Promise.allSettled(uploads);
         const failed = results.filter((r) => r.status === 'rejected').length;
         if (failed > 0) {
           toast.warning(`${failed} document(s) failed to upload — add them from the borrower later.`);
@@ -245,6 +261,60 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
               <Input id="purpose" {...register('purpose')} />
             </FormField>
           </div>
+
+          {isCollateral && (
+            <div className="space-y-4">
+              <SectionTitle>Collateral</SectionTitle>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  label="Item / asset"
+                  htmlFor="collateral.item"
+                  error={errors.collateral?.item?.message}
+                >
+                  <Input id="collateral.item" {...register('collateral.item')} />
+                </FormField>
+                <FormField
+                  label="Identification"
+                  htmlFor="collateral.identifier"
+                  error={errors.collateral?.identifier?.message}
+                  description="Serial no. / car registration"
+                >
+                  <Input id="collateral.identifier" {...register('collateral.identifier')} />
+                </FormField>
+                <FormField
+                  label="Condition"
+                  htmlFor="collateral.condition"
+                  error={errors.collateral?.condition?.message}
+                >
+                  <Input id="collateral.condition" {...register('collateral.condition')} />
+                </FormField>
+                <FormField
+                  label="Estimated value (N$)"
+                  htmlFor="collateral.estimatedValue"
+                  optional
+                  error={errors.collateral?.estimatedValue?.message}
+                >
+                  <Input
+                    id="collateral.estimatedValue"
+                    type="number"
+                    inputMode="numeric"
+                    {...register('collateral.estimatedValue')}
+                  />
+                </FormField>
+                <FormField
+                  label="Brief description"
+                  htmlFor="collateral.description"
+                  error={errors.collateral?.description?.message}
+                  className="sm:col-span-2"
+                >
+                  <Input id="collateral.description" {...register('collateral.description')} />
+                </FormField>
+              </div>
+              <FormField label="Photos of the collateral" optional>
+                <PhotoUpload value={collateralPhotos} onChange={setCollateralPhotos} />
+              </FormField>
+            </div>
+          )}
 
           <div className="space-y-4">
             <SectionTitle>Applicant</SectionTitle>

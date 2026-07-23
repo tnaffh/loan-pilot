@@ -73,4 +73,54 @@ export class AgreementsController {
     }
     return this.agreements.uploadSigned(requireTenantId(user), id, file);
   }
+
+  // ── Collateral (pledge) agreement ──────────────────────────────────────
+
+  @Get(':id/collateral-agreement')
+  @RequirePermissions('agreements:read')
+  async latestCollateral(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+  ): Promise<DocumentView> {
+    const document = await this.agreements.latestCollateralForLoan(requireTenantId(user), id);
+    if (!document) {
+      throw new NotFoundException('No collateral agreement has been generated for this loan yet');
+    }
+    return document;
+  }
+
+  @Post(':id/collateral-agreement')
+  @HttpCode(HttpStatus.CREATED)
+  @RequirePermissions('agreements:generate')
+  generateCollateral(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+  ): Promise<DocumentView> {
+    return this.agreements.generateCollateralForLoan(requireTenantId(user), id);
+  }
+
+  @Post(':id/collateral-agreement/email')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions('agreements:generate')
+  emailCollateral(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+  ): Promise<{ sent: boolean }> {
+    return this.agreements.emailCollateralToBorrower(requireTenantId(user), id);
+  }
+
+  @Post(':id/collateral-agreement/upload')
+  @HttpCode(HttpStatus.CREATED)
+  @RequirePermissions('agreements:generate')
+  @UseInterceptors(FileInterceptor('file', documentUploadOptions))
+  uploadCollateral(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ): Promise<DocumentView> {
+    if (!file) {
+      throw new BadRequestException('A file is required');
+    }
+    return this.agreements.uploadSignedCollateral(requireTenantId(user), id, file);
+  }
 }

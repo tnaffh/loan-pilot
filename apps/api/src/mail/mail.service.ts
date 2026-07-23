@@ -75,6 +75,27 @@ export class MailService {
     );
   }
 
+  /** Email the borrower their signed collateral (pledge) agreement PDF. */
+  async sendCollateralAgreement(
+    email: string,
+    name: string,
+    lenderName: string,
+    pdf: Buffer,
+  ): Promise<void> {
+    await this.send(
+      email,
+      `Your collateral agreement — ${lenderName}`,
+      this.template({
+        heading: `Hi ${name}`,
+        body: `Please find attached your signed collateral agreement with ${lenderName}, which secures your loan. Keep it for your records — you can request another copy at any time.`,
+        cta: 'Contact us',
+        url: 'mailto:' + (this.from.match(/<(.+)>/)?.[1] ?? this.from),
+        note: 'This copy is provided at no cost.',
+      }),
+      [{ filename: 'collateral-agreement.pdf', content: pdf }],
+    );
+  }
+
   private async send(
     to: string,
     subject: string,

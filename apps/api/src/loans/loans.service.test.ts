@@ -87,7 +87,13 @@ describe('LoansService', () => {
         { provide: PrismaService, useValue: prismaMock },
         { provide: AuditService, useValue: auditMock },
         { provide: SettingsService, useValue: settingsMock },
-        { provide: DocumentsService, useValue: { listForBorrower: jest.fn().mockResolvedValue([]) } },
+        {
+          provide: DocumentsService,
+          useValue: {
+            listForBorrower: jest.fn().mockResolvedValue([]),
+            listForLoan: jest.fn().mockResolvedValue([]),
+          },
+        },
       ],
     }).compile();
 

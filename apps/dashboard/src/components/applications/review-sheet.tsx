@@ -165,6 +165,45 @@ export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Pr
                 </div>
               ) : null}
 
+              {data.type === 'collateral' || data.collateralItem ? (
+                <div>
+                  <div className="mb-1 text-xs font-medium text-muted-foreground">Collateral</div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <Kv label="Item / asset" value={data.collateralItem ?? '—'} />
+                    <Kv label="Identification" value={data.collateralIdentifier ?? '—'} />
+                    <Kv label="Condition" value={data.collateralCondition ?? '—'} />
+                    <Kv
+                      label="Estimated value"
+                      value={data.collateralValue != null ? formatNad(data.collateralValue) : '—'}
+                    />
+                  </div>
+                  {data.collateralDescription ? (
+                    <p className="mt-1 text-sm text-muted-foreground">{data.collateralDescription}</p>
+                  ) : null}
+                  {(() => {
+                    const photos = data.documents.filter((doc) => doc.kind === 'collateral_photo');
+                    return photos.length > 0 ? (
+                      <div className="mt-2 grid grid-cols-4 gap-2">
+                        {photos.map((photo) =>
+                          photo.url ? (
+                            <a
+                              key={photo.id}
+                              href={photo.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="aspect-square overflow-hidden rounded-md border"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={photo.url} alt={photo.fileName} className="h-full w-full object-cover" />
+                            </a>
+                          ) : null,
+                        )}
+                      </div>
+                    ) : null;
+                  })()}
+                </div>
+              ) : null}
+
               <div>
                 <div className="mb-1 text-xs font-medium text-muted-foreground">Documents</div>
                 {data.documents.length === 0 ? (

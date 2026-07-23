@@ -64,9 +64,15 @@ describe('AgreementsService', () => {
   const documentCreate = jest.fn();
   const documentFindFirst = jest.fn();
 
+  const documentFindMany = jest.fn().mockResolvedValue([]);
   const prismaMock = {
     loan: { findFirst: loanFindFirst },
-    document: { create: documentCreate, findFirst: documentFindFirst, findUnique: jest.fn() },
+    document: {
+      create: documentCreate,
+      findFirst: documentFindFirst,
+      findUnique: jest.fn(),
+      findMany: documentFindMany,
+    },
   };
   const storageMock = {
     save: jest.fn().mockResolvedValue({ key: 'documents/agreement.pdf' }),
@@ -82,6 +88,7 @@ describe('AgreementsService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    documentFindMany.mockResolvedValue([]);
     storageMock.save.mockResolvedValue({ key: 'documents/agreement.pdf' });
     storageMock.safeAccessUrl.mockResolvedValue('https://files/agreement.pdf');
     documentCreate.mockImplementation((args: { data: Record<string, unknown> }) =>
@@ -94,7 +101,10 @@ describe('AgreementsService', () => {
         { provide: PrismaService, useValue: prismaMock },
         { provide: StorageService, useValue: storageMock },
         { provide: SettingsService, useValue: settingsMock },
-        { provide: MailService, useValue: { sendAgreement: jest.fn() } },
+        {
+          provide: MailService,
+          useValue: { sendAgreement: jest.fn(), sendCollateralAgreement: jest.fn() },
+        },
       ],
     }).compile();
 
@@ -129,5 +139,38 @@ describe('AgreementsService', () => {
       }),
     );
     expect(view.url).toBe('https://files/agreement.pdf');
+  });
+
+  it('generates, stores, and links a collateral_agreement document', async () => {
+    loanFindFirst.mockResolvedValue({
+      ...loanPayload,
+      collateralItem: 'Toyota Corolla 2015',
+      collateralIdentifier: 'N 12345 W',
+      collateralDescription: 'Silver sedan',
+      collateralCondition: 'Good',
+      collateralValue: 8500000,
+    });
+
+    const view = await service.generateCollateralForLoan('tenant_1', 'loan_1');
+
+    const saved = storageMock.save.mock.calls[0][0];
+    expect(saved.buffer.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+    expect(documentCreate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          loanId: 'loan_1',
+          borrowerId: 'bor_1',
+          kind: DocumentKind.CollateralAgreement,
+        }),
+      }),
+    );
+    expect(view.url).toBe('https://files/agreement.pdf');
+  });
+
+  it('404s collateral generation for another tenant', async () => {
+    loanFindFirst.mockResolvedValue(null);
+    await expect(service.generateCollateralForLoan('tenant_1', 'loan_x')).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

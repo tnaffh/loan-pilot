@@ -6,6 +6,7 @@ export * from './loan-math';
 export * from './affordability';
 export * from './schemas';
 export * from './terms';
+export * from './collateral-terms';
 export * from './activity';
 export * from './permissions';
 export * from './auth';

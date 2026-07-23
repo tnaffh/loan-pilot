@@ -12,6 +12,7 @@ import {
   Loader2,
   Pencil,
   PieChart,
+  ShieldCheck,
   Wallet,
 } from 'lucide-react';
 import { LoanStatus, RepaymentStatus, can, formatNad, isLender } from '@loan-pilot/domain';
@@ -43,6 +44,7 @@ import { ActivityTimeline } from '@/components/activity-timeline';
 import { AuditLog } from '@/components/audit-log';
 import { BorrowerDocuments } from '@/components/borrowers/borrower-documents';
 import { LoanAgreementCard } from '@/components/loans/loan-agreement-card';
+import { CollateralAgreementCard } from '@/components/loans/collateral-agreement-card';
 import { LoanOpsCard } from '@/components/loans/loan-ops';
 import { EditLoanSheet } from '@/components/loans/edit-loan-sheet';
 import { useCommand } from '@/components/command-provider';
@@ -255,11 +257,6 @@ const LoanDetailPage = () => {
                   {formatNad(data.namfisaLevy)} · stamp duty {formatNad(data.stampDuty)}
                 </p>
               ) : null}
-              {data.collateral ? (
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Collateral: <span className="font-medium text-foreground">{data.collateral}</span>
-                </p>
-              ) : null}
               {data.note ? (
                 <p className="mt-2 text-xs text-muted-foreground italic">{data.note}</p>
               ) : null}
@@ -271,6 +268,50 @@ const LoanDetailPage = () => {
               ) : null}
             </CardContent>
           </Card>
+
+          {data.type === 'collateral' || data.collateralItem ? (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <ShieldCheck className="size-4 text-muted-foreground" /> Collateral
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-3">
+                  <Detail label="Item / asset" value={data.collateralItem ?? data.collateral ?? '—'} />
+                  <Detail label="Identification" value={data.collateralIdentifier ?? '—'} />
+                  <Detail label="Condition" value={data.collateralCondition ?? '—'} />
+                  <Detail
+                    label="Estimated value"
+                    value={data.collateralValue != null ? formatNad(data.collateralValue) : '—'}
+                  />
+                </dl>
+                {data.collateralDescription ? (
+                  <p className="text-sm text-muted-foreground">{data.collateralDescription}</p>
+                ) : null}
+                {data.collateralPhotos.length > 0 ? (
+                  <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    {data.collateralPhotos.map((photo) =>
+                      photo.url ? (
+                        <a
+                          key={photo.id}
+                          href={photo.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="aspect-square overflow-hidden rounded-lg border"
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={photo.url} alt={photo.fileName} className="h-full w-full object-cover" />
+                        </a>
+                      ) : null,
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No collateral photos on file.</p>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
 
           <Card>
             <CardHeader className="pb-2">
@@ -389,6 +430,15 @@ const LoanDetailPage = () => {
             token={token}
             hasSignature={Boolean(data.signatureDocumentId)}
           />
+
+          {data.type === 'collateral' ? (
+            <CollateralAgreementCard
+              loanId={data.id}
+              user={user}
+              token={token}
+              hasSignature={Boolean(data.signatureDocumentId)}
+            />
+          ) : null}
 
           <BorrowerDocuments
             borrowerId={data.borrower.id}

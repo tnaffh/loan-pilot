@@ -122,4 +122,8 @@ export enum DocumentKind {
   Signature = 'signature',
   // A generated (or wet-signed, uploaded) NAMFISA loan agreement PDF.
   LoanAgreement = 'loan_agreement',
+  // A photo of the pledged collateral item (collateral loans; multiple allowed).
+  CollateralPhoto = 'collateral_photo',
+  // A generated (or wet-signed, uploaded) collateral/pledge agreement PDF.
+  CollateralAgreement = 'collateral_agreement',
 }

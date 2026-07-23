@@ -110,6 +110,11 @@ export interface ApplicationDetail extends ApplicationRow {
   bankAccountHolder: string;
   accountType: string;
   purpose: string | null;
+  collateralItem: string | null;
+  collateralIdentifier: string | null;
+  collateralDescription: string | null;
+  collateralCondition: string | null;
+  collateralValue: number | null;
   declineReason: string | null;
   decidedAt: string | null;
   documents: ApplicationDocument[];
@@ -226,6 +231,12 @@ export interface LoanDetail extends LoanRow {
   closedAt: string | null;
   // Points at the captured-signature Document, when the loan carries one.
   signatureDocumentId: string | null;
+  // Structured collateral (collateral loans); `collateral` (on LoanRow) is a summary.
+  collateralItem: string | null;
+  collateralIdentifier: string | null;
+  collateralDescription: string | null;
+  collateralCondition: string | null;
+  collateralValue: number | null;
   schedule: ScheduleItem[];
   payments: PaymentRow[];
   activity: ActivityEvent[];
@@ -235,6 +246,7 @@ export interface LoanDetail extends LoanRow {
   overdueAmount: number;
   payoff: number;
   borrowerDocuments: DocumentRow[];
+  collateralPhotos: DocumentRow[];
 }
 
 export interface ExpenseRow {
