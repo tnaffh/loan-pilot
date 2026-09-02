@@ -10,3 +10,4 @@ export * from './collateral-terms';
 export * from './activity';
 export * from './permissions';
 export * from './auth';
+export * from './reports';

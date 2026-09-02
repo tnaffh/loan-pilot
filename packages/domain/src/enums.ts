@@ -10,6 +10,20 @@ export enum LoanType {
   Collateral = 'collateral',
 }
 
+/**
+ * What the borrower took the loan for. The six values are fixed by the NAMFISA
+ * quarterly return (Part 7.3, "number of loans by purpose"); they are not free
+ * text so the return can be produced without reclassifying by hand.
+ */
+export enum LoanPurpose {
+  Business = 'business',
+  Housing = 'housing',
+  Education = 'education',
+  Furniture = 'furniture',
+  Consumption = 'consumption',
+  Other = 'other',
+}
+
 export enum LoanStatus {
   Active = 'active',
   Arrears = 'arrears',

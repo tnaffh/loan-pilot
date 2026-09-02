@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { toast } from 'sonner';
 import { Check, ChevronsUpDown, Loader2 } from 'lucide-react';
 import {
+  LOAN_PURPOSE_LABELS,
   LoanType,
   createLoanSchema,
   formatNad,
@@ -98,6 +99,7 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
       termMonths: 1,
       borrowerId: borrowerId ?? '',
       collateral: '',
+      purpose: undefined,
     },
   });
 
@@ -109,6 +111,7 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
         termMonths: 1,
         borrowerId: borrowerId ?? '',
         collateral: '',
+      purpose: undefined,
       });
       setProductId('');
       setCustomRate('');
@@ -276,6 +279,31 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
             </FormField>
             <FormField label="Collateral" htmlFor="collateral" optional>
               <Input id="collateral" {...register('collateral')} />
+            </FormField>
+            <FormField
+              label="Purpose"
+              htmlFor="purpose"
+              optional
+              description="Reported in the NAMFISA quarterly return."
+            >
+              <Controller
+                control={control}
+                name="purpose"
+                render={({ field }) => (
+                  <Select value={field.value || undefined} onValueChange={field.onChange}>
+                    <SelectTrigger id="purpose" className="w-full">
+                      <SelectValue placeholder="Select" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(LOAN_PURPOSE_LABELS).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
             </FormField>
           </div>
 

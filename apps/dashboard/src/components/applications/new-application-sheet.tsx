@@ -8,6 +8,8 @@ import { Loader2, Plus, Trash2 } from 'lucide-react';
 import {
   DocumentKind,
   EmploymentType,
+  GENDER_OPTIONS,
+  LOAN_PURPOSE_LABELS,
   LoanType,
   NAMIBIAN_REGIONS,
   TERMS_VERSION,
@@ -67,6 +69,8 @@ const DEFAULTS: Partial<CreateApplicationInput> = {
   amount: 5000,
   termMonths: 1,
   purpose: '',
+  purposeCategory: undefined,
+  gender: undefined,
   dateOfBirth: '',
   employmentType: EmploymentType.PermanentlyEmployed,
   employerPhone: '',
@@ -257,9 +261,31 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
                 <Input id="termMonths" type="number" inputMode="numeric" {...register('termMonths')} />
               </FormField>
             </div>
-            <FormField label="Purpose" htmlFor="purpose" optional>
-              <Input id="purpose" {...register('purpose')} />
-            </FormField>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField label="Purpose" htmlFor="purposeCategory" optional>
+                <Controller
+                  control={control}
+                  name="purposeCategory"
+                  render={({ field }) => (
+                    <Select value={field.value || undefined} onValueChange={field.onChange}>
+                      <SelectTrigger id="purposeCategory" className="w-full">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(LOAN_PURPOSE_LABELS).map(([value, label]) => (
+                          <SelectItem key={value} value={value}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+              </FormField>
+              <FormField label="Details" htmlFor="purpose" optional>
+                <Input id="purpose" {...register('purpose')} />
+              </FormField>
+            </div>
           </div>
 
           {isCollateral && (
@@ -352,6 +378,31 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
               </FormField>
               <FormField label="Email" htmlFor="email" error={errors.email?.message}>
                 <Input id="email" type="email" {...register('email')} />
+              </FormField>
+              <FormField
+                label="Gender"
+                htmlFor="gender"
+                optional
+                description="Required by the NAMFISA quarterly return."
+              >
+                <Controller
+                  control={control}
+                  name="gender"
+                  render={({ field }) => (
+                    <Select value={field.value || undefined} onValueChange={field.onChange}>
+                      <SelectTrigger id="gender" className="w-full">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {GENDER_OPTIONS.map((option) => (
+                          <SelectItem key={option} value={option}>
+                            {option}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
               </FormField>
               <FormField
                 label="Street address"

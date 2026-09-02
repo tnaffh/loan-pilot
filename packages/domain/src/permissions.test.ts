@@ -31,7 +31,14 @@ describe('permissions catalog', () => {
       expect(SYSTEM_ROLE_PERMISSIONS.administrator).toContain(permission);
     }
     expect(SYSTEM_ROLE_PERMISSIONS.staff.length).toBeLessThan(PERMISSIONS.length);
-    for (const denied of ['finance:read', 'finance:write', 'settings:write', 'users:manage', 'roles:manage'] as const) {
+    for (const denied of [
+      'finance:read',
+      'finance:write',
+      'settings:write',
+      'reports:write',
+      'users:manage',
+      'roles:manage',
+    ] as const) {
       expect(SYSTEM_ROLE_PERMISSIONS.staff).not.toContain(denied);
     }
   });

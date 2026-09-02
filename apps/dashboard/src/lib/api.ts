@@ -23,7 +23,7 @@ export class ApiError extends Error {
 }
 
 interface RequestOptions {
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE';
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: unknown;
   token?: string | null;
 }
@@ -76,6 +76,40 @@ export const uploadDocument = async (
     const message = data && typeof data.message === 'string' ? data.message : response.statusText;
     throw new ApiError(message, response.status);
   }
+};
+
+/**
+ * Fetch a server-generated binary (PDF / spreadsheet) from an authenticated
+ * route and save it.
+ *
+ * Loan agreements are stored and opened by their storage URL, which needs no
+ * auth header — reports are rendered on demand behind the JWT, so the token has
+ * to ride on the request and the response body becomes a client-side object URL.
+ */
+export const downloadFile = async (
+  path: string,
+  fileName: string,
+  token: string | null,
+): Promise<void> => {
+  const response = await fetch(`${API_URL}${path}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    cache: 'no-store',
+  });
+  if (!response.ok) {
+    const data = await response.json().catch(() => null);
+    const message =
+      data && typeof data.message === 'string' ? data.message : response.statusText;
+    throw new ApiError(message, response.status);
+  }
+
+  const url = URL.createObjectURL(await response.blob());
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };
 
 export interface LoginResponse {

@@ -42,6 +42,15 @@ enum LoanType {
   collateral
 }
 
+enum LoanPurpose {
+  business
+  housing
+  education
+  furniture
+  consumption
+  other
+}
+
 enum LoanStatus {
   active
   arrears
@@ -133,6 +142,7 @@ model Tenant {
   settings     TenantSettings?
   products     LoanProduct[]
   roles        Role[]
+  returns      RegulatoryReturn[]
 }
 
 /**
@@ -192,6 +202,33 @@ model LoanProduct {
 
   loans Loan[]
 
+  @@index([tenantId])
+}
+
+/**
+ * Figures on the NAMFISA quarterly COA return that the loan register cannot
+ * answer — complaints, branch counts, bad-debt provisioning judgements, loan
+ * rescheduling (not modelled anywhere else), and the ledger liabilities in
+ * Part 1.1. One saved row per tenant per calendar quarter.
+ *
+ * `figures` is a flat key/number map validated against NAMFISA_MANUAL_FIELDS in
+ * @loan-pilot/domain rather than by the database, so a change to the form adds a
+ * catalogue entry instead of a migration. Money values are integer N$ cents.
+ */
+model RegulatoryReturn {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  // Calendar quarter key, e.g. "2026-Q2".
+  period        String
+  figures       Json     @default("{}")
+  notes         String?
+  // Denormalised so the trail survives the actor being deleted.
+  updatedByName String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, period])
   @@index([tenantId])
 }
 
@@ -397,6 +434,9 @@ model Loan {
   instalmentsTotal Int
   balance          Int
   status           LoanStatus @default(active)
+  // NAMFISA purpose category (Part 7.3 of the quarterly return). Null on loans
+  // that predate the field; the return falls back to a loan-type mapping.
+  purpose          LoanPurpose?
   // Legacy free-text collateral summary (kept for the loan list / edit form).
   collateral       String?
   // Structured collateral (collateral loans): the pledged asset details.
@@ -482,10 +522,15 @@ model LoanApplication {
   postalRegion   String?
   postalCountry  String?
   maritalStatus  String?
+  // Captured at intake because the NAMFISA return splits by gender and it
+  // cannot be derived (a Namibian ID encodes only the date of birth).
+  gender         String?
   type           LoanType
   amount         Int
   termMonths     Int
   purpose        String?
+  // The NAMFISA purpose category; `purpose` above stays the applicant's wording.
+  purposeCategory LoanPurpose?
   // Structured collateral snapshot (collateral loans); carried onto the loan on approval.
   collateralItem        String?
   collateralIdentifier  String?

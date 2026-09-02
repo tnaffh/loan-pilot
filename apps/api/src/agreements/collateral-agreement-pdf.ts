@@ -1,5 +1,6 @@
 import PDFDocument from 'pdfkit';
-import { COLORS, DASH, createAgreementLayout, rowsOf } from './agreement-layout';
+import { COLORS, DASH, rowsOf } from '../common/pdf/document-layout';
+import { createAgreementLayout } from './agreement-layout';
 import type { CollateralAgreementData } from './collateral-agreement-data';
 
 /**

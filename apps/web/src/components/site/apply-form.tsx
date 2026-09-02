@@ -15,6 +15,8 @@ import { CheckCircle2, ChevronLeft, ChevronRight, Loader2, Plus, Trash2, XCircle
 import {
   DocumentKind,
   EmploymentType,
+  GENDER_OPTIONS,
+  LOAN_PURPOSE_LABELS,
   LoanType,
   NAMIBIAN_REGIONS,
   TERMS_VERSION,
@@ -59,6 +61,7 @@ const STEP_FIELDS: FieldPath<CreateApplicationInput>[][] = [
     'amount',
     'termMonths',
     'purpose',
+    'purposeCategory',
     'collateral.item',
     'collateral.identifier',
     'collateral.description',
@@ -78,6 +81,7 @@ const STEP_FIELDS: FieldPath<CreateApplicationInput>[][] = [
     'postalSameAsResidential',
     'postalAddress',
     'maritalStatus',
+    'gender',
   ],
   [
     'employmentType',
@@ -142,6 +146,7 @@ export const ApplyForm = () => {
       amount: 5000,
       termMonths: 1,
       purpose: '',
+      purposeCategory: undefined,
       firstName: '',
       lastName: '',
       idNumber: '',
@@ -154,6 +159,7 @@ export const ApplyForm = () => {
       // object while it's hidden; it's populated only when the box is unticked.
       postalAddress: undefined,
       maritalStatus: '',
+      gender: undefined,
       employmentType: EmploymentType.PermanentlyEmployed,
       employer: '',
       employerPhone: '',
@@ -486,18 +492,45 @@ export const ApplyForm = () => {
                   </FormField>
                 </div>
 
-                <FormField
-                  label="What is it for?"
-                  htmlFor="purpose"
-                  optional
-                  error={errors.purpose?.message}
-                >
-                  <Input
-                    id="purpose"
-                    placeholder="e.g. medical bill, school fees, stock for my shop"
-                    {...register('purpose')}
-                  />
-                </FormField>
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <FormField
+                    label="What is it for?"
+                    htmlFor="purposeCategory"
+                    optional
+                    error={errors.purposeCategory?.message}
+                  >
+                    <Controller
+                      control={control}
+                      name="purposeCategory"
+                      render={({ field }) => (
+                        <Select value={field.value || undefined} onValueChange={field.onChange}>
+                          <SelectTrigger id="purposeCategory" className="w-full">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {Object.entries(LOAN_PURPOSE_LABELS).map(([value, label]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </FormField>
+                  <FormField
+                    label="Tell us more"
+                    htmlFor="purpose"
+                    optional
+                    error={errors.purpose?.message}
+                  >
+                    <Input
+                      id="purpose"
+                      placeholder="e.g. medical bill, school fees, stock"
+                      {...register('purpose')}
+                    />
+                  </FormField>
+                </div>
 
                 {estimate && (
                   <div className="rounded-xl bg-muted p-5 text-sm">
@@ -687,7 +720,27 @@ export const ApplyForm = () => {
                   >
                     <Input id="address.country" {...register('address.country')} />
                   </FormField>
-                  <FormField label="Marital status" htmlFor="maritalStatus" optional className="sm:col-span-2">
+                  <FormField label="Gender" htmlFor="gender" optional>
+                    <Controller
+                      control={control}
+                      name="gender"
+                      render={({ field }) => (
+                        <Select value={field.value || undefined} onValueChange={field.onChange}>
+                          <SelectTrigger id="gender" className="w-full">
+                            <SelectValue placeholder="Select" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {GENDER_OPTIONS.map((option) => (
+                              <SelectItem key={option} value={option}>
+                                {option}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  </FormField>
+                  <FormField label="Marital status" htmlFor="maritalStatus" optional>
                     <Controller
                       control={control}
                       name="maritalStatus"

@@ -17,6 +17,7 @@ import { StatsModule } from './stats/stats.module';
 import { DocumentsModule } from './documents/documents.module';
 import { SettingsModule } from './settings/settings.module';
 import { AgreementsModule } from './agreements/agreements.module';
+import { ReportsModule } from './reports/reports.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { AgreementsModule } from './agreements/agreements.module';
     DocumentsModule,
     SettingsModule,
     AgreementsModule,
+    ReportsModule,
   ],
 })
 export class AppModule {}

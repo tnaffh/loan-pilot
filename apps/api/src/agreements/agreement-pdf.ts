@@ -1,6 +1,7 @@
 import PDFDocument from 'pdfkit';
 import type { AgreementData } from './agreement-data';
-import { COLORS, DASH, createAgreementLayout } from './agreement-layout';
+import { COLORS, DASH } from '../common/pdf/document-layout';
+import { createAgreementLayout } from './agreement-layout';
 
 /**
  * Render a NAMFISA-compliant loan agreement as a professional PDF.

@@ -67,19 +67,6 @@ interface LoanProduct {
   isDefault: boolean;
 }
 
-interface LevyYear {
-  year: number;
-  loanCount: number;
-  levyCents: number;
-  stampDutyCents: number;
-}
-
-interface LevyReport {
-  years: LevyYear[];
-  totalLevyCents: number;
-  totalStampDutyCents: number;
-}
-
 const LOAN_TYPE_LABELS: Record<LoanType, string> = {
   [LoanType.Payday]: 'Payday',
   [LoanType.Business]: 'Business',
@@ -552,62 +539,6 @@ const ProductsCard = () => {
   );
 };
 
-// ----- levies report ---------------------------------------------------------
-
-const LeviesCard = () => {
-  const { data, loading } = useApi<LevyReport>('/settings/levies');
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>NAMFISA levies collected</CardTitle>
-        <CardDescription>
-          Levies charged on loans, grouped by the year they were advanced. These are payable to
-          NAMFISA annually. Cancelled loans are excluded.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {loading && !data ? (
-          <Skeleton className="h-40 w-full rounded-xl" />
-        ) : (data?.years.length ?? 0) === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No levies recorded yet. They accrue as loans with a NAMFISA levy are disbursed.
-          </p>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Year</TableHead>
-                <TableHead className="text-right">Loans</TableHead>
-                <TableHead className="text-right">NAMFISA levy</TableHead>
-                <TableHead className="text-right">Stamp duty</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {(data?.years ?? []).map((row) => (
-                <TableRow key={row.year}>
-                  <TableCell className="font-medium">{row.year}</TableCell>
-                  <TableCell className="text-right">{row.loanCount}</TableCell>
-                  <TableCell className="text-right">{formatNad(row.levyCents)}</TableCell>
-                  <TableCell className="text-right">{formatNad(row.stampDutyCents)}</TableCell>
-                </TableRow>
-              ))}
-              <TableRow className="font-semibold">
-                <TableCell>Total</TableCell>
-                <TableCell className="text-right" />
-                <TableCell className="text-right">{formatNad(data?.totalLevyCents ?? 0)}</TableCell>
-                <TableCell className="text-right">
-                  {formatNad(data?.totalStampDutyCents ?? 0)}
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
-  );
-};
-
 // ----- business details ------------------------------------------------------
 
 interface LenderIdentity {
@@ -786,7 +717,6 @@ const SettingsPage = () => (
       <TabsList>
         <TabsTrigger value="fees">Levies &amp; fees</TabsTrigger>
         <TabsTrigger value="products">Rate plans</TabsTrigger>
-        <TabsTrigger value="levies">Levies collected</TabsTrigger>
         <TabsTrigger value="identity">Business details</TabsTrigger>
       </TabsList>
       <TabsContent value="fees" className="mt-4">
@@ -794,9 +724,6 @@ const SettingsPage = () => (
       </TabsContent>
       <TabsContent value="products" className="mt-4">
         <ProductsCard />
-      </TabsContent>
-      <TabsContent value="levies" className="mt-4">
-        <LeviesCard />
       </TabsContent>
       <TabsContent value="identity" className="mt-4">
         <LenderIdentityCard />

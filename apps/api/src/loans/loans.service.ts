@@ -19,6 +19,7 @@ import {
   type CancelLoanInput,
   type CreateLoanInput,
   type LoanFees,
+  type LoanPurposeValue,
   type LoanQuote,
   type LoanQuoteInput,
   type MarkCollexiaInput,
@@ -353,6 +354,7 @@ export class LoansService {
         type: input.loanType,
         productId,
         collateral: input.collateral || null,
+        purpose: input.purpose ?? null,
         disbursedAt: new Date(),
       }),
     });
@@ -384,6 +386,9 @@ export class LoansService {
         monthlyIncome: application.declaredIncome,
         employmentType: application.employmentType,
         maritalStatus: application.maritalStatus,
+        // Only fill a blank: a correction made on the borrower after intake
+        // must not be overwritten by an older application snapshot.
+        ...(application.gender ? { gender: application.gender } : {}),
       },
       create: {
         tenant: { connect: { id: application.tenantId } },
@@ -400,6 +405,7 @@ export class LoansService {
         monthlyIncome: application.declaredIncome,
         employmentType: application.employmentType,
         maritalStatus: application.maritalStatus,
+        gender: application.gender,
       },
     });
 
@@ -516,6 +522,7 @@ export class LoansService {
         productId,
         collateral: collateralSummary,
         collateralDetail,
+        purpose: application.purposeCategory,
         disbursedAt: new Date(),
         agreement: {
           tcVersion: application.tcVersion,
@@ -1060,6 +1067,7 @@ export class LoansService {
     productId,
     collateral,
     collateralDetail,
+    purpose,
     disbursedAt,
     agreement,
   }: {
@@ -1069,6 +1077,8 @@ export class LoansService {
     type: LoanType;
     productId: string | null;
     collateral: string | null;
+    /** NAMFISA purpose category (Part 7.3); null on loans captured without one. */
+    purpose?: LoanPurposeValue | null;
     // Structured collateral carried from the application (collateral loans only).
     collateralDetail?: {
       item: string | null;
@@ -1108,6 +1118,7 @@ export class LoansService {
       instalmentsTotal: loanQuote.termMonths,
       balance: loanQuote.totalCents,
       status: LoanStatus.Active,
+      purpose: purpose ?? null,
       collateral,
       collateralItem: collateralDetail?.item ?? null,
       collateralIdentifier: collateralDetail?.identifier ?? null,

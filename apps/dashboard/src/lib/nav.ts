@@ -3,6 +3,7 @@ import {
   Building2,
   CalendarDays,
   CreditCard,
+  FileBarChart,
   KeyRound,
   LayoutDashboard,
   Receipt,
@@ -88,6 +89,9 @@ export const navForUser = (user: SessionUser): NavGroup[] => {
   const adminItems: NavItem[] = [];
   if (can(user, 'finance:read')) {
     adminItems.push({ href: '/expenses', label: 'Finance', icon: Wallet });
+    // Reports expose the lender's capital position, so they follow the same
+    // gate as the rest of Finance rather than `reports:read` alone.
+    adminItems.push({ href: '/reports', label: 'Reports', icon: FileBarChart });
   }
   if (can(user, 'users:manage')) {
     adminItems.push({ href: '/users', label: 'Users', icon: ShieldCheck });
@@ -107,6 +111,7 @@ const TITLES: { prefix: string; title: string }[] = [
   { prefix: '/loans', title: 'Loans' },
   { prefix: '/calendar', title: 'Calendar' },
   { prefix: '/expenses', title: 'Finance' },
+  { prefix: '/reports', title: 'Reports' },
   { prefix: '/tenants', title: 'Tenants' },
   { prefix: '/users', title: 'Users' },
   { prefix: '/roles', title: 'Roles' },

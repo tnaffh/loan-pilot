@@ -122,6 +122,7 @@ const main = async (): Promise<void> => {
   await prisma.investment.deleteMany();
   await prisma.income.deleteMany();
   await prisma.auditEvent.deleteMany();
+  await prisma.regulatoryReturn.deleteMany();
   await prisma.tenantSettings.deleteMany();
   await prisma.loanProduct.deleteMany();
   await prisma.user.deleteMany();

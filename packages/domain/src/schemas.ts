@@ -4,6 +4,7 @@ import {
   CollexiaStatus,
   EmploymentType,
   ExpenseKind,
+  LoanPurpose,
   LoanStatus,
   LoanType,
   PaymentMethod,
@@ -11,6 +12,7 @@ import {
   UserRole,
   UserStatus,
 } from './enums';
+import { isManualFieldKey } from './reports';
 import {
   ageOnDate,
   isAdult,
@@ -110,6 +112,12 @@ export const collateralItemSchema = z.object({
 export type CollateralItemInput = z.infer<typeof collateralItemSchema>;
 
 /**
+ * Curated gender options. Stored as a free string on the borrower (imported
+ * registers carry their own casing), but new capture is restricted to these.
+ */
+export const GENDER_OPTIONS = ['Male', 'Female', 'Other'] as const;
+
+/**
  * The public loan-application payload. Monetary values are submitted in
  * major Namibian Dollar units and converted to cents server-side.
  */
@@ -119,6 +127,9 @@ export const createApplicationSchema = z.object({
   amount: z.coerce.number().int().min(500, 'Minimum amount is N$ 500').max(500000),
   termMonths: z.coerce.number().int().min(1).max(MAX_TERM_MONTHS),
   purpose: z.string().max(280).optional().or(z.literal('')),
+  // The NAMFISA purpose category (Part 7.3 of the quarterly return). Carried
+  // onto the loan at approval; `purpose` above stays the borrower's own wording.
+  purposeCategory: z.nativeEnum(LoanPurpose).optional(),
   // The pledged asset — only meaningful for collateral loans (required-when-
   // collateral is enforced in the refinement below). Left undefined otherwise.
   collateral: collateralItemSchema.optional(),
@@ -147,6 +158,9 @@ export const createApplicationSchema = z.object({
   postalSameAsResidential: z.boolean().optional(),
   postalAddress: optionalAddressSchema.optional(),
   maritalStatus: z.string().optional().or(z.literal('')),
+  // Required by the NAMFISA return's gender splits (Parts 15 and 7.2), which
+  // cannot be derived — a Namibian ID encodes only the date of birth.
+  gender: z.enum(GENDER_OPTIONS).optional(),
 
   // Step 3 — employment & bank
   employmentType: z.nativeEnum(EmploymentType),
@@ -353,8 +367,6 @@ export const updateBorrowerSchema = createBorrowerSchema
   .partial();
 export type UpdateBorrowerInput = z.infer<typeof updateBorrowerSchema>;
 
-/** Curated option lists for the borrower edit form (columns stay free strings). */
-export const GENDER_OPTIONS = ['Male', 'Female', 'Other'] as const;
 
 /** Add the English ordinal suffix to a day number (1 → "1st", 22 → "22nd"). */
 const ordinalDay = (n: number): string => {
@@ -470,6 +482,8 @@ export type LoanQuoteInput = z.infer<typeof loanQuoteSchema>;
 export const createLoanSchema = loanQuoteSchema.extend({
   borrowerId: z.string().min(1, 'A borrower is required'),
   collateral: z.string().max(200).optional().or(z.literal('')),
+  // NAMFISA purpose category (Part 7.3 of the quarterly return).
+  purpose: z.nativeEnum(LoanPurpose).optional(),
 });
 export type CreateLoanInput = z.infer<typeof createLoanSchema>;
 
@@ -630,3 +644,36 @@ export const tenantBrandingSchema = z.object({
   accent: z.string(),
   plan: z.nativeEnum(PlanId),
 });
+
+// ── Regulatory reporting ─────────────────────────────────────────────────────
+
+/**
+ * The NAMFISA quarterly figures the loan register cannot derive (complaints,
+ * branches, provision movement, ledger liabilities). Keys are validated against
+ * {@link NAMFISA_MANUAL_FIELDS} so the form and the stored blob cannot drift.
+ * Money fields are submitted in major Namibian Dollar units and converted to
+ * cents server-side, like every other monetary payload.
+ */
+export const regulatoryFiguresSchema = z
+  .record(z.string(), z.coerce.number().min(0))
+  .refine((figures) => Object.keys(figures).every(isManualFieldKey), {
+    message: 'Unknown NAMFISA figure',
+  });
+export type RegulatoryFiguresInput = z.infer<typeof regulatoryFiguresSchema>;
+
+/** Save (upsert) one quarter's manually-captured figures. */
+export const saveRegulatoryReturnSchema = z.object({
+  figures: regulatoryFiguresSchema,
+  notes: z.string().max(2000).optional().or(z.literal('')),
+});
+export type SaveRegulatoryReturnInput = z.infer<typeof saveRegulatoryReturnSchema>;
+
+/** A `YYYY-Qn` reporting quarter, e.g. "2026-Q2". */
+export const quarterKeySchema = z
+  .string()
+  .regex(/^\d{4}-Q[1-4]$/, 'Expected a quarter like 2026-Q2');
+
+/** A `YYYY-MM` reporting month, e.g. "2026-02". */
+export const monthKeySchema = z
+  .string()
+  .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Expected a month like 2026-02');
