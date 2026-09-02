@@ -15,6 +15,9 @@ export const DASH = '\u2014';
 
 export const COLORS = {
   ink: '#1c1c1c',
+  // Body copy in tables and figure rows: darker than `muted`, which is a label
+  // colour and prints too faint at small sizes.
+  body: '#33414f',
   muted: '#5b6b7a',
   faint: '#8a97a4',
   rule: '#d8dee5',

@@ -143,16 +143,18 @@ export const recentQuarterKeys = (count: number, from: Date = new Date()): strin
 export interface AmountBand {
   readonly key: string;
   readonly label: string;
+  /** Compact form for narrow columns (PDF matrix headers). */
+  readonly shortLabel: string;
   readonly minCents: Cents;
   /** Inclusive upper bound; null for the open-ended top band. */
   readonly maxCents: Cents | null;
 }
 
-const BAND_TO_10K: AmountBand = { key: 'to10k', label: 'N$1 – 10,000', minCents: 1, maxCents: 1_000_000 };
-const BAND_TO_20K: AmountBand = { key: 'to20k', label: 'N$10,001 – 20,000', minCents: 1_000_001, maxCents: 2_000_000 };
-const BAND_TO_30K: AmountBand = { key: 'to30k', label: 'N$20,001 – 30,000', minCents: 2_000_001, maxCents: 3_000_000 };
-const BAND_TO_40K: AmountBand = { key: 'to40k', label: 'N$30,001 – 40,000', minCents: 3_000_001, maxCents: 4_000_000 };
-const BAND_TO_50K: AmountBand = { key: 'to50k', label: 'N$40,001 – 50,000', minCents: 4_000_001, maxCents: 5_000_000 };
+const BAND_TO_10K: AmountBand = { key: 'to10k', label: 'N$1 – 10,000', shortLabel: 'N$1–10k', minCents: 1, maxCents: 1_000_000 };
+const BAND_TO_20K: AmountBand = { key: 'to20k', label: 'N$10,001 – 20,000', shortLabel: 'N$10–20k', minCents: 1_000_001, maxCents: 2_000_000 };
+const BAND_TO_30K: AmountBand = { key: 'to30k', label: 'N$20,001 – 30,000', shortLabel: 'N$20–30k', minCents: 2_000_001, maxCents: 3_000_000 };
+const BAND_TO_40K: AmountBand = { key: 'to40k', label: 'N$30,001 – 40,000', shortLabel: 'N$30–40k', minCents: 3_000_001, maxCents: 4_000_000 };
+const BAND_TO_50K: AmountBand = { key: 'to50k', label: 'N$40,001 – 50,000', shortLabel: 'N$40–50k', minCents: 4_000_001, maxCents: 5_000_000 };
 
 /** Part 15 (3.4.7) — value matrices. Six bands; everything over N$50,000 in one. */
 export const LOAN_VALUE_BANDS: readonly AmountBand[] = [
@@ -161,7 +163,7 @@ export const LOAN_VALUE_BANDS: readonly AmountBand[] = [
   BAND_TO_30K,
   BAND_TO_40K,
   BAND_TO_50K,
-  { key: 'above50k', label: 'More than N$50,000', minCents: 5_000_001, maxCents: null },
+  { key: 'above50k', label: 'More than N$50,000', shortLabel: '> N$50k', minCents: 5_000_001, maxCents: null },
 ];
 
 /** Part 7.2 — count matrices. Seven bands; the top of the value set is split at N$100,000. */
@@ -171,8 +173,8 @@ export const LOAN_COUNT_BANDS: readonly AmountBand[] = [
   BAND_TO_30K,
   BAND_TO_40K,
   BAND_TO_50K,
-  { key: 'to100k', label: 'N$50,001 – 100,000', minCents: 5_000_001, maxCents: 10_000_000 },
-  { key: 'above100k', label: 'More than N$100,000', minCents: 10_000_001, maxCents: null },
+  { key: 'to100k', label: 'N$50,001 – 100,000', shortLabel: 'N$50–100k', minCents: 5_000_001, maxCents: 10_000_000 },
+  { key: 'above100k', label: 'More than N$100,000', shortLabel: '> N$100k', minCents: 10_000_001, maxCents: null },
 ];
 
 /** The band a cent amount falls in, or null when it is zero/negative. */

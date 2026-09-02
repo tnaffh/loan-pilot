@@ -115,6 +115,61 @@ describe('ReportsService', () => {
     service = moduleRef.get(ReportsService);
   });
 
+  describe('periods', () => {
+    it('offers only periods with activity, newest first, plus the current one', async () => {
+      const now = new Date();
+      const currentMonth = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+      loanFindMany.mockResolvedValue([
+        { disbursedAt: utc('2026-02-10') },
+        { disbursedAt: utc('2026-02-20') },
+        { disbursedAt: utc('2025-11-05') },
+      ]);
+      paymentFindMany.mockResolvedValue([{ paidAt: utc('2026-03-01') }]);
+
+      const { months, quarters } = await service.periods('tenant_1');
+      const monthKeys = months.map((month) => month.key);
+
+      expect(monthKeys).toContain('2026-02');
+      expect(monthKeys).toContain('2026-03');
+      expect(monthKeys).toContain('2025-11');
+      expect(monthKeys).toContain(currentMonth);
+      // No contiguous filling — a month nobody transacted in is not offered.
+      expect(monthKeys).not.toContain('2025-12');
+      expect(monthKeys).not.toContain('2026-01');
+      expect([...monthKeys].sort((a, b) => b.localeCompare(a))).toEqual(monthKeys);
+      expect(quarters.map((quarter) => quarter.key)).toEqual(
+        expect.arrayContaining(['2026-Q1', '2025-Q4']),
+      );
+    });
+
+    it('drops mis-parsed future dates rather than defaulting the picker to them', async () => {
+      // The imported register carries a stray 2029 disbursement date.
+      loanFindMany.mockResolvedValue([
+        { disbursedAt: utc('2029-02-10') },
+        { disbursedAt: utc('2026-02-10') },
+      ]);
+      paymentFindMany.mockResolvedValue([]);
+
+      const { months, quarters } = await service.periods('tenant_1');
+
+      expect(months.map((month) => month.key)).not.toContain('2029-02');
+      expect(quarters.map((quarter) => quarter.key)).not.toContain('2029-Q1');
+      // The newest offered period is the current one, which is what the UI defaults to.
+      const now = new Date();
+      expect(months[0]?.key).toBe(
+        `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`,
+      );
+    });
+
+    it('still offers the current period for a tenant with no activity at all', async () => {
+      loanFindMany.mockResolvedValue([]);
+      paymentFindMany.mockResolvedValue([]);
+      const { months, quarters } = await service.periods('tenant_1');
+      expect(months).toHaveLength(1);
+      expect(quarters).toHaveLength(1);
+    });
+  });
+
   describe('quarterly', () => {
     it('derives the fee lines the lender files, at the configured levy rate', async () => {
       const report = await service.quarterly('tenant_1', '2026-Q1');

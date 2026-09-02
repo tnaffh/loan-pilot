@@ -20,6 +20,7 @@ import {
   isManualMoneyField,
   isOpenLoanStatus,
   monthKeyOf,
+  parseMonthKey,
   monthRange,
   namfisaCollectionMethod,
   normaliseGender,
@@ -270,58 +271,56 @@ export class ReportsService {
     }
   }
 
-  /** The months and quarters this tenant actually has activity in, newest first. */
+  /**
+   * The months and quarters the lender can report on, newest first.
+   *
+   * Only periods with real activity are offered, plus the current one so a
+   * report can always be run for today. Future periods are dropped outright:
+   * the imported register carries a few mis-parsed dates (a stray 2029), and
+   * offering "February 2029" as the default is worse than useless.
+   */
   async periods(tenantId: string): Promise<AvailablePeriods> {
-    const [loanBounds, paymentBounds] = await Promise.all([
-      this.prisma.loan.aggregate({
+    const [disbursements, payments] = await Promise.all([
+      this.prisma.loan.findMany({
         where: { tenantId, disbursedAt: { not: null } },
-        _min: { disbursedAt: true },
-        _max: { disbursedAt: true },
+        select: { disbursedAt: true },
       }),
-      this.prisma.payment.aggregate({
-        where: { tenantId },
-        _min: { paidAt: true },
-        _max: { paidAt: true },
-      }),
+      this.prisma.payment.findMany({ where: { tenantId }, select: { paidAt: true } }),
     ]);
 
-    const candidates = [
-      loanBounds._min.disbursedAt,
-      loanBounds._max.disbursedAt,
-      paymentBounds._min.paidAt,
-      paymentBounds._max.paidAt,
-    ].filter((value): value is Date => value instanceof Date);
-
-    if (candidates.length === 0) {
-      const now = new Date();
-      return {
-        months: [{ key: monthKeyOf(now), label: formatMonthLabel(monthKeyOf(now)) }],
-        quarters: [{ key: quarterKeyOf(now), label: formatQuarterLabel(quarterKeyOf(now)) }],
-      };
-    }
-
-    const earliest = new Date(Math.min(...candidates.map((date) => date.getTime())));
-    // Always run through to today, so the current (incomplete) period is offered.
-    const latest = new Date(Math.max(Date.now(), ...candidates.map((date) => date.getTime())));
-
-    const months: { key: string; label: string }[] = [];
-    const quarters: { key: string; label: string }[] = [];
-    const seenQuarters = new Set<string>();
-    const cursor = {
-      at: new Date(Date.UTC(earliest.getUTCFullYear(), earliest.getUTCMonth(), 1)),
-    };
-    while (cursor.at.getTime() <= latest.getTime()) {
-      const monthKey = monthKeyOf(cursor.at);
-      months.push({ key: monthKey, label: formatMonthLabel(monthKey) });
-      const quarterKey = quarterKeyOf(cursor.at);
-      if (!seenQuarters.has(quarterKey)) {
-        seenQuarters.add(quarterKey);
-        quarters.push({ key: quarterKey, label: formatQuarterLabel(quarterKey) });
+    const now = new Date();
+    const currentMonth = monthKeyOf(now);
+    const months = new Set<string>([currentMonth]);
+    for (const date of [
+      ...disbursements.map((row) => row.disbursedAt),
+      ...payments.map((row) => row.paidAt),
+    ]) {
+      if (!date) {
+        continue;
       }
-      cursor.at = new Date(Date.UTC(cursor.at.getUTCFullYear(), cursor.at.getUTCMonth() + 1, 1));
+      const key = monthKeyOf(date);
+      // A period that has not happened yet cannot have a return to file.
+      if (key <= currentMonth) {
+        months.add(key);
+      }
     }
 
-    return { months: months.reverse(), quarters: quarters.reverse() };
+    const monthKeys = [...months].sort((a, b) => b.localeCompare(a));
+    const quarterKeys = [
+      ...new Set(
+        monthKeys.map((key) => {
+          const parsed = parseMonthKey(key);
+          return parsed
+            ? quarterKeyOf(new Date(Date.UTC(parsed.year, parsed.month - 1, 1)))
+            : key;
+        }),
+      ),
+    ].sort((a, b) => b.localeCompare(a));
+
+    return {
+      months: monthKeys.map((key) => ({ key, label: formatMonthLabel(key) })),
+      quarters: quarterKeys.map((key) => ({ key, label: formatQuarterLabel(key) })),
+    };
   }
 
   /** Borrowers still missing a gender, for the backfill worklist. */

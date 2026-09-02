@@ -47,7 +47,7 @@ export const createReportLayout = (doc: PDFKit.PDFDocument): ReportLayout => {
       doc
         .font(row.strong ? 'Helvetica-Bold' : 'Helvetica')
         .fontSize(9)
-        .fillColor(row.strong ? COLORS.ink : COLORS.muted)
+        .fillColor(row.strong ? COLORS.ink : COLORS.body)
         .text(row.label, M + indent, y, { width: labelW - indent });
       const labelBottom = doc.y;
       doc
@@ -69,6 +69,27 @@ export const createReportLayout = (doc: PDFKit.PDFDocument): ReportLayout => {
     doc.fillColor(COLORS.ink);
   };
 
+  /**
+   * Shorten a string to fit a column, measured in the current font.
+   *
+   * pdfkit's own `lineBreak: false` does not reliably keep text on one line — a
+   * hyphenated name still breaks and lands on top of the row beneath it — so the
+   * width is enforced here instead of trusting the renderer.
+   */
+  const fit = (text: string, width: number): string => {
+    if (width <= 0) {
+      return '';
+    }
+    if (doc.widthOfString(text) <= width) {
+      return text;
+    }
+    const state = { out: text };
+    while (state.out.length > 1 && doc.widthOfString(`${state.out}…`) > width) {
+      state.out = state.out.slice(0, -1);
+    }
+    return `${state.out}…`;
+  };
+
   const table = <T>(
     columns: readonly ReportColumn<T>[],
     rows: readonly T[],
@@ -76,17 +97,22 @@ export const createReportLayout = (doc: PDFKit.PDFDocument): ReportLayout => {
   ): void => {
     const totalWeight = columns.reduce((sum, column) => sum + column.weight, 0);
     const widths = columns.map((column) => (column.weight / totalWeight) * W);
-    const headerH = 20;
-    const rowH = 16;
+    const xs = columns.map((_column, index) =>
+      widths.slice(0, index).reduce((sum, width) => sum + width, M),
+    );
+    const headerH = 21;
+    const rowH = 17;
+    const pad = 5;
+
+    const cellWidth = (index: number): number => (widths[index] ?? 0) - pad * 2;
 
     const drawHeader = (): void => {
       const y = doc.y;
-      doc.rect(M, y, W, headerH).fill(COLORS.cellBg);
-      doc.font('Helvetica-Bold').fontSize(7).fillColor(COLORS.muted);
+      doc.rect(M, y, W, headerH).fill(COLORS.accent);
+      doc.font('Helvetica-Bold').fontSize(7).fillColor('#ffffff');
       columns.forEach((column, index) => {
-        const x = M + widths.slice(0, index).reduce((sum, width) => sum + width, 0);
-        doc.text(column.header.toUpperCase(), x + 4, y + 7, {
-          width: (widths[index] ?? 0) - 8,
+        doc.text(fit(column.header.toUpperCase(), cellWidth(index)), (xs[index] ?? M) + pad, y + 7, {
+          width: cellWidth(index),
           align: column.align ?? 'left',
           lineBreak: false,
         });
@@ -96,45 +122,56 @@ export const createReportLayout = (doc: PDFKit.PDFDocument): ReportLayout => {
 
     if (rows.length === 0) {
       drawHeader();
+      const y = doc.y;
+      doc.rect(M, y, W, rowH + 4).fillAndStroke('#ffffff', COLORS.rule);
       doc
         .font('Helvetica-Oblique')
-        .fontSize(8.5)
+        .fontSize(8)
         .fillColor(COLORS.faint)
-        .text(emptyText, M + 4, doc.y + 6, { width: W - 8 });
-      doc.y += 22;
+        .text(emptyText, M + pad, y + 7, { width: W - pad * 2, lineBreak: false });
+      doc.y = y + rowH + 4 + 8;
       doc.fillColor(COLORS.ink);
       return;
     }
 
+    // Keep a table with its header: if barely anything fits, start it overleaf.
+    if (doc.y + headerH + rowH * Math.min(rows.length, 3) > bottomLimit()) {
+      doc.addPage();
+    }
     drawHeader();
-    rows.forEach((row, rowIndex) => {
-      if (doc.y + rowH > bottomLimit()) {
-        doc.addPage();
-        drawHeader();
-      }
-      const y = doc.y;
-      if (rowIndex % 2 === 1) {
-        doc.rect(M, y, W, rowH).fill('#fbfcfd');
-      }
-      doc.font('Helvetica').fontSize(7.5).fillColor(COLORS.ink);
-      columns.forEach((column, index) => {
-        const x = M + widths.slice(0, index).reduce((sum, width) => sum + width, 0);
-        doc.text(column.value(row), x + 4, y + 5, {
-          width: (widths[index] ?? 0) - 8,
-          align: column.align ?? 'left',
-          lineBreak: false,
-          ellipsis: true,
-        });
-      });
+    const tableTop = { y: doc.y - headerH };
+
+    const closeBorder = (): void => {
       doc
-        .moveTo(M, y + rowH)
-        .lineTo(right, y + rowH)
-        .lineWidth(0.4)
+        .rect(M, tableTop.y, W, doc.y - tableTop.y)
+        .lineWidth(0.6)
         .strokeColor(COLORS.rule)
         .stroke();
+    };
+
+    rows.forEach((row, rowIndex) => {
+      if (doc.y + rowH > bottomLimit()) {
+        closeBorder();
+        doc.addPage();
+        drawHeader();
+        tableTop.y = doc.y - headerH;
+      }
+      const y = doc.y;
+      // Zebra striping carries the eye across a wide row better than rules do.
+      doc.rect(M, y, W, rowH).fill(rowIndex % 2 === 1 ? COLORS.cellBg : '#ffffff');
+      doc.font('Helvetica').fontSize(8).fillColor(COLORS.ink);
+      columns.forEach((column, index) => {
+        doc.text(fit(column.value(row), cellWidth(index)), (xs[index] ?? M) + pad, y + 5, {
+          width: cellWidth(index),
+          align: column.align ?? 'left',
+          lineBreak: false,
+        });
+      });
       doc.y = y + rowH;
     });
-    doc.y += 8;
+
+    closeBorder();
+    doc.y += 10;
     doc.fillColor(COLORS.ink);
   };
 
@@ -148,11 +185,11 @@ export const createReportLayout = (doc: PDFKit.PDFDocument): ReportLayout => {
     doc.moveDown(0.6);
     doc
       .font('Helvetica-Bold')
-      .fontSize(7.5)
-      .fillColor(COLORS.muted)
+      .fontSize(8)
+      .fillColor(COLORS.accent)
       .text(title.toUpperCase(), M, doc.y, { characterSpacing: 0.4 });
     doc.moveDown(0.25);
-    doc.font('Helvetica').fontSize(7.5).fillColor(COLORS.faint);
+    doc.font('Helvetica').fontSize(7.5).fillColor(COLORS.body);
     for (const line of lines) {
       if (doc.y + 16 > bottomLimit()) {
         doc.addPage();

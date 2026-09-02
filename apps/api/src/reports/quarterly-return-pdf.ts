@@ -111,7 +111,7 @@ export const renderQuarterlyReturnPdf = (
         { header: '', weight: 2.2, value: (entry) => entry.label },
         { header: 'Total', weight: 1.4, align: 'right', value: (entry) => format(entry.row.total) },
         ...matrix.bands.map((band) => ({
-          header: band.label.replace('N$', ''),
+          header: band.shortLabel,
           weight: 1.3,
           align: 'right' as const,
           value: (entry: { row: BandedRow }) => format(entry.row.bands[band.key] ?? 0),
