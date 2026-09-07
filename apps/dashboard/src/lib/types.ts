@@ -197,6 +197,7 @@ export interface LoanRow {
   bankCharges: number;
   namfisaLevy: number;
   stampDuty: number;
+  insurance: number;
   interestRate: number;
   total: number;
   termMonths: number;

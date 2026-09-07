@@ -38,6 +38,7 @@ import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
+import { LoanPriceBreakdown } from '@/components/loan-price-breakdown';
 import { StatusBadge } from '@/components/status-badge';
 import { TypeChip } from '@/components/type-chip';
 import { ActivityTimeline } from '@/components/activity-timeline';
@@ -341,6 +342,8 @@ const LoanDetailPage = () => {
               </div>
             </CardContent>
           </Card>
+
+          <LoanPriceBreakdown loan={data} />
 
           <Card>
             <CardHeader>
