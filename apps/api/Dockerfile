@@ -4,6 +4,9 @@
 FROM node:20-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
+# Corepack fetches pnpm on first use and, from 0.31, asks for confirmation first.
+# It skips that prompt when CI=true, so builds pass and only the runtime hangs.
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 # OpenSSL is required by Prisma at build and runtime.
 RUN apt-get update \
   && apt-get install -y --no-install-recommends openssl ca-certificates \
@@ -25,5 +28,9 @@ ENV NODE_ENV=production
 COPY --from=build /app /app
 WORKDIR /app/apps/api
 EXPOSE 4000
-# Apply pending migrations, then start the compiled server.
-CMD ["sh", "-c", "pnpm exec prisma migrate deploy && node dist/main"]
+# Apply pending migrations, then start the compiled server. Invoke Prisma through the
+# hoisted binary rather than `pnpm exec`: pnpm is not in the runner stage, so corepack
+# would try to fetch it over the network on every container start — a boot-time
+# dependency on registry.npmjs.org that took the API down when corepack began
+# prompting before downloads.
+CMD ["sh", "-c", "/app/node_modules/.bin/prisma migrate deploy && node dist/main"]

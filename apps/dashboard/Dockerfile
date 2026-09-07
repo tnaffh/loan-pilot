@@ -4,6 +4,9 @@
 FROM node:20-bookworm-slim AS base
 ENV PNPM_HOME=/pnpm
 ENV PATH=$PNPM_HOME:$PATH
+# Corepack fetches pnpm on first use and, from 0.31, asks for confirmation first.
+# It skips that prompt when CI=true, so builds pass and only the runtime hangs.
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
 RUN corepack enable
 WORKDIR /app
 
