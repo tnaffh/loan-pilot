@@ -49,8 +49,12 @@ export class StorageService {
       this.s3Client = new S3Client({
         region: process.env.S3_REGION ?? 'auto',
         endpoint: process.env.S3_ENDPOINT || undefined,
-        // Path-style addressing is required by R2/MinIO custom endpoints.
-        forcePathStyle: Boolean(process.env.S3_ENDPOINT),
+        // Virtual-host addressing by default (DigitalOcean Spaces, AWS S3); R2 and
+        // MinIO need path-style, so opt in with S3_FORCE_PATH_STYLE=true. This matters
+        // most for presigned URLs: SigV4 signs the host and path together, so an
+        // endpoint that redirects between the two styles drops the query string and the
+        // browser lands on SignatureDoesNotMatch with nothing logged server-side.
+        forcePathStyle: process.env.S3_FORCE_PATH_STYLE === 'true',
         credentials:
           accessKeyId && secretAccessKey ? { accessKeyId, secretAccessKey } : undefined,
       });

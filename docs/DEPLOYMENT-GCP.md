@@ -1,5 +1,10 @@
 # Deploying LoanPilot to GCP
 
+> **Being retired.** This is still the live production stack, but LoanPilot is moving to
+> the self-hosted one in [`deploy/README.md`](../deploy/README.md). Keep this document
+> until the GCP resources are torn down — it is what makes that teardown safe. Secret
+> Manager is the one piece that survives the move.
+
 LoanPilot runs as **three Cloud Run services** (api, web, dashboard) backed by
 **Cloud SQL** (PostgreSQL) and **Google Cloud Storage** (documents). Images are
 built and deployed by **Cloud Build**; secrets live in **Secret Manager**.

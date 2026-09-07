@@ -1,0 +1,198 @@
+# Build the three images in CI, push them to GHCR, and roll them out on The-Moon.
+#
+# Nothing is built on the server. It only pulls immutable, SHA-tagged images — which is
+# what replaces Cloud Run's revision rollback (change IMAGE_TAG in /root/loanpilot/.env,
+# then `docker compose up -d`), and keeps build-cache churn off a box that also serves 19
+# production vhosts.
+#
+# Secrets come from GCP Secret Manager over Workload Identity Federation — no long-lived
+# key in GitHub or on the box. Same arrangement as sendhub and city-pilot.
+#
+# Triggered only after CI goes green on main, so an image can never be built from a
+# commit that failed typecheck/lint/test.
+
+name: deploy
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+  packages: write
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+env:
+  # The GCP project is kept purely as a secret store — no compute runs there after the
+  # migration. The provider is locked to this repository by attribute condition, so no
+  # other repo can mint a token for this service account.
+  GCP_PROJECT: raccoons-loan-pilot
+  WIF_PROVIDER: projects/991633463875/locations/global/workloadIdentityPools/github/providers/github-oidc
+  DEPLOY_SA: loanpilot-deploy@raccoons-loan-pilot.iam.gserviceaccount.com
+  SERVER: 209.38.142.182
+  SERVER_USER: root
+  REMOTE_DIR: /root/loanpilot
+  IMAGE_REPO: ghcr.io/${{ github.repository }}
+  API_URL: https://api.raccoonsfinance.com/api
+  SITE_URL: https://raccoonsfinance.com
+  DASHBOARD_URL: https://pilot.raccoonsfinance.com
+
+jobs:
+  # Resolved once, in its own job, so all three image builds and the deploy provably
+  # agree on the commit. On workflow_run the default ref is the branch tip, not the
+  # commit CI actually passed on — take head_sha or you can ship something else.
+  resolve:
+    # workflow_run fires for failed runs too; only green main deploys.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.sha.outputs.value }}
+    steps:
+      - id: sha
+        run: echo "value=${{ github.event.workflow_run.head_sha || github.sha }}" >> "$GITHUB_OUTPUT"
+
+  build:
+    needs: resolve
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - app: api
+            dockerfile: apps/api/Dockerfile
+            build_args: ''
+          - app: web
+            dockerfile: apps/web/Dockerfile
+            build_args: |
+              NEXT_PUBLIC_API_URL=https://api.raccoonsfinance.com/api
+              NEXT_PUBLIC_SITE_URL=https://raccoonsfinance.com
+          - app: dashboard
+            dockerfile: apps/dashboard/Dockerfile
+            build_args: |
+              NEXT_PUBLIC_API_URL=https://api.raccoonsfinance.com/api
+              NEXT_PUBLIC_DASHBOARD_URL=https://pilot.raccoonsfinance.com
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          platforms: linux/amd64
+          build-args: ${{ matrix.build_args }}
+          tags: ${{ env.IMAGE_REPO }}/${{ matrix.app }}:${{ needs.resolve.outputs.sha }}
+          cache-from: type=gha,scope=${{ matrix.app }}
+          cache-to: type=gha,scope=${{ matrix.app }},mode=max
+
+  deploy:
+    needs: [resolve, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          persist-credentials: false
+
+      - uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ env.WIF_PROVIDER }}
+          service_account: ${{ env.DEPLOY_SA }}
+
+      - uses: google-github-actions/setup-gcloud@v3
+
+      - name: Fetch the deploy SSH key
+        run: |
+          mkdir -p ~/.ssh
+          gcloud secrets versions access latest \
+            --secret=loanpilot-deploy-ssh-key --project="$GCP_PROJECT" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H "$SERVER" >> ~/.ssh/known_hosts
+
+      - name: Render the production env file
+        run: |
+          umask 077
+          gcloud secrets versions access latest \
+            --secret=loanpilot-production-env --project="$GCP_PROJECT" > env.secret
+          # IMAGE_TAG is owned by this pipeline, not by the secret — so a deploy never
+          # requires editing the secret, and the tag always matches what we just pushed.
+          grep -v '^IMAGE_TAG=' env.secret > env.rendered
+          echo "IMAGE_TAG=${{ needs.resolve.outputs.sha }}" >> env.rendered
+          test -s env.rendered
+
+      - name: Ship the stack definition
+        run: |
+          ssh "$SERVER_USER@$SERVER" "mkdir -p $REMOTE_DIR/scripts && chmod 700 $REMOTE_DIR"
+          scp deploy/docker-compose.yml "$SERVER_USER@$SERVER:$REMOTE_DIR/docker-compose.yml"
+          scp deploy/scripts/pg-backup.sh "$SERVER_USER@$SERVER:$REMOTE_DIR/scripts/pg-backup.sh"
+          ssh "$SERVER_USER@$SERVER" "chmod +x $REMOTE_DIR/scripts/pg-backup.sh"
+          # Pipe rather than scp so the plaintext env never lands in a temp file on the
+          # server with default permissions.
+          ssh "$SERVER_USER@$SERVER" "umask 077 && cat > $REMOTE_DIR/.env" < env.rendered
+          ssh "$SERVER_USER@$SERVER" "chmod 600 $REMOTE_DIR/.env"
+
+      - name: Roll out
+        run: |
+          GHCR_TOKEN=$(gcloud secrets versions access latest \
+            --secret=loanpilot-ghcr-token --project="$GCP_PROJECT")
+          # gcloud output is not masked automatically the way repo secrets are.
+          echo "::add-mask::$GHCR_TOKEN"
+          ssh "$SERVER_USER@$SERVER" bash -s <<REMOTE
+          set -euo pipefail
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u ${{ github.repository_owner }} --password-stdin
+          cd $REMOTE_DIR
+
+          # Schema changes are applied by the api container's CMD on start, and Prisma has
+          # no 'migrate down'. Dump first so a bad migration stays recoverable — over the
+          # local socket this costs seconds. A failed dump aborts the rollout.
+          ./scripts/pg-backup.sh pre-deploy
+
+          docker compose pull
+          docker compose up -d
+          docker compose ps
+          # Keep the previous images for rollback; only reap what is genuinely old.
+          docker image prune -f --filter 'until=336h'
+          REMOTE
+
+      # Verify the container we just started, not the public hostname: until DNS is cut
+      # over, api.raccoonsfinance.com still resolves to Cloud Run, so a public probe
+      # would green-light this deploy by checking the OLD stack. The container's own
+      # healthcheck already reads the response body, so "healthy" means the database is
+      # genuinely reachable over the mounted socket.
+      - name: Verify
+        run: |
+          ssh "$SERVER_USER@$SERVER" bash -s <<'REMOTE'
+          set -euo pipefail
+          cd /root/loanpilot
+          cid=$(docker compose ps -q api)
+          for _ in $(seq 1 36); do
+            status=$(docker inspect --format '{{.State.Health.Status}}' "$cid" 2>/dev/null || echo starting)
+            case "$status" in
+              healthy)   echo "api healthy"; exit 0 ;;
+              unhealthy) echo "api unhealthy:"; docker compose logs --tail=80 api; exit 1 ;;
+            esac
+            sleep 5
+          done
+          echo "api never became healthy (180s):"
+          docker compose logs --tail=80 api
+          exit 1
+          REMOTE

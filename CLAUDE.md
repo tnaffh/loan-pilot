@@ -53,6 +53,7 @@ pnpm --filter @loan-pilot/api prisma:studio
 - `apps/dashboard` (`@loan-pilot/dashboard`) — Next.js 16 authenticated management portal (shell built; interior pages are in progress).
 - `packages/typescript-config`, `packages/eslint-config` — shared configs, inherited by every workspace.
 - `docs/CONTEXT.md`, `docs/IMPLEMENTATION.md` — product/regulatory context and build status/roadmap.
+- `deploy/` — the production stack: `README.md` (runbook), `docker-compose.yml`, `nginx/` vhost snippets, `scripts/pg-backup.sh`. Deploys are CI-only; nothing is built on the server.
 
 Dependencies flow inward: apps depend on `domain`; `domain` depends on nothing internal.
 
