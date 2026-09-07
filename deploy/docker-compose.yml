@@ -1,77 +1,73 @@
-# Production stack for LoanPilot. Run from the repo root:
-#   docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build
-# Fill deploy/.env first (see deploy/.env.example).
+# Production stack for LoanPilot on The-Moon (alphanumeric.cloud).
+#
+# This file and its .env live TOGETHER in /root/loanpilot/ on the server — `env_file`
+# below resolves relative to this file, and Compose auto-loads the same .env for
+# ${...} interpolation. Deploy is:
+#
+#   cd /root/loanpilot && docker compose pull && docker compose up -d
+#
+# Images are built by CI and pulled from GHCR — nothing is built on the server, which is
+# why the box needs no git checkout and no build cache. See deploy/README.md.
+# Postgres is the host's own instance, reached over its Unix socket; there is
+# deliberately no postgres service in this file.
 
 services:
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER}']
-      interval: 5s
-      timeout: 5s
-      retries: 10
-
   api:
-    build:
-      context: ..
-      dockerfile: apps/api/Dockerfile
+    image: ${IMAGE_REPO:-ghcr.io/tnaffh/loan-pilot}/api:${IMAGE_TAG:?IMAGE_TAG must be set}
     restart: unless-stopped
     env_file:
       - .env
     environment:
       NODE_ENV: production
       PORT: 4000
-    depends_on:
-      postgres:
-        condition: service_healthy
+    # The host Postgres listens on 127.0.0.1 only and its pg_hba allows nothing from the
+    # Docker bridge. Mounting the socket directory keeps it that way: no network listener
+    # is opened, so sendhub's and city_pilot's databases stay unreachable from any
+    # container. DATABASE_URL must carry ?host=/var/run/postgresql.
+    volumes:
+      - /var/run/postgresql:/var/run/postgresql
+    # Bind to loopback ONLY. Docker publishes ports via nat/PREROUTING and filters in
+    # DOCKER-USER, bypassing the host's INPUT chain entirely — a 0.0.0.0 bind would put
+    # this API straight onto the public internet, unauthenticated, past Plesk and past
+    # the INPUT DROP policy. Public access comes exclusively through the nginx vhost.
     ports:
-      - '${API_PORT:-4000}:4000'
+      - '127.0.0.1:${API_PORT:-4000}:4000'
     healthcheck:
+      # Assert on the BODY, not the status code alone: a stale socket bind-mount leaves
+      # the process up and answering while every query fails.
       test:
-        [
-          'CMD',
-          'node',
-          '-e',
-          "require('http').get('http://localhost:4000/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
-        ]
-      interval: 10s
+        - CMD-SHELL
+        - >-
+          node -e "const h=require('http');h.get('http://127.0.0.1:4000/api/health',r=>{let
+          d='';r.on('data',c=>d+=c);r.on('end',()=>{try{process.exit(JSON.parse(d).database==='up'?0:1)}catch(e){process.exit(1)}})}).on('error',()=>process.exit(1))"
+      interval: 30s
       timeout: 5s
-      retries: 6
+      retries: 3
+      start_period: 60s
+    logging: &logging
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: '3'
 
   web:
-    build:
-      context: ..
-      dockerfile: apps/web/Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    image: ${IMAGE_REPO:-ghcr.io/tnaffh/loan-pilot}/web:${IMAGE_TAG:?IMAGE_TAG must be set}
     restart: unless-stopped
     environment:
       PORT: 3000
     depends_on:
       - api
     ports:
-      - '${WEB_PORT:-3000}:3000'
+      - '127.0.0.1:${WEB_PORT:-3000}:3000'
+    logging: *logging
 
   dashboard:
-    build:
-      context: ..
-      dockerfile: apps/dashboard/Dockerfile
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    image: ${IMAGE_REPO:-ghcr.io/tnaffh/loan-pilot}/dashboard:${IMAGE_TAG:?IMAGE_TAG must be set}
     restart: unless-stopped
     environment:
       PORT: 3001
     depends_on:
       - api
     ports:
-      - '${DASHBOARD_PORT:-3001}:3001'
-
-volumes:
-  pgdata:
+      - '127.0.0.1:${DASHBOARD_PORT:-3001}:3001'
+    logging: *logging
