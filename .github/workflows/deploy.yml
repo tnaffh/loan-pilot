@@ -56,12 +56,34 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       sha: ${{ steps.sha.outputs.value }}
+      go: ${{ steps.guard.outputs.go }}
     steps:
       - id: sha
         run: echo "value=${{ github.event.workflow_run.head_sha || github.sha }}" >> "$GITHUB_OUTPUT"
 
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          persist-credentials: false
+
+      # Two CI runs on main finish in whatever order their test suites take, and each
+      # fires its own deploy. Without this, a slow run for an older commit can land
+      # AFTER a fast run for a newer one and quietly roll production backwards. Only
+      # ever deploy the current tip.
+      - id: guard
+        run: |
+          tip=$(git rev-parse HEAD)
+          if [ "$tip" = "${{ steps.sha.outputs.value }}" ]; then
+            echo "go=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Skipping deploy of ${{ steps.sha.outputs.value }} — main is now $tip"
+            echo "go=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build:
     needs: resolve
+    if: needs.resolve.outputs.go == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -106,6 +128,7 @@ jobs:
 
   deploy:
     needs: [resolve, build]
+    if: needs.resolve.outputs.go == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
