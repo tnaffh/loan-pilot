@@ -3,8 +3,12 @@ import { renderAgreementPdf } from './agreement-pdf';
 import type { AgreementData } from './agreement-data';
 
 // A 1×1 transparent PNG — a valid image for pdfkit to embed.
+// A valid 1x1 PNG. This MUST be well-formed: pdfkit decodes it through png-js, and a
+// truncated PNG sends that parser chasing a bogus multi-gigabyte chunk length — which
+// turned these two files into a 10-minute CI step while still passing, because the
+// assertions only check the PDF header and a minimum length.
 const TINY_PNG = Buffer.from(
-  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M8AAAMBAQDJ/pLvAAAAAElFTkSuQmCC',
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
   'base64',
 );
 
