@@ -33,11 +33,23 @@ const COLUMNS: { status: ApplicationStatus; label: string }[] = [
 const isOpen = (status: ApplicationStatus): boolean =>
   status === ApplicationStatus.Pending || status === ApplicationStatus.Review;
 
+/**
+ * Cards a board column shows before "Show more". The decided columns hold the
+ * whole history, so without a cap the page grows with every application ever
+ * submitted; the full list is a page-sized table on the Table tab.
+ */
+const BOARD_PAGE = 12;
+
 const ApplicationsPage = () => {
   const { token } = useAuth();
   const command = useCommand();
   const { data, loading, error } = useApi<ApplicationRow[]>('/applications');
   const [movingId, setMovingId] = useState<string | null>(null);
+  // How many cards each board column has been expanded to (default BOARD_PAGE).
+  const [expanded, setExpanded] = useState<Partial<Record<ApplicationStatus, number>>>({});
+  const shownCount = (status: ApplicationStatus): number => expanded[status] ?? BOARD_PAGE;
+  const showMore = (status: ApplicationStatus) =>
+    setExpanded((current) => ({ ...current, [status]: shownCount(status) + BOARD_PAGE }));
 
   const { months, latest } = useMonthOptions((data ?? []).map((row) => row.submittedAt));
   const [month, setMonth] = useState<string>('');
@@ -106,17 +118,26 @@ const ApplicationsPage = () => {
               <div className="font-medium">
                 {row.original.firstName} {row.original.lastName}
               </div>
-              <div className="text-xs text-muted-foreground">{formatDate(row.original.submittedAt)}</div>
+              <div className="text-xs text-muted-foreground">
+                {formatDate(row.original.submittedAt)}
+              </div>
             </div>
           </div>
         ),
       },
-      { id: 'type', header: 'Type', accessorKey: 'type', cell: ({ row }) => <TypeChip type={row.original.type} /> },
+      {
+        id: 'type',
+        header: 'Type',
+        accessorKey: 'type',
+        cell: ({ row }) => <TypeChip type={row.original.type} />,
+      },
       {
         id: 'amount',
         header: () => <div className="text-right">Amount</div>,
         accessorKey: 'amount',
-        cell: ({ row }) => <div className="text-right tabular-nums">{formatNad(row.original.amount)}</div>,
+        cell: ({ row }) => (
+          <div className="text-right tabular-nums">{formatNad(row.original.amount)}</div>
+        ),
       },
       {
         id: 'affordability',
@@ -124,7 +145,12 @@ const ApplicationsPage = () => {
         accessorKey: 'affordability',
         cell: ({ row }) => <StatusBadge value={row.original.affordability} />,
       },
-      { id: 'status', header: 'Status', accessorKey: 'status', cell: ({ row }) => <StatusBadge value={row.original.status} /> },
+      {
+        id: 'status',
+        header: 'Status',
+        accessorKey: 'status',
+        cell: ({ row }) => <StatusBadge value={row.original.status} />,
+      },
       {
         id: 'actions',
         header: () => <div className="text-right">Actions</div>,
@@ -163,7 +189,12 @@ const ApplicationsPage = () => {
           <div className="mb-4">
             <StatStrip
               items={[
-                { label: 'Pending', value: String(summary.pending), icon: Hourglass, tone: 'amber' },
+                {
+                  label: 'Pending',
+                  value: String(summary.pending),
+                  icon: Hourglass,
+                  tone: 'amber',
+                },
                 { label: 'In review', value: String(summary.review), icon: Search, tone: 'blue' },
                 {
                   label: 'Approval rate',
@@ -182,81 +213,99 @@ const ApplicationsPage = () => {
 
           <TabsContent value="board">
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              {COLUMNS.map((column) => (
-                <div key={column.status} className="rounded-xl border bg-muted/30 p-3">
-                  <div className="mb-3 flex items-center justify-between px-1">
-                    <span className="text-sm font-semibold">{column.label}</span>
-                    <span className="rounded-full bg-background px-2 text-xs text-muted-foreground tabular-nums">
-                      {byStatus[column.status].length}
-                    </span>
-                  </div>
-                  <div className="space-y-2">
-                    {byStatus[column.status].map((app) => (
-                      <button
-                        key={app.id}
-                        type="button"
-                        onClick={() => command.openReview(app.id)}
-                        className="w-full rounded-lg border bg-background p-3 text-left shadow-xs transition-colors hover:border-ring"
-                      >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="truncate text-sm font-medium">
-                            {app.firstName} {app.lastName}
-                          </span>
-                          <TypeChip type={app.type} />
-                        </div>
-                        <div className="mt-1 flex items-center justify-between">
-                          <span className="text-sm tabular-nums">{formatNad(app.amount)}</span>
-                          <StatusBadge value={app.affordability} />
-                        </div>
-                        {isOpen(app.status) ? (
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            <Button
-                              size="sm"
-                              className="h-7 px-2"
-                              disabled={movingId === app.id}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                move(app.id, ApplicationStatus.Approved);
-                              }}
-                            >
-                              Approve
-                            </Button>
-                            {app.status === ApplicationStatus.Pending ? (
+              {COLUMNS.map((column) => {
+                const cards = byStatus[column.status];
+                const shown = cards.slice(0, shownCount(column.status));
+                const remaining = cards.length - shown.length;
+                return (
+                  <div key={column.status} className="rounded-xl border bg-muted/30 p-3">
+                    <div className="mb-3 flex items-center justify-between px-1">
+                      <span className="text-sm font-semibold">{column.label}</span>
+                      <span className="rounded-full bg-background px-2 text-xs text-muted-foreground tabular-nums">
+                        {cards.length}
+                      </span>
+                    </div>
+                    {/* Each column scrolls on its own so a long history never stretches the page. */}
+                    <div className="-mr-1 max-h-[70vh] space-y-2 overflow-y-auto pr-1">
+                      {shown.map((app) => (
+                        <button
+                          key={app.id}
+                          type="button"
+                          onClick={() => command.openReview(app.id)}
+                          className="w-full rounded-lg border bg-background p-3 text-left shadow-xs transition-colors hover:border-ring"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="truncate text-sm font-medium">
+                              {app.firstName} {app.lastName}
+                            </span>
+                            <TypeChip type={app.type} />
+                          </div>
+                          <div className="mt-1 flex items-center justify-between">
+                            <span className="text-sm tabular-nums">{formatNad(app.amount)}</span>
+                            <StatusBadge value={app.affordability} />
+                          </div>
+                          {isOpen(app.status) ? (
+                            <div className="mt-2 flex flex-wrap gap-1.5">
                               <Button
                                 size="sm"
-                                variant="outline"
                                 className="h-7 px-2"
                                 disabled={movingId === app.id}
                                 onClick={(event) => {
                                   event.stopPropagation();
-                                  move(app.id, ApplicationStatus.Review);
+                                  move(app.id, ApplicationStatus.Approved);
                                 }}
                               >
-                                Review
+                                Approve
                               </Button>
-                            ) : null}
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-7 px-2 text-destructive"
-                              disabled={movingId === app.id}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                move(app.id, ApplicationStatus.Declined);
-                              }}
-                            >
-                              Decline
-                            </Button>
-                          </div>
-                        ) : null}
-                      </button>
-                    ))}
-                    {byStatus[column.status].length === 0 ? (
-                      <p className="px-1 py-6 text-center text-xs text-muted-foreground">Nothing here</p>
-                    ) : null}
+                              {app.status === ApplicationStatus.Pending ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="h-7 px-2"
+                                  disabled={movingId === app.id}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    move(app.id, ApplicationStatus.Review);
+                                  }}
+                                >
+                                  Review
+                                </Button>
+                              ) : null}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="h-7 px-2 text-destructive"
+                                disabled={movingId === app.id}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  move(app.id, ApplicationStatus.Declined);
+                                }}
+                              >
+                                Decline
+                              </Button>
+                            </div>
+                          ) : null}
+                        </button>
+                      ))}
+                      {remaining > 0 ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="w-full text-muted-foreground"
+                          onClick={() => showMore(column.status)}
+                        >
+                          Show {Math.min(BOARD_PAGE, remaining)} more ({remaining} remaining)
+                        </Button>
+                      ) : null}
+                      {cards.length === 0 ? (
+                        <p className="px-1 py-6 text-center text-xs text-muted-foreground">
+                          Nothing here
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </TabsContent>
 
