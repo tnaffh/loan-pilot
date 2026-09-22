@@ -957,8 +957,8 @@ const SigningCard = () => {
 const SettingsPage = () => (
   <div>
     <PageHeader
-      title="Rates & fees"
-      description="Manage interest-rate plans, NAMFISA levies and other loan fees"
+      title="Settings"
+      description="Levies and fees, rate plans, business details, and how documents are signed"
     />
     <Tabs defaultValue="fees">
       <TabsList>

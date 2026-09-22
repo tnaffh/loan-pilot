@@ -28,7 +28,7 @@ interface LevyReport {
 
 /**
  * NAMFISA levies collected per calendar year, for the annual remittance.
- * Moved here from Rates & fees so every regulatory figure lives in one place;
+ * Moved here from Settings (then "Rates & fees") so every regulatory figure lives in one place;
  * that page is now purely configuration.
  */
 export const LeviesCard = () => {

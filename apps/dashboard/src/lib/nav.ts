@@ -8,7 +8,7 @@ import {
   LayoutDashboard,
   Receipt,
   ShieldCheck,
-  SlidersHorizontal,
+  Settings,
   Users,
   Wallet,
   type LucideIcon,
@@ -100,7 +100,7 @@ export const navForUser = (user: SessionUser): NavGroup[] => {
     adminItems.push({ href: '/roles', label: 'Roles', icon: KeyRound });
   }
   if (can(user, 'settings:read')) {
-    adminItems.push({ href: '/settings', label: 'Rates & fees', icon: SlidersHorizontal });
+    adminItems.push({ href: '/settings', label: 'Settings', icon: Settings });
   }
   return adminItems.length > 0 ? [...LENDER_NAV, { label: 'Admin', items: adminItems }] : LENDER_NAV;
 };
@@ -115,7 +115,7 @@ const TITLES: { prefix: string; title: string }[] = [
   { prefix: '/tenants', title: 'Tenants' },
   { prefix: '/users', title: 'Users' },
   { prefix: '/roles', title: 'Roles' },
-  { prefix: '/settings', title: 'Rates & fees' },
+  { prefix: '/settings', title: 'Settings' },
   { prefix: '/billing', title: 'Billing' },
   { prefix: '/statements', title: 'Statements' },
   { prefix: '/', title: 'Overview' },
