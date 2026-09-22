@@ -131,6 +131,28 @@ describe('PaymentsService', () => {
     ];
 
     beforeEach(() => {
+      // Overdue/nextDue depend on "today": pin it between the two due dates so
+      // the first instalment is past due and the second is not, whatever the
+      // real date is when the suite runs. Only Date is faked — timers stay real.
+      jest.useFakeTimers({
+        now: new Date('2026-09-07T12:00:00Z'),
+        doNotFake: [
+          'hrtime',
+          'nextTick',
+          'performance',
+          'queueMicrotask',
+          'requestAnimationFrame',
+          'cancelAnimationFrame',
+          'requestIdleCallback',
+          'cancelIdleCallback',
+          'setImmediate',
+          'clearImmediate',
+          'setInterval',
+          'clearInterval',
+          'setTimeout',
+          'clearTimeout',
+        ],
+      });
       loanFindFirst.mockResolvedValue({ id: 'loan_1', total: 1172884 });
       loanFindUnique.mockResolvedValue({
         id: 'loan_1',
@@ -138,6 +160,10 @@ describe('PaymentsService', () => {
         status: LoanStatus.Active,
       });
       scheduleFindMany.mockResolvedValue(twoMonthSchedule);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
     });
 
     it('marks an instalment paid once receipts cover it, and dates it by that payment', async () => {

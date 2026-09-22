@@ -1,5 +1,5 @@
 import { Test } from '@nestjs/testing';
-import { NotFoundException } from '@nestjs/common';
+import { Logger, NotFoundException } from '@nestjs/common';
 import { DocumentKind } from '@loan-pilot/domain';
 import { AgreementsService } from './agreements.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -250,11 +250,17 @@ describe('AgreementsService', () => {
     });
 
     it('never throws — a storage failure is logged so the loan edit still stands', async () => {
+      const logged = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
       loanFindFirst.mockResolvedValue(loanPayload);
       documentFindFirst.mockResolvedValue({ id: 'doc_old' });
       storageMock.save.mockRejectedValue(new Error('bucket offline'));
 
       await expect(service.refreshForLoan('tenant_1', 'loan_1')).resolves.toBeUndefined();
+      expect(logged).toHaveBeenCalledWith(
+        expect.stringContaining('loan_1'),
+        expect.stringContaining('bucket offline'),
+      );
+      logged.mockRestore();
     });
   });
 });
