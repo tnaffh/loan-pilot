@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Check, FileText, Loader2, Trash2, Upload } from 'lucide-react';
+import { Check, Download, FileText, Loader2, Trash2, Upload } from 'lucide-react';
 import { DocumentKind } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { FormField } from '@/components/form-field';
-import { ApiError, apiFetch, uploadDocument } from '@/lib/api';
+import { ApiError, apiFetch, downloadDocument, uploadDocument } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { formatDate } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -27,18 +27,25 @@ const KIND_LABELS: Record<string, string> = {
   [DocumentKind.Payslip]: 'Payslip',
   [DocumentKind.BankStatement]: 'Bank statement',
   [DocumentKind.Signature]: 'Signature',
+  [DocumentKind.Initials]: 'Initials',
   [DocumentKind.LoanAgreement]: 'Loan agreement',
+  [DocumentKind.CollateralPhoto]: 'Collateral photo',
+  [DocumentKind.CollateralAgreement]: 'Collateral agreement',
   other: 'Other',
 };
 
 const KIND_OPTIONS = [...Object.values(DocumentKind), 'other'];
 
-// Kinds a user may manually upload here. The captured signature and generated
-// loan agreement are produced by the system, not hand-uploaded, so they are
-// excluded from the picker (agreements are managed on the loan page).
-const UPLOAD_KINDS = KIND_OPTIONS.filter(
-  (kind) => kind !== DocumentKind.Signature && kind !== DocumentKind.LoanAgreement,
-);
+// Kinds a user may manually upload here. The captured signature/initials and
+// the generated agreements are produced by the system, not hand-uploaded, so
+// they are excluded from the picker (agreements are managed on the loan page).
+const SYSTEM_KINDS = new Set<string>([
+  DocumentKind.Signature,
+  DocumentKind.Initials,
+  DocumentKind.LoanAgreement,
+  DocumentKind.CollateralAgreement,
+]);
+const UPLOAD_KINDS = KIND_OPTIONS.filter((kind) => !SYSTEM_KINDS.has(kind));
 
 /** The standard documents a complete borrower file should hold. */
 const REQUIRED_KINDS = [
@@ -99,8 +106,20 @@ export const BorrowerDocuments = ({
   const [kind, setKind] = useState<string>(DocumentKind.IdDocument);
   const [uploading, setUploading] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
+  const [downloading, setDownloading] = useState<string | null>(null);
   const [preview, setPreview] = useState<DocumentRow | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+
+  const download = async (doc: DocumentRow) => {
+    setDownloading(doc.id);
+    try {
+      await downloadDocument(doc, token);
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : 'Could not download the document');
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   const onPick = async (file: File | undefined) => {
     if (!file) return;
@@ -203,22 +222,38 @@ export const BorrowerDocuments = ({
                           · {formatDate(doc.uploadedAt)}
                         </span>
                       </div>
-                      {canEdit ? (
+                      <div className="flex shrink-0 items-center">
                         <Button
                           size="icon"
                           variant="ghost"
-                          className="size-8 text-destructive"
-                          title="Remove"
-                          disabled={removing === doc.id}
-                          onClick={() => remove(doc.id)}
+                          className="size-8"
+                          title="Download"
+                          disabled={downloading === doc.id}
+                          onClick={() => download(doc)}
                         >
-                          {removing === doc.id ? (
+                          {downloading === doc.id ? (
                             <Loader2 className="size-4 animate-spin" />
                           ) : (
-                            <Trash2 className="size-4" />
+                            <Download className="size-4" />
                           )}
                         </Button>
-                      ) : null}
+                        {canEdit ? (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="size-8 text-destructive"
+                            title="Remove"
+                            disabled={removing === doc.id}
+                            onClick={() => remove(doc.id)}
+                          >
+                            {removing === doc.id ? (
+                              <Loader2 className="size-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="size-4" />
+                            )}
+                          </Button>
+                        ) : null}
+                      </div>
                     </li>
                   ))}
                 </ul>
@@ -279,14 +314,24 @@ export const BorrowerDocuments = ({
                   className="h-[70vh] w-full rounded-md border"
                 />
               )}
-              <a
-                href={preview.url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-block text-sm text-muted-foreground hover:underline"
-              >
-                Open in new tab
-              </a>
+              <div className="flex items-center gap-4 text-sm">
+                <button
+                  type="button"
+                  onClick={() => download(preview)}
+                  disabled={downloading === preview.id}
+                  className="inline-flex items-center gap-1 text-muted-foreground hover:underline"
+                >
+                  <Download className="size-3.5" /> Download
+                </button>
+                <a
+                  href={preview.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-muted-foreground hover:underline"
+                >
+                  Open in new tab
+                </a>
+              </div>
             </div>
           ) : null}
         </DialogContent>

@@ -34,6 +34,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService, type AuditEntry } from '../audit/audit.service';
 import { SettingsService } from '../settings/settings.service';
 import { DocumentsService, type DocumentView } from '../documents/documents.service';
+import { AgreementsService } from '../agreements/agreements.service';
 
 export type LoanWithBorrower = Prisma.LoanGetPayload<{
   include: { borrower: { select: { id: true; firstName: true; lastName: true } } };
@@ -118,6 +119,30 @@ const loanAuditMap = (loan: Loan): Record<string, unknown> => ({
   nextDueAt: loan.nextDueAt ? loan.nextDueAt.toISOString().slice(0, 10) : null,
 });
 
+/**
+ * The audited loan fields that are printed on a generated agreement. An edit
+ * that changes any of them leaves the stored PDF stale, so the agreement is
+ * regenerated after such an edit commits.
+ */
+const AGREEMENT_FIELDS = [
+  'principal',
+  'financeCharge',
+  'total',
+  'termMonths',
+  'interestRate',
+  'instalment',
+  'bankCharges',
+  'namfisaLevy',
+  'stampDuty',
+  'insurance',
+  'disbursedAt',
+] as const;
+
+const agreementFieldsChanged = (
+  before: Record<string, unknown>,
+  after: Record<string, unknown>,
+): boolean => AGREEMENT_FIELDS.some((field) => String(before[field]) !== String(after[field]));
+
 /** Join a structured borrower address into a single statement line. */
 const formatAddressLine = (address?: {
   street: string;
@@ -139,6 +164,7 @@ export class LoansService {
     private readonly audit: AuditService,
     private readonly settings: SettingsService,
     private readonly documents: DocumentsService,
+    private readonly agreements: AgreementsService,
   ) {}
 
   /**
@@ -528,6 +554,7 @@ export class LoansService {
           tcVersion: application.tcVersion,
           tcAcceptedAt: application.tcAcceptedAt,
           signatureDocumentId: application.signatureDocumentId,
+          initialsDocumentId: application.initialsDocumentId,
         },
       }),
     });
@@ -680,7 +707,8 @@ export class LoansService {
    * Correct imported loan data. Safe fields (dates, status, collateral, origin
    * month, note, fees) apply any time; the financial core (principal/term/rate)
    * is only changeable while the loan has no payments, in which case it re-prices
-   * and rebuilds the schedule. All changes are audited.
+   * and rebuilds the schedule. All changes are audited. Any generated agreement
+   * is regenerated afterwards when a field printed on it changed.
    */
   async update(
     tenantId: string,
@@ -688,7 +716,7 @@ export class LoansService {
     id: string,
     input: UpdateLoanInput,
   ): Promise<Loan> {
-    return this.prisma.$transaction(async (tx) => {
+    const { updated, agreementStale } = await this.prisma.$transaction(async (tx) => {
       const loan = await tx.loan.findFirst({
         where: { id, tenantId },
         include: { _count: { select: { payments: true } } },
@@ -786,6 +814,7 @@ export class LoansService {
 
       const before = loanAuditMap(loan);
       const updated = await tx.loan.update({ where: { id }, data });
+      const after = loanAuditMap(updated);
       await this.audit.record(
         tenantId,
         actor,
@@ -793,12 +822,18 @@ export class LoansService {
           entity: 'loan',
           entityId: id,
           action: 'updated',
-          changes: this.audit.diff(before, loanAuditMap(updated), Object.keys(before)),
+          changes: this.audit.diff(before, after, Object.keys(before)),
         },
         tx,
       );
-      return updated;
+      return { updated, agreementStale: agreementFieldsChanged(before, after) };
     });
+    // After the commit, so a PDF/storage failure can never roll the edit back
+    // (refreshForLoan logs rather than throws).
+    if (agreementStale) {
+      await this.agreements.refreshForLoan(tenantId, id);
+    }
+    return updated;
   }
 
   /** Cancel a payment-free loan (created in error / fell through). Audited. */
@@ -1094,6 +1129,7 @@ export class LoansService {
       tcVersion: string | null;
       tcAcceptedAt: Date | null;
       signatureDocumentId: string | null;
+      initialsDocumentId: string | null;
     };
   }): Prisma.LoanCreateInput {
     return {
@@ -1103,6 +1139,7 @@ export class LoansService {
       tcVersion: agreement?.tcVersion ?? null,
       tcAcceptedAt: agreement?.tcAcceptedAt ?? null,
       signatureDocumentId: agreement?.signatureDocumentId ?? null,
+      initialsDocumentId: agreement?.initialsDocumentId ?? null,
       type,
       principal: loanQuote.principalCents,
       financeCharge: loanQuote.financeChargeCents,

@@ -12,6 +12,7 @@ import {
 } from '@loan-pilot/domain';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../documents/storage.service';
+import { decodeDataUrl } from '../documents/data-url';
 
 /** The business's identity for the header of generated loan agreements. */
 export interface LenderIdentity {
@@ -26,7 +27,33 @@ export interface LenderIdentity {
   postalAddress: string | null;
   contactPhone: string | null;
   contactEmail: string | null;
+  website: string | null;
+  // Who signs for the lender, with their signature / initials and the optional
+  // custom stamp resolved to preview URLs (null until captured / uploaded). With
+  // no custom stamp, documents carry a stamp drawn from the identity above.
+  principalOfficerName: string | null;
+  principalOfficerSignatureUrl: string | null;
+  principalOfficerInitialsUrl: string | null;
+  companyStampUrl: string | null;
 }
+
+/** The lender-side images embedded into signed documents — bytes, not URLs. */
+export interface SigningAssets {
+  officerName: string | null;
+  officerSignaturePng: Buffer | null;
+  officerInitialsPng: Buffer | null;
+  /** A custom uploaded stamp, or null to draw the default one. */
+  stampPng: Buffer | null;
+}
+
+/** The TenantSettings columns that hold a lender signing image (storage key). */
+export type SigningImageField =
+  | 'principalOfficerSignature'
+  | 'principalOfficerInitials'
+  | 'companyStamp';
+
+/** pdfkit can only embed these, so the stamp upload is limited to them. */
+const EMBEDDABLE_IMAGE_TYPES = new Set(['image/png', 'image/jpeg']);
 
 /** A single calendar year's NAMFISA levy liability, for the annual remittance. */
 export interface LevyYear {
@@ -94,10 +121,17 @@ export class SettingsService {
         select: { name: true, town: true, logoUrl: true },
       }),
     ]);
+    const [logoUrl, principalOfficerSignatureUrl, principalOfficerInitialsUrl, companyStampUrl] =
+      await Promise.all([
+        this.resolveImage(tenant?.logoUrl ?? null),
+        this.resolveImage(s.principalOfficerSignature),
+        this.resolveImage(s.principalOfficerInitials),
+        this.resolveImage(s.companyStamp),
+      ]);
     return {
       name: tenant?.name ?? null,
       town: tenant?.town ?? null,
-      logoUrl: await this.resolveLogo(tenant?.logoUrl ?? null),
+      logoUrl,
       legalName: s.legalName,
       namfisaLicenceNo: s.namfisaLicenceNo,
       registrationNo: s.registrationNo,
@@ -105,7 +139,76 @@ export class SettingsService {
       postalAddress: s.postalAddress,
       contactPhone: s.contactPhone,
       contactEmail: s.contactEmail,
+      website: s.website,
+      principalOfficerName: s.principalOfficerName,
+      principalOfficerSignatureUrl,
+      principalOfficerInitialsUrl,
+      companyStampUrl,
     };
+  }
+
+  /**
+   * The officer's signature and initials (and any custom stamp) read back as
+   * bytes for embedding into a generated PDF. Each degrades to null when not
+   * captured or unreadable, so documents still render — with blank lines to
+   * sign by hand and the drawn default stamp.
+   */
+  async getSigningAssets(tenantId: string): Promise<SigningAssets> {
+    const s = await this.getFeeSettings(tenantId);
+    const [officerSignaturePng, officerInitialsPng, stampPng] = await Promise.all([
+      this.storage.tryRead(s.principalOfficerSignature, 'principal officer signature'),
+      this.storage.tryRead(s.principalOfficerInitials, 'principal officer initials'),
+      this.storage.tryRead(s.companyStamp, 'company stamp'),
+    ]);
+    return { officerName: s.principalOfficerName, officerSignaturePng, officerInitialsPng, stampPng };
+  }
+
+  /** Store a drawn/photographed officer signature or initials (a PNG data-URL). */
+  async saveSigningImage(
+    tenantId: string,
+    field: Exclude<SigningImageField, 'companyStamp'>,
+    dataUrl: string,
+  ): Promise<LenderIdentity> {
+    const { key } = await this.storage.save({
+      buffer: decodeDataUrl(dataUrl),
+      contentType: 'image/png',
+      originalName: `${field}.png`,
+    });
+    return this.setSigningImage(tenantId, field, key);
+  }
+
+  /**
+   * Store a custom company-stamp image, for lenders whose (undated) stamp
+   * should replace the drawn default. PNG/JPG only — pdfkit can embed nothing else.
+   */
+  async uploadStamp(tenantId: string, file: Express.Multer.File): Promise<LenderIdentity> {
+    if (!EMBEDDABLE_IMAGE_TYPES.has(file.mimetype)) {
+      throw new BadRequestException('The stamp must be a PNG or JPG image');
+    }
+    const { key } = await this.storage.save({
+      buffer: file.buffer,
+      contentType: file.mimetype,
+      originalName: file.originalname,
+    });
+    return this.setSigningImage(tenantId, 'companyStamp', key);
+  }
+
+  /** Remove a lender signing image; documents fall back to a blank line / the drawn stamp. */
+  clearSigningImage(tenantId: string, field: SigningImageField): Promise<LenderIdentity> {
+    return this.setSigningImage(tenantId, field, null);
+  }
+
+  private async setSigningImage(
+    tenantId: string,
+    field: SigningImageField,
+    key: string | null,
+  ): Promise<LenderIdentity> {
+    await this.prisma.tenantSettings.upsert({
+      where: { tenantId },
+      update: { [field]: key },
+      create: { tenantId, [field]: key },
+    });
+    return this.getLenderIdentity(tenantId);
   }
 
   /** Update the business identity. Empty strings clear a settings field; the
@@ -122,6 +225,8 @@ export class SettingsService {
       postalAddress: input.postalAddress || null,
       contactPhone: input.contactPhone || null,
       contactEmail: input.contactEmail || null,
+      website: input.website || null,
+      principalOfficerName: input.principalOfficerName || null,
     };
     await this.prisma.tenantSettings.upsert({
       where: { tenantId },
@@ -149,11 +254,11 @@ export class SettingsService {
       originalName: file.originalname,
     });
     await this.prisma.tenant.update({ where: { id: tenantId }, data: { logoUrl: key } });
-    return { logoUrl: await this.resolveLogo(key) };
+    return { logoUrl: await this.resolveImage(key) };
   }
 
-  /** Resolve a stored logo key to an openable URL; pass through external URLs. */
-  private async resolveLogo(value: string | null): Promise<string | null> {
+  /** Resolve a stored image key to an openable URL; pass through external URLs. */
+  private async resolveImage(value: string | null): Promise<string | null> {
     if (!value) return null;
     if (/^https?:\/\//i.test(value)) return value;
     return this.storage.safeAccessUrl(value);

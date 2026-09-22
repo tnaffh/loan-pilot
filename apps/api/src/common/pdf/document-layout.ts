@@ -47,6 +47,8 @@ export interface LetterheadDetails {
   postalAddress: string | null;
   contactPhone: string | null;
   contactEmail: string | null;
+  /** Optional: printed on the letterhead and in the drawn company stamp. */
+  website?: string | null;
   town: string | null;
 }
 
@@ -67,7 +69,12 @@ export interface DocumentLayout {
     title: string;
     preamble: string;
   }): void;
-  footer(lender: LetterheadDetails): void;
+  /**
+   * Write the contact line + page numbers onto every buffered page. `perPage`
+   * runs for each page (with the bottom margin already zeroed) so a document
+   * can add its own per-page furniture — the agreements' initials strip.
+   */
+  footer(lender: LetterheadDetails, perPage?: (pageIndex: number) => void): void;
 }
 
 /** Bind the shared layout helpers to a pdfkit document. */
@@ -193,7 +200,7 @@ export const createDocumentLayout = (doc: PDFKit.PDFDocument): DocumentLayout =>
     doc.moveDown(0.25);
     const headerLines = [
       [lender.physicalAddress, lender.town].filter(Boolean).join(', '),
-      [lender.contactPhone, lender.contactEmail].filter(Boolean).join('   ·   '),
+      [lender.contactPhone, lender.contactEmail, lender.website].filter(Boolean).join('   ·   '),
       [
         lender.namfisaLicenceNo ? `NAMFISA Licence ${lender.namfisaLicenceNo}` : null,
         lender.registrationNo ? `Reg. No. ${lender.registrationNo}` : null,
@@ -221,7 +228,7 @@ export const createDocumentLayout = (doc: PDFKit.PDFDocument): DocumentLayout =>
     doc.moveDown(0.5);
   };
 
-  const footer = (lender: LetterheadDetails): void => {
+  const footer = (lender: LetterheadDetails, perPage?: (pageIndex: number) => void): void => {
     // Drawing in the bottom margin would push pdfkit past the page and spawn a
     // blank page per footer, so zero the bottom margin while writing it.
     const range = doc.bufferedPageRange();
@@ -232,6 +239,7 @@ export const createDocumentLayout = (doc: PDFKit.PDFDocument): DocumentLayout =>
       doc.switchToPage(pageIndex);
       const savedBottom = doc.page.margins.bottom;
       doc.page.margins.bottom = 0;
+      perPage?.(pageIndex);
       const fy = doc.page.height - 34;
       doc
         .moveTo(M, fy - 6)

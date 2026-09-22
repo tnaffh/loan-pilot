@@ -65,7 +65,9 @@ describe('ApplicationsService', () => {
     applicationUpdate.mockImplementation((args: { data: Record<string, unknown> }) =>
       Promise.resolve({ id: 'app_1', ...args.data }),
     );
-    documentCreate.mockResolvedValue({ id: 'doc_sig' });
+    documentCreate.mockImplementation(({ data }: { data: { kind: string } }) =>
+      Promise.resolve({ id: data.kind === 'initials' ? 'doc_ini' : 'doc_sig' }),
+    );
     txMock.applicationReference.findMany.mockResolvedValue([]);
     borrowerUpsert.mockResolvedValue({ id: 'bor_new' });
     loanCreate.mockImplementation((args: { data: Record<string, unknown> }) =>
@@ -126,6 +128,7 @@ describe('ApplicationsService', () => {
     tcVersion: TERMS_VERSION,
     postalSameAsResidential: true,
     signature: { dataUrl: 'data:image/png;base64,iVBORw0KGgo=' },
+    initials: { dataUrl: 'data:image/png;base64,iVBORw0KGgo=' },
   };
 
   it('prices the loan in cents and stores an affordability assessment', async () => {
@@ -139,6 +142,18 @@ describe('ApplicationsService', () => {
     expect(data.affordability).toBe('pass');
     expect(data.tenant.connect.id).toBe('tenant_1');
     expect(data.references.create).toHaveLength(2);
+  });
+
+  it('stores the captured signature and initials as documents linked to the application', async () => {
+    await service.create('tenant_1', baseInput);
+
+    const kinds = documentCreate.mock.calls.map((call) => call[0].data.kind);
+    expect(kinds).toEqual(['signature', 'initials']);
+    expect(applicationUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: { signatureDocumentId: 'doc_sig', initialsDocumentId: 'doc_ini' },
+      }),
+    );
   });
 
   it('pricingConfig returns the active rate per loan type and the fee settings', async () => {

@@ -13,11 +13,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
 import { SettingsService } from '../settings/settings.service';
 import { DocumentsService } from '../documents/documents.service';
+import { AgreementsService } from '../agreements/agreements.service';
 
 const auditMock = {
   record: jest.fn(),
   diff: jest.fn().mockReturnValue([]),
   listFor: jest.fn().mockResolvedValue([]),
+};
+
+const agreementsMock = {
+  refreshForLoan: jest.fn().mockResolvedValue(undefined),
 };
 
 // Zero fees + no product + 0% monthly rate, so pricing matches the original
@@ -94,6 +99,7 @@ describe('LoansService', () => {
             listForLoan: jest.fn().mockResolvedValue([]),
           },
         },
+        { provide: AgreementsService, useValue: agreementsMock },
       ],
     }).compile();
 
@@ -326,6 +332,10 @@ describe('LoansService', () => {
 
   it('re-prices and rebuilds the schedule when the amount changes on an unpaid loan', async () => {
     loanFindFirst.mockResolvedValue(loanRow({ _count: { payments: 0 } }));
+    // Prisma returns the whole updated row, which the agreement-staleness check reads.
+    loanUpdate.mockImplementation((args: { data: Record<string, unknown> }) =>
+      Promise.resolve({ ...loanRow(), ...args.data }),
+    );
 
     await service.update('tenant_1', actor, 'loan_1', { amount: 2000, termMonths: 2 });
 
@@ -336,6 +346,20 @@ describe('LoansService', () => {
     expect(data.total).toBe(260000); // + 30%
     expect(data.schedule.create).toHaveLength(2);
     expect(auditMock.record).toHaveBeenCalled();
+    // The stored agreement now shows the wrong figures, so it is regenerated after the commit.
+    expect(agreementsMock.refreshForLoan).toHaveBeenCalledWith('tenant_1', 'loan_1');
+  });
+
+  it('regenerates the agreement after a fee-only edit, which changes the cost breakdown', async () => {
+    loanFindFirst.mockResolvedValue(loanRow({ _count: { payments: 3 } }));
+    loanUpdate.mockImplementation((args: { data: Record<string, unknown> }) =>
+      Promise.resolve({ ...loanRow(), ...args.data }),
+    );
+
+    await service.update('tenant_1', actor, 'loan_1', { bankCharges: 25 });
+
+    expect(loanUpdate.mock.calls[0][0].data.bankCharges).toBe(2500);
+    expect(agreementsMock.refreshForLoan).toHaveBeenCalledWith('tenant_1', 'loan_1');
   });
 
   it('rejects changing the amount of a loan that has payments', async () => {
@@ -349,6 +373,9 @@ describe('LoansService', () => {
 
   it('allows safe-field edits on a loan with payments', async () => {
     loanFindFirst.mockResolvedValue(loanRow({ _count: { payments: 3 } }));
+    loanUpdate.mockImplementation((args: { data: Record<string, unknown> }) =>
+      Promise.resolve({ ...loanRow(), ...args.data }),
+    );
 
     await service.update('tenant_1', actor, 'loan_1', { note: 'corrected', collateral: 'Toyota' });
 
@@ -356,6 +383,8 @@ describe('LoansService', () => {
     expect(data.note).toBe('corrected');
     expect(data.collateral).toBe('Toyota');
     expect(scheduleItemDeleteMany).not.toHaveBeenCalled();
+    // Nothing printed on the agreement changed, so it is left alone.
+    expect(agreementsMock.refreshForLoan).not.toHaveBeenCalled();
   });
 
   it('cancels a payment-free loan', async () => {

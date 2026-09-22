@@ -22,7 +22,9 @@ const base: AgreementData = {
     postalAddress: 'PO Box 1',
     contactPhone: '+264 81 878 9138',
     contactEmail: 'racoonsfs@gmail.com',
+    website: null,
     town: 'Windhoek',
+    principalOfficerName: null,
   },
   borrower: {
     fullName: 'Selma Nghidinwa',
@@ -57,8 +59,14 @@ const base: AgreementData = {
   },
   terms: getTerms(),
   tcAcceptedAt: new Date('2026-07-14T09:00:00Z'),
-  signaturePng: TINY_PNG,
-  logoPng: TINY_PNG,
+  images: {
+    signaturePng: TINY_PNG,
+    initialsPng: TINY_PNG,
+    logoPng: TINY_PNG,
+    officerSignaturePng: null,
+    officerInitialsPng: null,
+    stampPng: null,
+  },
   generatedAt: new Date('2026-07-14T10:00:00Z'),
 };
 

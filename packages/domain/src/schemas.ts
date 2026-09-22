@@ -28,6 +28,23 @@ import { TERMS_VERSION } from './terms';
 /** Upper bound on the inline base64 signature payload (~1.9 MB decoded). */
 const MAX_SIGNATURE_DATA_URL_LENGTH = 2_600_000;
 
+/**
+ * A captured handwriting image (signature or initials) as a normalized PNG
+ * data-URL — the single shape the signature pad emits, whether drawn or
+ * photographed. `requiredMessage` names the missing thing in the form error.
+ */
+const handwritingImageSchema = (requiredMessage: string) =>
+  z.object({
+    dataUrl: z
+      .string()
+      .max(MAX_SIGNATURE_DATA_URL_LENGTH, 'Image is too large')
+      .refine(isPngDataUrl, requiredMessage),
+  });
+
+export const signatureImageSchema = handwritingImageSchema('A signature is required');
+export const initialsImageSchema = handwritingImageSchema('Initials are required');
+export type HandwritingImageInput = z.infer<typeof signatureImageSchema>;
+
 /** A personal reference, as required by the loan agreement (minimum one). */
 export const referenceSchema = z.object({
   name: z.string().min(2, 'Reference name is required'),
@@ -179,19 +196,16 @@ export const createApplicationSchema = z.object({
   }),
 
   // Step 5 — review & sign. The applicant reads the full NAMFISA-approved terms,
-  // agrees to them, and signs. `tcVersion` pins which wording was accepted; the
-  // signature is a normalized PNG data-URL (drawn or photographed), stored
-  // server-side and embedded into the generated agreement PDF.
+  // agrees to them, signs, and initials. `tcVersion` pins which wording was
+  // accepted; the signature and initials are normalized PNG data-URLs (drawn or
+  // photographed), stored server-side and embedded into the generated agreement
+  // PDF — the signature on the signing page, the initials on every other page.
   tcAccepted: z.literal(true, {
     errorMap: () => ({ message: 'You must read and agree to the Terms & Conditions' }),
   }),
   tcVersion: z.string().min(1, 'Missing terms version'),
-  signature: z.object({
-    dataUrl: z
-      .string()
-      .max(MAX_SIGNATURE_DATA_URL_LENGTH, 'Signature image is too large')
-      .refine(isPngDataUrl, 'A signature is required'),
-  }),
+  signature: signatureImageSchema,
+  initials: initialsImageSchema,
 }).superRefine((value, ctx) => {
   // When the ID is a Namibian national ID, its encoded birth date must agree
   // with the supplied date of birth. Passports carry no such data, so skip.
@@ -443,6 +457,11 @@ export const lenderIdentitySchema = z.object({
   // place. `name`/`town` are trimmed but not required (fall back to existing).
   name: z.string().max(120).optional().or(z.literal('')),
   town: z.string().max(120).optional().or(z.literal('')),
+  // The NAMFISA principal officer who signs agreements and statements for the
+  // lender; their signature and initials are captured separately.
+  principalOfficerName: z.string().max(120).optional().or(z.literal('')),
+  // Printed on the letterhead and inside the drawn company stamp.
+  website: z.string().max(160).optional().or(z.literal('')),
   legalName: z.string().max(160).optional().or(z.literal('')),
   namfisaLicenceNo: z.string().max(80).optional().or(z.literal('')),
   registrationNo: z.string().max(80).optional().or(z.literal('')),

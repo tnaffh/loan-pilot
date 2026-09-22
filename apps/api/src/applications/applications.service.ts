@@ -17,7 +17,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { LoansService } from '../loans/loans.service';
 import { SettingsService } from '../settings/settings.service';
 import { StorageService } from '../documents/storage.service';
+import { decodeDataUrl } from '../documents/data-url';
 import { AgreementsService } from '../agreements/agreements.service';
+
+/** A handwriting image persisted to storage, ready to be recorded as a Document. */
+interface SavedImage {
+  key: string;
+  sizeBytes: number;
+}
 
 export type ApplicationWithReferences = Prisma.LoanApplicationGetPayload<{
   include: { references: true };
@@ -122,10 +129,13 @@ export class ApplicationsService {
       instalmentCents: loanQuote.instalmentCents,
     });
 
-    // Persist the captured signature image to storage first (an external side
-    // effect, outside the DB transaction). An orphaned file on a later DB
-    // failure is harmless; a missing file for a committed row would not be.
-    const signature = await this.saveSignature(input.signature.dataUrl);
+    // Persist the captured signature and initials images to storage first (an
+    // external side effect, outside the DB transaction). An orphaned file on a
+    // later DB failure is harmless; a missing file for a committed row would not be.
+    const [signature, initials] = await Promise.all([
+      this.saveHandwriting(input.signature.dataUrl, 'signature.png'),
+      this.saveHandwriting(input.initials.dataUrl, 'initials.png'),
+    ]);
 
     // A postal address distinct from the residential one; omitted (null) when
     // the applicant marks it the same, in which case approval reuses residential.
@@ -191,31 +201,44 @@ export class ApplicationsService {
 
     return this.prisma.$transaction(async (tx) => {
       const application = await tx.loanApplication.create({ data });
-      const signatureDocument = await tx.document.create({
-        data: {
-          application: { connect: { id: application.id } },
-          kind: DocumentKind.Signature,
-          url: signature.key,
-          fileName: 'signature.png',
-          mimeType: 'image/png',
-          sizeBytes: signature.sizeBytes,
-        },
-      });
+      const handwritingDocument = (kind: DocumentKind, saved: SavedImage, fileName: string) =>
+        tx.document.create({
+          data: {
+            application: { connect: { id: application.id } },
+            kind,
+            url: saved.key,
+            fileName,
+            mimeType: 'image/png',
+            sizeBytes: saved.sizeBytes,
+          },
+        });
+      const signatureDocument = await handwritingDocument(
+        DocumentKind.Signature,
+        signature,
+        'signature.png',
+      );
+      const initialsDocument = await handwritingDocument(
+        DocumentKind.Initials,
+        initials,
+        'initials.png',
+      );
       return tx.loanApplication.update({
         where: { id: application.id },
-        data: { signatureDocumentId: signatureDocument.id },
+        data: {
+          signatureDocumentId: signatureDocument.id,
+          initialsDocumentId: initialsDocument.id,
+        },
       });
     });
   }
 
-  /** Decode a PNG signature data-URL and persist it via the storage driver. */
-  private async saveSignature(dataUrl: string): Promise<{ key: string; sizeBytes: number }> {
-    const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
-    const buffer = Buffer.from(base64, 'base64');
+  /** Decode a PNG handwriting (signature / initials) data-URL and persist it via the storage driver. */
+  private async saveHandwriting(dataUrl: string, fileName: string): Promise<SavedImage> {
+    const buffer = decodeDataUrl(dataUrl);
     const { key } = await this.storage.save({
       buffer,
       contentType: 'image/png',
-      originalName: 'signature.png',
+      originalName: fileName,
     });
     return { key, sizeBytes: buffer.length };
   }

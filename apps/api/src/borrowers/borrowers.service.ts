@@ -24,6 +24,8 @@ import { AuditService, type AuditEntry } from '../audit/audit.service';
 import { DocumentsService, type DocumentView } from '../documents/documents.service';
 import { StorageService } from '../documents/storage.service';
 import { SettingsService } from '../settings/settings.service';
+import { documentFileName } from '../common/file-name';
+import { renderStatementLetterPdf } from './statement-letter-pdf';
 
 export type BorrowerWithLoanCount = Prisma.BorrowerGetPayload<{
   include: { _count: { select: { loans: true } } };
@@ -37,22 +39,43 @@ export type BorrowerWithLoans = Prisma.BorrowerGetPayload<{
   };
 }> & { audit: AuditEntry[]; documents: DocumentView[] };
 
-/** A printable borrower account statement letter (proof of indebtedness). */
+/** One open account on a borrower's statement letter, with its live position. */
+export interface StatementLoan {
+  id: string;
+  type: $Enums.LoanType;
+  disbursedAt: Date | null;
+  principal: number;
+  instalmentsPaid: number;
+  instalmentsTotal: number;
+  nextDueAt: Date | null;
+  balance: number;
+  /** Default interest accrued on overdue instalments to date (cents). */
+  defaultInterest: number;
+  /** balance + defaultInterest — what settles the account today. */
+  payoff: number;
+  status: $Enums.LoanStatus;
+}
+
+/**
+ * A borrower's statement of account (proof of indebtedness / good standing):
+ * the accounts still open with their live payoff, the outstanding total, and
+ * the settled history as a count. Rendered as a signed PDF letter.
+ */
 export interface BorrowerStatement {
-  generatedAt: string;
-  lender: { name: string; short: string; town: string | null; logoUrl: string | null; accent: string };
-  borrower: { name: string; idNumber: string; address: string; phone: string };
-  loans: {
-    id: string;
-    type: $Enums.LoanType;
-    disbursedAt: string | null;
-    principal: number;
-    balance: number;
-    payoff: number;
-    status: $Enums.LoanStatus;
-  }[];
+  generatedAt: Date;
+  /** Short human reference printed on the letter (borrower id + issue date). */
+  reference: string;
+  borrower: { name: string; idNumber: string; address: string; phone: string; email: string };
+  /** Only loans still open (active / in arrears / partly paid). */
+  loans: StatementLoan[];
   totals: { outstanding: number; lifetimeBorrowed: number; openLoans: number; settledLoans: number };
   hasOutstanding: boolean;
+}
+
+/** A rendered statement letter and the file name to serve it under. */
+export interface StatementLetterFile {
+  pdf: Buffer;
+  fileName: string;
 }
 
 const OPEN_STATUSES: $Enums.LoanStatus[] = [
@@ -186,9 +209,10 @@ export class BorrowersService {
   }
 
   /**
-   * Build a printable account-statement letter for a borrower: their details,
-   * every loan with its live payoff (balance + accrued default interest on open
-   * loans), and the total outstanding — proof of what they owe or have settled.
+   * Build a borrower's statement of account: their details, each loan still
+   * open with its live payoff (balance + accrued default interest), and the
+   * total outstanding. Settled loans only contribute to the history counts —
+   * a statement is proof of what is owed today, not a ledger of every loan.
    */
   async statementLetter(tenantId: string, id: string): Promise<BorrowerStatement> {
     const borrower = await this.prisma.borrower.findFirst({
@@ -204,64 +228,45 @@ export class BorrowersService {
     if (!borrower) {
       throw new NotFoundException('Borrower not found');
     }
-    const [tenant, { monthlyRate }] = await Promise.all([
-      this.prisma.tenant.findUnique({
-        where: { id: tenantId },
-        select: { name: true, short: true, town: true, logoUrl: true, accent: true },
-      }),
-      this.settings.resolveFeeSettings(tenantId),
-    ]);
+    const { monthlyRate } = await this.settings.resolveFeeSettings(tenantId);
 
     const now = new Date();
-    const loans = borrower.loans.map((loan) => {
-      const open = OPEN_STATUSES.includes(loan.status);
-      const defaultInterest = open
-        ? assessArrears(
-            loan.schedule.map((item) => ({
-              amountCents: item.amount,
-              dueAt: item.dueAt,
-              paid: item.status === RepaymentStatus.Paid,
-            })),
-            now,
-            monthlyRate,
-          ).defaultInterestCents
-        : 0;
+    const openLoans = borrower.loans.filter((loan) => OPEN_STATUSES.includes(loan.status));
+    const loans: StatementLoan[] = openLoans.map((loan) => {
+      const defaultInterest = assessArrears(
+        loan.schedule.map((item) => ({
+          amountCents: item.amount,
+          dueAt: item.dueAt,
+          paid: item.status === RepaymentStatus.Paid,
+        })),
+        now,
+        monthlyRate,
+      ).defaultInterestCents;
       return {
         id: loan.id,
         type: loan.type,
-        disbursedAt: loan.disbursedAt?.toISOString() ?? null,
+        disbursedAt: loan.disbursedAt,
         principal: loan.principal,
+        instalmentsPaid: loan.instalmentsPaid,
+        instalmentsTotal: loan.instalmentsTotal,
+        nextDueAt: loan.nextDueAt,
         balance: loan.balance,
+        defaultInterest,
         payoff: loan.balance + defaultInterest,
         status: loan.status,
       };
     });
-
-    const outstanding = loans
-      .filter((loan) => OPEN_STATUSES.includes(loan.status))
-      .reduce((sum, loan) => sum + loan.payoff, 0);
+    const outstanding = loans.reduce((sum, loan) => sum + loan.payoff, 0);
 
     const address = borrower.addresses[0];
-    // Resolve an uploaded logo (storage key) to an openable URL; pass external
-    // URLs through unchanged.
-    const logoValue = tenant?.logoUrl ?? null;
-    const logoUrl =
-      logoValue && !/^https?:\/\//i.test(logoValue)
-        ? await this.storage.safeAccessUrl(logoValue)
-        : logoValue;
     return {
-      generatedAt: now.toISOString(),
-      lender: {
-        name: tenant?.name ?? '',
-        short: tenant?.short ?? '',
-        town: tenant?.town ?? null,
-        logoUrl,
-        accent: tenant?.accent ?? '#25397a',
-      },
+      generatedAt: now,
+      reference: `${borrower.id.slice(-6).toUpperCase()}/${now.toISOString().slice(0, 10)}`,
       borrower: {
         name: `${borrower.firstName} ${borrower.lastName}`,
         idNumber: borrower.idNumber,
         phone: borrower.phone,
+        email: borrower.email,
         address: address
           ? [address.street, address.suburb, address.city, address.region, address.country]
               .filter(Boolean)
@@ -271,11 +276,48 @@ export class BorrowersService {
       loans,
       totals: {
         outstanding,
-        lifetimeBorrowed: loans.reduce((sum, loan) => sum + loan.principal, 0),
-        openLoans: loans.filter((loan) => OPEN_STATUSES.includes(loan.status)).length,
-        settledLoans: loans.filter((loan) => loan.status === LoanStatus.Settled).length,
+        // Cancelled loans never advanced funds, so they are not "borrowed".
+        lifetimeBorrowed: borrower.loans
+          .filter((loan) => loan.status !== LoanStatus.Cancelled)
+          .reduce((sum, loan) => sum + loan.principal, 0),
+        openLoans: loans.length,
+        settledLoans: borrower.loans.filter((loan) => loan.status === LoanStatus.Settled).length,
       },
       hasOutstanding: outstanding > 0,
+    };
+  }
+
+  /**
+   * The statement letter as a signed PDF: the account position above, on the
+   * lender's letterhead, with the principal officer's signature and the
+   * company stamp embedded — ready to hand over without further signing.
+   */
+  async statementLetterPdf(tenantId: string, id: string): Promise<StatementLetterFile> {
+    const [statement, lender, signing] = await Promise.all([
+      this.statementLetter(tenantId, id),
+      this.settings.getLenderIdentity(tenantId),
+      this.settings.getSigningAssets(tenantId),
+    ]);
+    const tenant = await this.prisma.tenant.findUnique({
+      where: { id: tenantId },
+      select: { name: true, town: true, logoUrl: true },
+    });
+    const logoPng = await this.storage.tryRead(tenant?.logoUrl, `logo for tenant ${tenantId}`);
+    const pdf = await renderStatementLetterPdf({
+      statement,
+      lender: {
+        ...lender,
+        name: lender.legalName || tenant?.name || lender.name || '',
+        town: lender.town ?? tenant?.town ?? null,
+      },
+      logoPng,
+      officerName: signing.officerName,
+      officerSignaturePng: signing.officerSignaturePng,
+      stampPng: signing.stampPng,
+    });
+    return {
+      pdf,
+      fileName: documentFileName('Statement of Account', statement.borrower.name, statement.generatedAt),
     };
   }
 

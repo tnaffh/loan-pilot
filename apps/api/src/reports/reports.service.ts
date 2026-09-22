@@ -249,6 +249,7 @@ export class ReportsService {
         postalAddress: identity.postalAddress,
         contactPhone: identity.contactPhone,
         contactEmail: identity.contactEmail,
+        website: identity.website,
         town: identity.town,
       },
       logoPng: await this.readLogo(tenant?.logoUrl ?? null),

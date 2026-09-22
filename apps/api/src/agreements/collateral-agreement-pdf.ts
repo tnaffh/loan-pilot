@@ -1,6 +1,6 @@
 import PDFDocument from 'pdfkit';
 import { COLORS, DASH, rowsOf } from '../common/pdf/document-layout';
-import { createAgreementLayout } from './agreement-layout';
+import { AGREEMENT_PAGE_OPTIONS, createAgreementLayout } from './agreement-layout';
 import type { CollateralAgreementData } from './collateral-agreement-data';
 
 /**
@@ -10,7 +10,7 @@ import type { CollateralAgreementData } from './collateral-agreement-data';
  */
 export const renderCollateralAgreementPdf = (data: CollateralAgreementData): Promise<Buffer> =>
   new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'A4', margin: 48, bufferPages: true });
+    const doc = new PDFDocument(AGREEMENT_PAGE_OPTIONS);
     const chunks: Buffer[] = [];
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
@@ -22,7 +22,7 @@ export const renderCollateralAgreementPdf = (data: CollateralAgreementData): Pro
 
     layout.letterhead({
       lender: base.lender,
-      logoPng: base.logoPng,
+      logoPng: base.images.logoPng,
       title: 'COLLATERAL AGREEMENT',
       preamble: data.terms.preamble,
     });
@@ -99,10 +99,13 @@ export const renderCollateralAgreementPdf = (data: CollateralAgreementData): Pro
       });
     }
 
-    // ── Signatures → Collateral terms → footer ───────────────────────────
+    // ── Signatures → Collateral terms → footer + initials ────────────────
     layout.signatureBlock({
-      signaturePng: base.signaturePng,
+      signaturePng: base.images.signaturePng,
       lender: base.lender,
+      officerName: base.lender.principalOfficerName,
+      officerSignaturePng: base.images.officerSignaturePng,
+      stampPng: base.images.stampPng,
       borrowerName: base.borrower.fullName,
       disbursedAt: base.loan.disbursedAt,
       generatedAt: base.generatedAt,
@@ -110,7 +113,10 @@ export const renderCollateralAgreementPdf = (data: CollateralAgreementData): Pro
       termsVersion: data.terms.version,
     });
     layout.renderTermsSections(data.terms, 'Collateral Terms & Conditions');
-    layout.footer(base.lender);
+    layout.finish(base.lender, {
+      borrowerPng: base.images.initialsPng,
+      lenderPng: base.images.officerInitialsPng,
+    });
 
     doc.end();
   });

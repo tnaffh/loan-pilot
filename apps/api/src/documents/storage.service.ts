@@ -110,6 +110,24 @@ export class StorageService {
     return readFile(join(uploadsDir, key));
   }
 
+  /**
+   * Read a stored image for embedding into a PDF, degrading to null (with a
+   * log) on any failure so one unreadable logo, stamp or signature never fails
+   * the whole document. Legacy external URL values are not embeddable → null.
+   */
+  async tryRead(key: string | null | undefined, label: string): Promise<Buffer | null> {
+    if (!key || /^https?:\/\//i.test(key)) return null;
+    try {
+      return await this.read(key);
+    } catch (error) {
+      this.logger.error(
+        `Failed to read ${label}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      return null;
+    }
+  }
+
   /** Resolve a storage key to a URL a browser can open. */
   async accessUrl(key: string): Promise<string> {
     if (this.driver === 'gcs') {

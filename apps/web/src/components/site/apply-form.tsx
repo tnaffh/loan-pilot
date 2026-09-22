@@ -97,7 +97,7 @@ const STEP_FIELDS: FieldPath<CreateApplicationInput>[][] = [
     'bankAccount.accountType',
   ],
   ['references', 'consent'],
-  ['tcAccepted', 'tcVersion', 'signature'],
+  ['tcAccepted', 'tcVersion', 'signature', 'initials'],
 ];
 
 const DOCUMENT_SLOTS: { kind: DocumentKind; label: string; required?: boolean }[] = [
@@ -182,6 +182,7 @@ export const ApplyForm = () => {
       collateral: undefined,
       tcVersion: TERMS_VERSION,
       signature: { dataUrl: '' },
+      initials: { dataUrl: '' },
       // consent & tcAccepted intentionally omitted — default unchecked so the gates are real.
     },
   });
@@ -1138,6 +1139,28 @@ export const ApplyForm = () => {
                   />
                   {errors.signature?.dataUrl?.message && (
                     <p className="text-xs text-destructive">{errors.signature.dataUrl.message}</p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-sm font-medium">Your initials</div>
+                  <p className="text-xs text-muted-foreground">
+                    Every page of your loan agreement except the signature page is initialled.
+                    We print these initials on those pages for you.
+                  </p>
+                  <Controller
+                    control={control}
+                    name="initials.dataUrl"
+                    render={({ field }) => (
+                      <SignaturePad
+                        variant="initials"
+                        value={field.value ?? null}
+                        onChange={(dataUrl) => field.onChange(dataUrl ?? '')}
+                      />
+                    )}
+                  />
+                  {errors.initials?.dataUrl?.message && (
+                    <p className="text-xs text-destructive">{errors.initials.dataUrl.message}</p>
                   )}
                 </div>
               </div>

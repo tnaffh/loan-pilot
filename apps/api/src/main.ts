@@ -30,6 +30,8 @@ const bootstrap = async (): Promise<void> => {
   app.enableCors({
     origin: (process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:3001').split(','),
     credentials: true,
+    // Let the dashboard read the file name a PDF download was served under.
+    exposedHeaders: ['Content-Disposition'],
   });
 
   // Uploaded documents are served from /uploads (outside the /api prefix).

@@ -5,45 +5,60 @@ import { Eraser, PenLine, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-/** Internal drawing surface size; CSS scales it to the container width. */
-const CANVAS_W = 600;
-const CANVAS_H = 200;
+/** Internal drawing surface size per variant; CSS scales it to the container width. */
+const CANVAS: Record<SignatureVariant, { width: number; height: number; className: string }> = {
+  // A full signature: wide and short.
+  signature: { width: 600, height: 200, className: 'h-40 w-full' },
+  // Initials: a smaller, squarer box so they come out compact on the page.
+  initials: { width: 300, height: 150, className: 'h-32 w-64 max-w-full' },
+};
 /** Longest edge of an uploaded signature photo, so the payload stays small. */
 const MAX_UPLOAD_EDGE = 1000;
+
+export type SignatureVariant = 'signature' | 'initials';
 
 export interface SignaturePadProps {
   /** The current signature as a PNG data-URL, or null when empty. */
   value: string | null;
   onChange: (dataUrl: string | null) => void;
+  /** What is being captured — sizes the canvas and words the hint. */
+  variant?: SignatureVariant;
   className?: string;
 }
 
 /**
- * Capture a handwritten signature (draw on a canvas) OR upload a photo of one.
- * Both modes normalize to a PNG data-URL via `onChange`, so the server always
- * receives the same shape. No external library — pointer events cover mouse and
- * touch/stylus (tablets).
+ * Capture a handwritten signature or initials (draw on a canvas) OR upload a
+ * photo of one. Both modes normalize to a PNG data-URL via `onChange`, so the
+ * server always receives the same shape. No external library — pointer events
+ * cover mouse and touch/stylus (tablets).
  */
-export const SignaturePad = ({ value, onChange, className }: SignaturePadProps) => {
+export const SignaturePad = ({
+  value,
+  onChange,
+  variant = 'signature',
+  className,
+}: SignaturePadProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const drawing = useRef(false);
   const lastPoint = useRef<{ x: number; y: number } | null>(null);
   const [mode, setMode] = useState<'draw' | 'upload'>('draw');
+  const canvas = CANVAS[variant];
+  const noun = variant === 'initials' ? 'initials' : 'signature';
 
   /** Map a pointer event to canvas coordinates (canvas is CSS-scaled). */
   const toCanvasPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    const rect = canvas.getBoundingClientRect();
+    const element = canvasRef.current;
+    if (!element) return { x: 0, y: 0 };
+    const rect = element.getBoundingClientRect();
     return {
-      x: ((event.clientX - rect.left) / rect.width) * canvas.width,
-      y: ((event.clientY - rect.top) / rect.height) * canvas.height,
+      x: ((event.clientX - rect.left) / rect.width) * element.width,
+      y: ((event.clientY - rect.top) / rect.height) * element.height,
     };
   };
 
   const exportPng = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (canvas) onChange(canvas.toDataURL('image/png'));
+    const element = canvasRef.current;
+    if (element) onChange(element.toDataURL('image/png'));
   }, [onChange]);
 
   const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
@@ -55,8 +70,8 @@ export const SignaturePad = ({ value, onChange, className }: SignaturePadProps) 
 
   const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
     if (!drawing.current || mode !== 'draw') return;
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
+    const element = canvasRef.current;
+    const ctx = element?.getContext('2d');
     const point = toCanvasPoint(event);
     if (ctx && lastPoint.current) {
       ctx.strokeStyle = '#0f172a';
@@ -79,18 +94,18 @@ export const SignaturePad = ({ value, onChange, className }: SignaturePadProps) 
   };
 
   const clear = useCallback(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-    if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const element = canvasRef.current;
+    const ctx = element?.getContext('2d');
+    if (element && ctx) ctx.clearRect(0, 0, element.width, element.height);
     onChange(null);
   }, [onChange]);
 
   // Clearing the value from the parent (e.g. a form reset) wipes the canvas.
   useEffect(() => {
     if (value === null) {
-      const canvas = canvasRef.current;
-      const ctx = canvas?.getContext('2d');
-      if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const element = canvasRef.current;
+      const ctx = element?.getContext('2d');
+      if (element && ctx) ctx.clearRect(0, 0, element.width, element.height);
     }
   }, [value]);
 
@@ -153,23 +168,23 @@ export const SignaturePad = ({ value, onChange, className }: SignaturePadProps) 
       {mode === 'draw' ? (
         <canvas
           ref={canvasRef}
-          width={CANVAS_W}
-          height={CANVAS_H}
+          width={canvas.width}
+          height={canvas.height}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={endStroke}
           onPointerLeave={endStroke}
-          className="h-40 w-full touch-none rounded-xl border bg-white"
+          className={cn('touch-none rounded-xl border bg-white', canvas.className)}
         />
       ) : (
         <div className="rounded-xl border p-4">
           {hasUpload ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={value ?? ''} alt="Signature preview" className="mx-auto max-h-36" />
+            <img src={value ?? ''} alt={`${noun} preview`} className="mx-auto max-h-36" />
           ) : (
             <label className="flex cursor-pointer flex-col items-center gap-2 py-6 text-sm text-muted-foreground">
               <Upload className="size-6" />
-              <span>Tap to upload a photo of your signature (JPG or PNG)</span>
+              <span>Tap to upload a photo of your {noun} (JPG or PNG)</span>
               <input
                 type="file"
                 accept="image/png,image/jpeg"
@@ -182,8 +197,10 @@ export const SignaturePad = ({ value, onChange, className }: SignaturePadProps) 
       )}
       <p className="text-xs text-muted-foreground">
         {mode === 'draw'
-          ? 'Sign above with your finger, stylus or mouse.'
-          : 'Upload a clear photo of your handwritten signature.'}
+          ? variant === 'initials'
+            ? 'Write your initials above with your finger, stylus or mouse.'
+            : 'Sign above with your finger, stylus or mouse.'
+          : `Upload a clear photo of your handwritten ${noun}.`}
       </p>
     </div>
   );

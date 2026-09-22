@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  StreamableFile,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -34,6 +35,7 @@ import type { Borrower, BorrowerAddress, BorrowerBankAccount } from '@prisma/cli
 import { BadRequestException } from '@nestjs/common';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { requireTenantId } from '../common/tenant';
+import { attachmentDisposition } from '../common/file-name';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { PermissionsGuard } from '../auth/permissions.guard';
 import { RequirePermissions } from '../auth/permissions.decorator';
@@ -42,7 +44,6 @@ import { DocumentsService, type DocumentView } from '../documents/documents.serv
 import { documentUploadOptions } from '../documents/upload.config';
 import {
   BorrowersService,
-  type BorrowerStatement,
   type BorrowerWithLoanCount,
   type BorrowerWithLoans,
 } from './borrowers.service';
@@ -198,12 +199,18 @@ export class BorrowersController {
     return this.documents.removeForBorrower(requireTenantId(user), id, documentId);
   }
 
+  /** The borrower's signed statement-of-account letter, as a PDF download. */
   @Get(':id/statement-letter')
   @RequirePermissions('borrowers:read')
-  statementLetter(
+  async statementLetter(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
-  ): Promise<BorrowerStatement> {
-    return this.borrowers.statementLetter(requireTenantId(user), id);
+  ): Promise<StreamableFile> {
+    const { pdf, fileName } = await this.borrowers.statementLetterPdf(requireTenantId(user), id);
+    return new StreamableFile(pdf, {
+      type: 'application/pdf',
+      disposition: attachmentDisposition(fileName),
+      length: pdf.length,
+    });
   }
 }

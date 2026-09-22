@@ -58,6 +58,7 @@ describe('createApplicationSchema — collateral', () => {
     tcAccepted: true,
     tcVersion: TERMS_VERSION,
     signature: { dataUrl: 'data:image/png;base64,iVBORw0KGgo=' },
+    initials: { dataUrl: 'data:image/png;base64,iVBORw0KGgo=' },
   } as const;
 
   it('does not require a collateral object for a payday loan', () => {

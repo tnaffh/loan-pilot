@@ -44,6 +44,7 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/page-header';
 import { FormField, selectClass } from '@/components/form-field';
+import { SignaturePad, type SignatureVariant } from '@/components/ui/signature-pad';
 import { API_URL, ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
@@ -552,10 +553,19 @@ interface LenderIdentity {
   postalAddress: string | null;
   contactPhone: string | null;
   contactEmail: string | null;
+  website: string | null;
+  principalOfficerName: string | null;
+  // Signing images, resolved to preview URLs (null until captured / uploaded).
+  principalOfficerSignatureUrl: string | null;
+  principalOfficerInitialsUrl: string | null;
+  companyStampUrl: string | null;
 }
 
-/** Editable text fields (logo is handled separately via upload). */
-type LenderTextKey = Exclude<keyof LenderIdentity, 'logoUrl'>;
+/** Editable text fields (images are handled separately via capture / upload). */
+type LenderTextKey = Exclude<
+  keyof LenderIdentity,
+  'logoUrl' | 'principalOfficerSignatureUrl' | 'principalOfficerInitialsUrl' | 'companyStampUrl'
+>;
 
 const LENDER_FIELDS: { key: LenderTextKey; label: string; description?: string }[] = [
   { key: 'name', label: 'Business name', description: 'Your trading name, shown across the app.' },
@@ -567,6 +577,16 @@ const LENDER_FIELDS: { key: LenderTextKey; label: string; description?: string }
   { key: 'town', label: 'Town / city' },
   { key: 'contactPhone', label: 'Contact phone' },
   { key: 'contactEmail', label: 'Contact email' },
+  {
+    key: 'website',
+    label: 'Website',
+    description: 'Printed on the letterhead and inside the company stamp.',
+  },
+  {
+    key: 'principalOfficerName',
+    label: 'Principal officer',
+    description: 'Named under the lender signature on agreements and statement letters.',
+  },
 ];
 
 const EMPTY_IDENTITY: Record<LenderTextKey, string> = {
@@ -579,6 +599,8 @@ const EMPTY_IDENTITY: Record<LenderTextKey, string> = {
   postalAddress: '',
   contactPhone: '',
   contactEmail: '',
+  website: '',
+  principalOfficerName: '',
 };
 
 const LenderIdentityCard = () => {
@@ -707,6 +729,231 @@ const LenderIdentityCard = () => {
   );
 };
 
+// ----- signing & stamp ---------------------------------------------------------
+
+/** Capture-and-save for one lender handwriting image (officer signature / initials). */
+const HandwritingSetting = ({
+  label,
+  description,
+  variant,
+  url,
+  onSave,
+  onRemove,
+}: {
+  label: string;
+  description: string;
+  variant: SignatureVariant;
+  url: string | null;
+  onSave: (dataUrl: string) => Promise<void>;
+  onRemove: () => Promise<void>;
+}) => {
+  const [draft, setDraft] = useState<string | null>(null);
+  const [replacing, setReplacing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const capturing = !url || replacing;
+
+  const run = async (action: () => Promise<void>, done: string) => {
+    setBusy(true);
+    try {
+      await action();
+      toast.success(done);
+      setDraft(null);
+      setReplacing(false);
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : 'Something went wrong');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <p className="text-sm font-medium">{label}</p>
+        <p className="text-xs text-muted-foreground">{description}</p>
+      </div>
+      {url ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex h-20 w-48 items-center justify-center rounded-md border bg-white p-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt={label} className="max-h-16 max-w-full object-contain" />
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setReplacing((value) => !value)}
+            disabled={busy}
+          >
+            {replacing ? 'Keep current' : 'Replace'}
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-destructive"
+            onClick={() => run(onRemove, `${label} removed`)}
+            disabled={busy}
+          >
+            <Trash2 className="size-4" /> Remove
+          </Button>
+        </div>
+      ) : null}
+      {capturing ? (
+        <div className="space-y-2">
+          <SignaturePad variant={variant} value={draft} onChange={setDraft} />
+          <Button
+            size="sm"
+            onClick={() => draft && run(() => onSave(draft), `${label} saved`)}
+            disabled={!draft || busy}
+          >
+            {busy ? <Loader2 className="animate-spin" /> : null}
+            Save {label.toLowerCase()}
+          </Button>
+        </div>
+      ) : null}
+    </div>
+  );
+};
+
+const SigningCard = () => {
+  const { token } = useAuth();
+  const { data, loading } = useApi<LenderIdentity>('/settings/lender-identity');
+  // The API returns the whole identity after every change; keep the freshest copy.
+  const [identity, setIdentity] = useState<LenderIdentity | null>(null);
+  const [stampBusy, setStampBusy] = useState(false);
+  const current = identity ?? data;
+
+  const request = async (path: string, method: 'POST' | 'DELETE', body?: unknown) => {
+    setIdentity(await apiFetch<LenderIdentity>(path, { method, token, body }));
+  };
+
+  const uploadStamp = async (file: File) => {
+    setStampBusy(true);
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const response = await fetch(`${API_URL}/settings/stamp`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body,
+      });
+      if (!response.ok) throw new Error('Upload failed');
+      setIdentity(await response.json());
+      toast.success('Custom stamp uploaded');
+    } catch {
+      toast.error('Could not upload the stamp (PNG or JPG only)');
+    } finally {
+      setStampBusy(false);
+    }
+  };
+
+  const removeStamp = async () => {
+    setStampBusy(true);
+    try {
+      await request('/settings/stamp', 'DELETE');
+      toast.success('Custom stamp removed — the drawn stamp will be used');
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : 'Something went wrong');
+    } finally {
+      setStampBusy(false);
+    }
+  };
+
+  if (loading && !current) {
+    return <Skeleton className="h-72 w-full rounded-xl" />;
+  }
+  if (!current) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Signing &amp; stamp</CardTitle>
+        <CardDescription>
+          The principal officer&apos;s signature and initials and the company stamp are embedded
+          into every generated loan agreement, collateral agreement and statement letter, so
+          documents leave the system already signed for the business. Set the officer&apos;s name
+          and website under Business details.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-8">
+        <HandwritingSetting
+          label="Officer signature"
+          description="Signed on the agreement's signing page and on statement letters."
+          variant="signature"
+          url={current.principalOfficerSignatureUrl}
+          onSave={(dataUrl) => request('/settings/officer-signature', 'POST', { dataUrl })}
+          onRemove={() => request('/settings/officer-signature', 'DELETE')}
+        />
+        <HandwritingSetting
+          label="Officer initials"
+          description="Printed in the lender's initials box on every agreement page except the signing page."
+          variant="initials"
+          url={current.principalOfficerInitialsUrl}
+          onSave={(dataUrl) => request('/settings/officer-initials', 'POST', { dataUrl })}
+          onRemove={() => request('/settings/officer-initials', 'DELETE')}
+        />
+        <div className="space-y-3">
+          <div>
+            <p className="text-sm font-medium">Company stamp</p>
+            <p className="text-xs text-muted-foreground">
+              By default a dated stamp is drawn on each document from your business details
+              (name, NAMFISA licence, phone, email and website). Upload your own stamp image
+              (PNG or JPG, ideally with a transparent background) to use it instead — it is placed
+              as-is, so it should not carry a date.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex h-24 w-40 items-center justify-center rounded-md border bg-white p-2">
+              {current.companyStampUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={current.companyStampUrl}
+                  alt="Company stamp"
+                  className="max-h-20 max-w-full object-contain"
+                />
+              ) : (
+                <span className="text-center text-xs text-muted-foreground">
+                  Drawn stamp
+                  <br />
+                  (default)
+                </span>
+              )}
+            </div>
+            <label className="inline-flex cursor-pointer items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-muted">
+              {stampBusy ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <ImageUp className="size-4" />
+              )}
+              {current.companyStampUrl ? 'Replace stamp image' : 'Upload stamp image'}
+              <input
+                type="file"
+                accept="image/png,image/jpeg"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadStamp(file);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+            {current.companyStampUrl ? (
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-destructive"
+                onClick={removeStamp}
+                disabled={stampBusy}
+              >
+                <Trash2 className="size-4" /> Use drawn stamp instead
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
 const SettingsPage = () => (
   <div>
     <PageHeader
@@ -718,6 +965,7 @@ const SettingsPage = () => (
         <TabsTrigger value="fees">Levies &amp; fees</TabsTrigger>
         <TabsTrigger value="products">Rate plans</TabsTrigger>
         <TabsTrigger value="identity">Business details</TabsTrigger>
+        <TabsTrigger value="signing">Signing &amp; stamp</TabsTrigger>
       </TabsList>
       <TabsContent value="fees" className="mt-4">
         <FeeSettingsCard />
@@ -727,6 +975,9 @@ const SettingsPage = () => (
       </TabsContent>
       <TabsContent value="identity" className="mt-4">
         <LenderIdentityCard />
+      </TabsContent>
+      <TabsContent value="signing" className="mt-4">
+        <SigningCard />
       </TabsContent>
     </Tabs>
   </div>

@@ -1,7 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Document } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from './storage.service';
+
+/** A stored document's bytes plus what to serve it as. */
+export interface DocumentDownload {
+  document: Document;
+  buffer: Buffer;
+  mimeType: string;
+}
 
 /** A document with its storage key resolved to an openable URL (null when the
  * URL could not be signed — see {@link StorageService.safeAccessUrl}). */
@@ -104,6 +111,34 @@ export class DocumentsService {
       orderBy: { uploadedAt: 'asc' },
     });
     return Promise.all(documents.map((document) => this.toView(document)));
+  }
+
+  /**
+   * Read a document's bytes for an authenticated download. Documents hang off
+   * a borrower, a loan or an application, so tenant scoping goes through
+   * whichever owner the row has. Storage keys are opaque UUIDs — serving the
+   * bytes through the API is what lets the browser save the file under its
+   * real name.
+   */
+  async download(tenantId: string, id: string): Promise<DocumentDownload> {
+    const document = await this.prisma.document.findFirst({
+      where: {
+        id,
+        OR: [{ borrower: { tenantId } }, { loan: { tenantId } }, { application: { tenantId } }],
+      },
+    });
+    if (!document) {
+      throw new NotFoundException('Document not found');
+    }
+    // Legacy rows may hold an external URL rather than a storage key.
+    if (/^https?:\/\//i.test(document.url)) {
+      throw new BadRequestException('This document is stored externally — open it by its link');
+    }
+    return {
+      document,
+      buffer: await this.storage.read(document.url),
+      mimeType: document.mimeType ?? 'application/octet-stream',
+    };
   }
 
   /** Delete a borrower document after verifying it belongs to the tenant. */

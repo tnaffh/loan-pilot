@@ -40,6 +40,25 @@ export interface AgreementBank {
   accountType: string;
 }
 
+/**
+ * The images embedded into an agreement. Each is null when not captured /
+ * configured, in which case the PDF leaves a blank line or box to be completed
+ * by hand (legacy loans, wet-sign flow).
+ */
+export interface AgreementImages {
+  /** The borrower's captured signature (signing page). */
+  signaturePng: Buffer | null;
+  /** The borrower's captured initials (every page but the signing page). */
+  initialsPng: Buffer | null;
+  /** The tenant's logo for the letterhead. */
+  logoPng: Buffer | null;
+  /** The principal officer's signature and initials. */
+  officerSignaturePng: Buffer | null;
+  officerInitialsPng: Buffer | null;
+  /** A custom uploaded company stamp; null draws the default stamp instead. */
+  stampPng: Buffer | null;
+}
+
 /** Fully-resolved, display-ready data for one loan agreement. */
 export interface AgreementData {
   lender: {
@@ -51,7 +70,10 @@ export interface AgreementData {
     postalAddress: string | null;
     contactPhone: string | null;
     contactEmail: string | null;
+    website: string | null;
     town: string | null;
+    /** Who signs for the lender, or null when not yet configured in settings. */
+    principalOfficerName: string | null;
   };
   borrower: {
     fullName: string;
@@ -87,10 +109,7 @@ export interface AgreementData {
   };
   terms: Terms;
   tcAcceptedAt: Date | null;
-  /** The captured signature image, or null for legacy/imported loans. */
-  signaturePng: Buffer | null;
-  /** The tenant's logo image, or null when none is uploaded. */
-  logoPng: Buffer | null;
+  images: AgreementImages;
   generatedAt: Date;
 }
 
@@ -118,16 +137,15 @@ const formatAddressLine = (address?: {
     : null;
 
 /**
- * Map a loaded loan (plus tenant lender identity, penalty rate, and the captured
- * signature bytes) into fully display-ready agreement data. Pure — all money and
- * dates are pre-formatted so the PDF renderer only lays out strings.
+ * Map a loaded loan (plus tenant lender identity, penalty rate, and the
+ * embedded image bytes) into fully display-ready agreement data. Pure — all
+ * money and dates are pre-formatted so the PDF renderer only lays out strings.
  */
 export const toAgreementData = (
   loan: AgreementLoan,
   lender: LenderIdentity,
   penaltyMonthlyRate: number,
-  signaturePng: Buffer | null,
-  logoPng: Buffer | null,
+  images: AgreementImages,
   generatedAt: Date,
 ): AgreementData => {
   const borrower = loan.borrower;
@@ -195,7 +213,9 @@ export const toAgreementData = (
       postalAddress: lender.postalAddress,
       contactPhone: lender.contactPhone,
       contactEmail: lender.contactEmail,
+      website: lender.website,
       town: loan.tenant.town,
+      principalOfficerName: lender.principalOfficerName,
     },
     borrower: {
       fullName: `${borrower.firstName} ${borrower.lastName}`.trim(),
@@ -238,8 +258,7 @@ export const toAgreementData = (
     },
     terms: getTerms(loan.tcVersion ?? undefined),
     tcAcceptedAt: loan.tcAcceptedAt,
-    signaturePng,
-    logoPng,
+    images,
     generatedAt,
   };
 };

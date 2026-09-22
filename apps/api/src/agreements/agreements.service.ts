@@ -6,7 +6,13 @@ import { StorageService } from '../documents/storage.service';
 import type { DocumentView } from '../documents/documents.service';
 import { SettingsService } from '../settings/settings.service';
 import { MailService } from '../mail/mail.service';
-import { AgreementLoan, toAgreementData, type AgreementData } from './agreement-data';
+import { documentFileName } from '../common/file-name';
+import {
+  AgreementLoan,
+  toAgreementData,
+  type AgreementData,
+  type AgreementImages,
+} from './agreement-data';
 import { renderAgreementPdf } from './agreement-pdf';
 import { toCollateralAgreementData, type CollateralAgreementData } from './collateral-agreement-data';
 import { renderCollateralAgreementPdf } from './collateral-agreement-pdf';
@@ -41,15 +47,7 @@ export class AgreementsService {
 
   /** Generate a fresh loan-agreement PDF, store it, and link it to the loan. */
   async generateForLoan(tenantId: string, loanId: string): Promise<DocumentView> {
-    const { loan, data } = await this.build(tenantId, loanId);
-    const pdf = await renderAgreementPdf(data);
-    const document = await this.store(
-      loan.id,
-      loan.borrowerId,
-      pdf,
-      DocumentKind.LoanAgreement,
-      'loan-agreement.pdf',
-    );
+    const { document } = await this.generate(tenantId, loanId);
     return this.toView(document);
   }
 
@@ -69,11 +67,20 @@ export class AgreementsService {
       throw new BadRequestException('The borrower has no email address on file');
     }
     const latest = await this.latestDocument(tenantId, loanId, DocumentKind.LoanAgreement);
+    const fileName =
+      latest?.fileName ??
+      documentFileName('Loan Agreement', data.borrower.fullName, data.generatedAt);
     const pdf = latest ? await this.storage.read(latest.url) : await renderAgreementPdf(data);
     if (!latest) {
-      await this.store(loan.id, loan.borrowerId, pdf, DocumentKind.LoanAgreement, 'loan-agreement.pdf');
+      await this.store(loan.id, loan.borrowerId, pdf, DocumentKind.LoanAgreement, fileName);
     }
-    await this.mail.sendAgreement(loan.borrower.email, data.borrower.fullName, data.lender.name, pdf);
+    await this.mail.sendAgreement(
+      loan.borrower.email,
+      data.borrower.fullName,
+      data.lender.name,
+      pdf,
+      fileName,
+    );
     return { sent: true };
   }
 
@@ -82,18 +89,58 @@ export class AgreementsService {
     return this.storeUpload(tenantId, loanId, file, DocumentKind.LoanAgreement);
   }
 
+  /**
+   * Re-render whichever agreements have already been generated for a loan, so
+   * the stored PDFs track the loan after an officer's edit (amount, term, rate,
+   * fees or dates), and email the borrower the updated copy so they hold the
+   * same version we do. Loans with no agreement yet are left alone. Never
+   * throws: a render/storage/mail failure is logged and staff can regenerate
+   * and resend from the loan page.
+   */
+  async refreshForLoan(tenantId: string, loanId: string): Promise<void> {
+    try {
+      const [hasAgreement, hasCollateral] = await Promise.all([
+        this.latestDocument(tenantId, loanId, DocumentKind.LoanAgreement),
+        this.latestDocument(tenantId, loanId, DocumentKind.CollateralAgreement),
+      ]);
+      if (hasAgreement) {
+        const { loan, data, pdf, fileName } = await this.generate(tenantId, loanId);
+        if (loan.borrower.email) {
+          await this.mail.sendAgreement(
+            loan.borrower.email,
+            data.borrower.fullName,
+            data.lender.name,
+            pdf,
+            fileName,
+            { updated: true },
+          );
+        }
+      }
+      if (hasCollateral) {
+        const { loan, data, pdf, fileName } = await this.generateCollateral(tenantId, loanId);
+        if (loan.borrower.email) {
+          await this.mail.sendCollateralAgreement(
+            loan.borrower.email,
+            data.base.borrower.fullName,
+            data.base.lender.name,
+            pdf,
+            fileName,
+            { updated: true },
+          );
+        }
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to refresh agreements for loan ${loanId}`,
+        error instanceof Error ? error.stack : String(error),
+      );
+    }
+  }
+
   // ── Collateral (pledge) agreement ──────────────────────────────────────
 
   async generateCollateralForLoan(tenantId: string, loanId: string): Promise<DocumentView> {
-    const { loan, data } = await this.buildCollateral(tenantId, loanId);
-    const pdf = await renderCollateralAgreementPdf(data);
-    const document = await this.store(
-      loan.id,
-      loan.borrowerId,
-      pdf,
-      DocumentKind.CollateralAgreement,
-      'collateral-agreement.pdf',
-    );
+    const { document } = await this.generateCollateral(tenantId, loanId);
     return this.toView(document);
   }
 
@@ -108,21 +155,19 @@ export class AgreementsService {
       throw new BadRequestException('The borrower has no email address on file');
     }
     const latest = await this.latestDocument(tenantId, loanId, DocumentKind.CollateralAgreement);
+    const fileName =
+      latest?.fileName ??
+      documentFileName('Collateral Agreement', data.base.borrower.fullName, data.base.generatedAt);
     const pdf = latest ? await this.storage.read(latest.url) : await renderCollateralAgreementPdf(data);
     if (!latest) {
-      await this.store(
-        loan.id,
-        loan.borrowerId,
-        pdf,
-        DocumentKind.CollateralAgreement,
-        'collateral-agreement.pdf',
-      );
+      await this.store(loan.id, loan.borrowerId, pdf, DocumentKind.CollateralAgreement, fileName);
     }
     await this.mail.sendCollateralAgreement(
       loan.borrower.email,
       data.base.borrower.fullName,
       data.base.lender.name,
       pdf,
+      fileName,
     );
     return { sent: true };
   }
@@ -137,14 +182,48 @@ export class AgreementsService {
 
   // ── Shared builders / storage ──────────────────────────────────────────
 
+  /** Render, store and link a loan agreement; returns everything a caller may want to email. */
+  private async generate(tenantId: string, loanId: string) {
+    const { loan, data } = await this.build(tenantId, loanId);
+    const pdf = await renderAgreementPdf(data);
+    const fileName = documentFileName('Loan Agreement', data.borrower.fullName, data.generatedAt);
+    const document = await this.store(
+      loan.id,
+      loan.borrowerId,
+      pdf,
+      DocumentKind.LoanAgreement,
+      fileName,
+    );
+    return { loan, data, pdf, fileName, document };
+  }
+
+  /** Render, store and link a collateral agreement; the collateral twin of {@link generate}. */
+  private async generateCollateral(tenantId: string, loanId: string) {
+    const { loan, data } = await this.buildCollateral(tenantId, loanId);
+    const pdf = await renderCollateralAgreementPdf(data);
+    const fileName = documentFileName(
+      'Collateral Agreement',
+      data.base.borrower.fullName,
+      data.base.generatedAt,
+    );
+    const document = await this.store(
+      loan.id,
+      loan.borrowerId,
+      pdf,
+      DocumentKind.CollateralAgreement,
+      fileName,
+    );
+    return { loan, data, pdf, fileName, document };
+  }
+
   /** Load a loan (tenant-scoped) and assemble its display-ready agreement data. */
   private async build(
     tenantId: string,
     loanId: string,
   ): Promise<{ loan: AgreementLoan; data: AgreementData }> {
     const loan = await this.loadLoan(tenantId, loanId);
-    const { lender, monthlyRate, signaturePng, logoPng } = await this.loadCommon(tenantId, loan, loanId);
-    const data = toAgreementData(loan, lender, monthlyRate, signaturePng, logoPng, new Date());
+    const { lender, monthlyRate, images } = await this.loadContext(tenantId, loan);
+    const data = toAgreementData(loan, lender, monthlyRate, images, new Date());
     return { loan, data };
   }
 
@@ -154,17 +233,11 @@ export class AgreementsService {
     loanId: string,
   ): Promise<{ loan: AgreementLoan; data: CollateralAgreementData }> {
     const loan = await this.loadLoan(tenantId, loanId);
-    const { lender, monthlyRate, signaturePng, logoPng } = await this.loadCommon(tenantId, loan, loanId);
-    const photos = await this.readCollateralPhotos(tenantId, loanId);
-    const data = toCollateralAgreementData(
-      loan,
-      lender,
-      monthlyRate,
-      signaturePng,
-      logoPng,
-      photos,
-      new Date(),
-    );
+    const [{ lender, monthlyRate, images }, photos] = await Promise.all([
+      this.loadContext(tenantId, loan),
+      this.readCollateralPhotos(tenantId, loanId),
+    ]);
+    const data = toCollateralAgreementData(loan, lender, monthlyRate, images, photos, new Date());
     return { loan, data };
   }
 
@@ -179,16 +252,32 @@ export class AgreementsService {
     return loan;
   }
 
-  private async loadCommon(tenantId: string, loan: AgreementLoan, loanId: string) {
-    const [lender, fees] = await Promise.all([
+  /**
+   * Everything an agreement needs besides the loan itself: the lender identity
+   * and penalty rate, and every embedded image — the borrower's captured
+   * signature and initials, the tenant logo, and the officer/stamp images.
+   */
+  private async loadContext(
+    tenantId: string,
+    loan: AgreementLoan,
+  ): Promise<{ lender: Awaited<ReturnType<SettingsService['getLenderIdentity']>>; monthlyRate: number; images: AgreementImages }> {
+    const [lender, fees, signing, signaturePng, initialsPng, logoPng] = await Promise.all([
       this.settings.getLenderIdentity(tenantId),
       this.settings.resolveFeeSettings(tenantId),
+      this.settings.getSigningAssets(tenantId),
+      this.readDocumentImage(loan.signatureDocumentId, `signature for loan ${loan.id}`),
+      this.readDocumentImage(loan.initialsDocumentId, `initials for loan ${loan.id}`),
+      this.storage.tryRead(loan.tenant.logoUrl, `logo for loan ${loan.id}`),
     ]);
-    const signaturePng = loan.signatureDocumentId
-      ? await this.readSignature(loan.signatureDocumentId, loanId)
-      : null;
-    const logoPng = await this.readImageKey(loan.tenant.logoUrl, `logo for loan ${loanId}`);
-    return { lender, monthlyRate: fees.monthlyRate, signaturePng, logoPng };
+    const images: AgreementImages = {
+      signaturePng,
+      initialsPng,
+      logoPng,
+      officerSignaturePng: signing.officerSignaturePng,
+      officerInitialsPng: signing.officerInitialsPng,
+      stampPng: signing.stampPng,
+    };
+    return { lender, monthlyRate: fees.monthlyRate, images };
   }
 
   /** Read up to {@link MAX_EMBEDDED_PHOTOS} collateral photos as image buffers. */
@@ -205,32 +294,19 @@ export class AgreementsService {
       take: MAX_EMBEDDED_PHOTOS,
     });
     const buffers = await Promise.all(
-      documents.map((document) => this.readImageKey(document.url, `collateral photo ${document.id}`)),
+      documents.map((document) => this.storage.tryRead(document.url, `collateral photo ${document.id}`)),
     );
     return buffers.filter((buffer): buffer is Buffer => buffer !== null);
   }
 
-  private async readSignature(documentId: string, loanId: string): Promise<Buffer | null> {
-    const signature = await this.prisma.document.findUnique({
+  /** Read a captured handwriting image (signature / initials) by its Document id. */
+  private async readDocumentImage(documentId: string | null, label: string): Promise<Buffer | null> {
+    if (!documentId) return null;
+    const document = await this.prisma.document.findUnique({
       where: { id: documentId },
       select: { url: true },
     });
-    return signature ? this.readImageKey(signature.url, `signature for loan ${loanId}`) : null;
-  }
-
-  /** Read an image by storage key, degrading to null (with a log) on failure. */
-  private async readImageKey(key: string | null, label: string): Promise<Buffer | null> {
-    // Only storage keys are embeddable; skip external/legacy URL values.
-    if (!key || /^https?:\/\//i.test(key)) return null;
-    try {
-      return await this.storage.read(key);
-    } catch (error) {
-      this.logger.error(
-        `Failed to read ${label}`,
-        error instanceof Error ? error.stack : String(error),
-      );
-      return null;
-    }
+    return document ? this.storage.tryRead(document.url, label) : null;
   }
 
   /** Persist a generated PDF and create its Document row (linked to the loan). */

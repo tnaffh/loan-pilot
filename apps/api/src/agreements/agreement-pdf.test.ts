@@ -12,7 +12,11 @@ const TINY_PNG = Buffer.from(
   'base64',
 );
 
-const sampleData = (signaturePng: Buffer | null): AgreementData => ({
+/** Page objects in the rendered PDF (pdfkit writes page dictionaries uncompressed). */
+const pageCount = (pdf: Buffer): number =>
+  (pdf.toString('latin1').match(/\/Type\s*\/Page(?!s)/g) ?? []).length;
+
+const sampleData = (png: Buffer | null, stampPng: Buffer | null = null): AgreementData => ({
   lender: {
     name: 'Raccoons Financial Services',
     legalName: 'Raccoons Financial Services CC',
@@ -22,7 +26,9 @@ const sampleData = (signaturePng: Buffer | null): AgreementData => ({
     postalAddress: 'PO Box 1',
     contactPhone: '+264 81 878 9138',
     contactEmail: 'racoonsfs@gmail.com',
+    website: 'www.raccoonsfinance.com',
     town: 'Windhoek',
+    principalOfficerName: 'Eufemia Nghifenwa',
   },
   borrower: {
     fullName: 'Selma Nghidinwa',
@@ -71,20 +77,33 @@ const sampleData = (signaturePng: Buffer | null): AgreementData => ({
   },
   terms: getTerms(),
   tcAcceptedAt: new Date('2026-07-14T09:00:00Z'),
-  signaturePng,
-  logoPng: signaturePng,
+  images: {
+    signaturePng: png,
+    initialsPng: png,
+    logoPng: png,
+    officerSignaturePng: png,
+    officerInitialsPng: png,
+    stampPng,
+  },
   generatedAt: new Date('2026-07-14T10:00:00Z'),
 });
 
 describe('renderAgreementPdf', () => {
-  it('produces a valid PDF with an embedded signature', async () => {
+  it('produces a multi-page PDF with the embedded signatures, initials and drawn stamp', async () => {
     const pdf = await renderAgreementPdf(sampleData(TINY_PNG));
     expect(pdf.length).toBeGreaterThan(1000);
     expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+    // The terms always start a new page, so the initials strip has pages to sit on.
+    expect(pageCount(pdf)).toBeGreaterThanOrEqual(2);
   });
 
-  it('renders without a signature (legacy/imported loan)', async () => {
+  it('renders without any captured or configured images (legacy/imported loan)', async () => {
     const pdf = await renderAgreementPdf(sampleData(null));
+    expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+  });
+
+  it('places a custom stamp image when one is uploaded', async () => {
+    const pdf = await renderAgreementPdf(sampleData(TINY_PNG, TINY_PNG));
     expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
   });
 });

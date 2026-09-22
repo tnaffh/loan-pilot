@@ -79,16 +79,36 @@ export const uploadDocument = async (
 };
 
 /**
- * Fetch a server-generated binary (PDF / spreadsheet) from an authenticated
- * route and save it.
+ * The file name a response asks to be saved under (`Content-Disposition`),
+ * preferring the UTF-8 `filename*` form; null when the header carries none.
+ */
+const dispositionFileName = (response: Response): string | null => {
+  const header = response.headers.get('Content-Disposition');
+  if (!header) return null;
+  const utf8 = /filename\*=UTF-8''([^;]+)/i.exec(header);
+  if (utf8?.[1]) {
+    try {
+      return decodeURIComponent(utf8[1]);
+    } catch {
+      // Fall through to the plain form.
+    }
+  }
+  const plain = /filename="?([^";]+)"?/i.exec(header);
+  return plain?.[1] ?? null;
+};
+
+/**
+ * Fetch a server-generated or stored binary (PDF / spreadsheet / scan) from an
+ * authenticated route and save it under a proper name.
  *
- * Loan agreements are stored and opened by their storage URL, which needs no
- * auth header — reports are rendered on demand behind the JWT, so the token has
- * to ride on the request and the response body becomes a client-side object URL.
+ * Everything goes through the API with the JWT rather than a bare storage URL:
+ * storage keys are opaque UUIDs, and a cross-origin link ignores the `download`
+ * attribute, so only a same-origin object URL lets the browser use the real
+ * file name. The server's `Content-Disposition` name wins over `fallbackName`.
  */
 export const downloadFile = async (
   path: string,
-  fileName: string,
+  fallbackName: string,
   token: string | null,
 ): Promise<void> => {
   const response = await fetch(`${API_URL}${path}`, {
@@ -105,12 +125,18 @@ export const downloadFile = async (
   const url = URL.createObjectURL(await response.blob());
   const link = document.createElement('a');
   link.href = url;
-  link.download = fileName;
+  link.download = dispositionFileName(response) ?? fallbackName;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 };
+
+/** Download a stored document (agreement, scan, statement…) under its real file name. */
+export const downloadDocument = (
+  document: { id: string; fileName: string },
+  token: string | null,
+): Promise<void> => downloadFile(`/documents/${document.id}/download`, document.fileName, token);
 
 export interface LoginResponse {
   accessToken: string;

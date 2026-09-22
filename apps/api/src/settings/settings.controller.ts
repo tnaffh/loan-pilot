@@ -17,11 +17,14 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import type { LoanProduct, TenantSettings } from '@prisma/client';
 import {
   feeSettingsSchema,
+  initialsImageSchema,
   lenderIdentitySchema,
   loanProductSchema,
   openingBalanceSchema,
+  signatureImageSchema,
   updateLoanProductSchema,
   type FeeSettingsInput,
+  type HandwritingImageInput,
   type LenderIdentityInput,
   type LoanProductInput,
   type OpeningBalanceInput,
@@ -134,5 +137,70 @@ export class SettingsController {
       throw new BadRequestException('A file is required');
     }
     return this.settings.uploadLogo(requireTenantId(user), file);
+  }
+
+  // ── Principal officer signature / initials + optional custom stamp ─────
+  // Embedded into every generated agreement and statement letter so the
+  // documents leave the system already signed and stamped for the lender.
+
+  @Post('officer-signature')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions('settings:write')
+  saveOfficerSignature(
+    @CurrentUser() user: SessionUser,
+    @Body(new ZodValidationPipe(signatureImageSchema)) body: HandwritingImageInput,
+  ): Promise<LenderIdentity> {
+    return this.settings.saveSigningImage(
+      requireTenantId(user),
+      'principalOfficerSignature',
+      body.dataUrl,
+    );
+  }
+
+  @Delete('officer-signature')
+  @RequirePermissions('settings:write')
+  clearOfficerSignature(@CurrentUser() user: SessionUser): Promise<LenderIdentity> {
+    return this.settings.clearSigningImage(requireTenantId(user), 'principalOfficerSignature');
+  }
+
+  @Post('officer-initials')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions('settings:write')
+  saveOfficerInitials(
+    @CurrentUser() user: SessionUser,
+    @Body(new ZodValidationPipe(initialsImageSchema)) body: HandwritingImageInput,
+  ): Promise<LenderIdentity> {
+    return this.settings.saveSigningImage(
+      requireTenantId(user),
+      'principalOfficerInitials',
+      body.dataUrl,
+    );
+  }
+
+  @Delete('officer-initials')
+  @RequirePermissions('settings:write')
+  clearOfficerInitials(@CurrentUser() user: SessionUser): Promise<LenderIdentity> {
+    return this.settings.clearSigningImage(requireTenantId(user), 'principalOfficerInitials');
+  }
+
+  /** A custom (undated) stamp image that replaces the drawn default stamp. */
+  @Post('stamp')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions('settings:write')
+  @UseInterceptors(FileInterceptor('file', documentUploadOptions))
+  uploadStamp(
+    @CurrentUser() user: SessionUser,
+    @UploadedFile() file: Express.Multer.File | undefined,
+  ): Promise<LenderIdentity> {
+    if (!file) {
+      throw new BadRequestException('A file is required');
+    }
+    return this.settings.uploadStamp(requireTenantId(user), file);
+  }
+
+  @Delete('stamp')
+  @RequirePermissions('settings:write')
+  clearStamp(@CurrentUser() user: SessionUser): Promise<LenderIdentity> {
+    return this.settings.clearSigningImage(requireTenantId(user), 'companyStamp');
   }
 }

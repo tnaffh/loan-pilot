@@ -55,6 +55,33 @@ describe('BorrowersService', () => {
       insuranceFlatCents: 0,
       monthlyRate: 0.05,
     }),
+    getLenderIdentity: jest.fn().mockResolvedValue({
+      name: 'Regal Financial Solutions',
+      town: 'Windhoek',
+      logoUrl: null,
+      legalName: 'Regal Financial Solutions CC',
+      namfisaLicenceNo: '25/11/1471',
+      registrationNo: null,
+      physicalAddress: 'Erf 863',
+      postalAddress: null,
+      contactPhone: '+264818789138',
+      contactEmail: 'info@regal.na',
+      website: 'www.regal.na',
+      principalOfficerName: 'Eufemia Nghifenwa',
+      principalOfficerSignatureUrl: null,
+      principalOfficerInitialsUrl: null,
+      companyStampUrl: null,
+    }),
+    getSigningAssets: jest.fn().mockResolvedValue({
+      officerName: 'Eufemia Nghifenwa',
+      officerSignaturePng: null,
+      officerInitialsPng: null,
+      stampPng: null,
+    }),
+  };
+  const storageMock = {
+    safeAccessUrl: jest.fn().mockResolvedValue(null),
+    tryRead: jest.fn().mockResolvedValue(null),
   };
 
   let service: BorrowersService;
@@ -107,7 +134,7 @@ describe('BorrowersService', () => {
         { provide: AuditService, useValue: auditMock },
         { provide: DocumentsService, useValue: documentsMock },
         { provide: SettingsService, useValue: settingsMock },
-        { provide: StorageService, useValue: { safeAccessUrl: jest.fn().mockResolvedValue(null) } },
+        { provide: StorageService, useValue: storageMock },
       ],
     }).compile();
     service = moduleRef.get(BorrowersService);
@@ -285,51 +312,77 @@ describe('BorrowersService', () => {
     expect(ids).not.toContain('bor_1');
   });
 
-  it('builds a statement letter with payoff (incl. default interest) and totals', async () => {
-    findFirst.mockResolvedValue(
-      borrower({
-        loans: [
-          {
-            id: 'loan_open',
-            type: 'payday',
-            status: 'arrears',
-            principal: 100000,
-            balance: 130000,
-            disbursedAt: new Date('2020-01-01'),
-            // Long overdue → default interest accrues, so payoff exceeds balance.
-            schedule: [{ amount: 130000, dueAt: new Date('2020-02-01'), status: 'due' }],
-          },
-          {
-            id: 'loan_settled',
-            type: 'payday',
-            status: 'settled',
-            principal: 80000,
-            balance: 0,
-            disbursedAt: new Date('2021-01-01'),
-            schedule: [{ amount: 104000, dueAt: new Date('2021-02-01'), status: 'paid' }],
-          },
-        ],
-        addresses: [{ street: '1 Main', suburb: null, city: 'Windhoek', region: null, country: 'Namibia' }],
-      }),
-    );
-    tenantFindUnique.mockResolvedValue({
-      name: 'Regal Financial Solutions',
-      short: 'RFS',
-      town: 'Windhoek',
-      logoUrl: null,
-      accent: '#25397a',
+  const borrowerWithHistory = () =>
+    borrower({
+      loans: [
+        {
+          id: 'loan_open',
+          type: 'payday',
+          status: 'arrears',
+          principal: 100000,
+          balance: 130000,
+          instalmentsPaid: 0,
+          instalmentsTotal: 1,
+          nextDueAt: new Date('2020-02-01'),
+          disbursedAt: new Date('2020-01-01'),
+          // Long overdue → default interest accrues, so payoff exceeds balance.
+          schedule: [{ amount: 130000, dueAt: new Date('2020-02-01'), status: 'due' }],
+        },
+        {
+          id: 'loan_settled',
+          type: 'payday',
+          status: 'settled',
+          principal: 80000,
+          balance: 0,
+          instalmentsPaid: 1,
+          instalmentsTotal: 1,
+          nextDueAt: null,
+          disbursedAt: new Date('2021-01-01'),
+          schedule: [{ amount: 104000, dueAt: new Date('2021-02-01'), status: 'paid' }],
+        },
+        {
+          id: 'loan_cancelled',
+          type: 'payday',
+          status: 'cancelled',
+          principal: 50000,
+          balance: 0,
+          instalmentsPaid: 0,
+          instalmentsTotal: 1,
+          nextDueAt: null,
+          disbursedAt: null,
+          schedule: [],
+        },
+      ],
+      addresses: [{ street: '1 Main', suburb: null, city: 'Windhoek', region: null, country: 'Namibia' }],
     });
+
+  it('builds a statement of the open accounts only, with payoff (incl. default interest) and totals', async () => {
+    findFirst.mockResolvedValue(borrowerWithHistory());
 
     const letter = await service.statementLetter('tenant_1', 'bor_1');
 
-    expect(letter.lender.name).toBe('Regal Financial Solutions');
     expect(letter.borrower.address).toBe('1 Main, Windhoek, Namibia');
+    // Settled and cancelled loans are history, not part of the account position.
+    expect(letter.loans.map((loan) => loan.id)).toEqual(['loan_open']);
     expect(letter.totals.openLoans).toBe(1);
     expect(letter.totals.settledLoans).toBe(1);
+    // A cancelled loan never advanced funds, so it is not "borrowed".
     expect(letter.totals.lifetimeBorrowed).toBe(180000);
-    const openLoan = letter.loans.find((l) => l.id === 'loan_open');
+    const openLoan = letter.loans[0];
     expect(openLoan?.payoff).toBeGreaterThan(130000); // includes default interest
+    expect(openLoan?.defaultInterest).toBe((openLoan?.payoff ?? 0) - 130000);
     expect(letter.totals.outstanding).toBe(openLoan?.payoff);
     expect(letter.hasOutstanding).toBe(true);
+  });
+
+  it('renders the statement letter as a PDF named after the borrower', async () => {
+    findFirst.mockResolvedValue(borrowerWithHistory());
+    tenantFindUnique.mockResolvedValue({ name: 'Regal Financial Solutions', town: 'Windhoek', logoUrl: null });
+
+    const { pdf, fileName } = await service.statementLetterPdf('tenant_1', 'bor_1');
+
+    expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
+    expect(fileName).toMatch(/^Statement of Account - Selma Nghidinwa - \d{4}-\d{2}-\d{2}\.pdf$/);
+    expect(settingsMock.getSigningAssets).toHaveBeenCalledWith('tenant_1');
   });
 });

@@ -96,6 +96,7 @@ const DEFAULTS: Partial<CreateApplicationInput> = {
   consent: true,
   tcVersion: TERMS_VERSION,
   signature: { dataUrl: '' },
+  initials: { dataUrl: '' },
   // tcAccepted intentionally omitted — the applicant must tick + sign in person.
 };
 
@@ -696,8 +697,9 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
           <div className="space-y-4">
             <SectionTitle>Terms &amp; signature</SectionTitle>
             <p className="text-xs text-muted-foreground">
-              Have the applicant read the Terms &amp; Conditions, then tick to agree and sign on this
-              device. This is embedded in the generated loan agreement.
+              Have the applicant read the Terms &amp; Conditions, then tick to agree, sign and
+              initial on this device. The signature goes on the agreement&apos;s signing page and
+              the initials on every other page.
             </p>
             <div className="max-h-64 overflow-y-auto rounded-md border bg-muted/20 p-4">
               <TermsContent />
@@ -736,6 +738,23 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
               />
               {errors.signature?.dataUrl?.message && (
                 <p className="text-xs text-destructive">{errors.signature.dataUrl.message}</p>
+              )}
+            </div>
+            <div className="space-y-2">
+              <div className="text-sm font-medium">Applicant initials</div>
+              <Controller
+                control={control}
+                name="initials.dataUrl"
+                render={({ field }) => (
+                  <SignaturePad
+                    variant="initials"
+                    value={field.value ?? null}
+                    onChange={(dataUrl) => field.onChange(dataUrl ?? '')}
+                  />
+                )}
+              />
+              {errors.initials?.dataUrl?.message && (
+                <p className="text-xs text-destructive">{errors.initials.dataUrl.message}</p>
               )}
             </div>
           </div>

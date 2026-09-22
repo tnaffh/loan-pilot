@@ -1,6 +1,11 @@
 import { formatNad, getCollateralTerms, type Terms } from '@loan-pilot/domain';
 import type { LenderIdentity } from '../settings/settings.service';
-import { toAgreementData, type AgreementData, type AgreementLoan } from './agreement-data';
+import {
+  toAgreementData,
+  type AgreementData,
+  type AgreementImages,
+  type AgreementLoan,
+} from './agreement-data';
 
 /** Display-ready data for a collateral (pledge) agreement. Reuses the loan
  * agreement's shared lender/borrower/loan blocks (`base`) and adds the pledged
@@ -23,12 +28,11 @@ export const toCollateralAgreementData = (
   loan: AgreementLoan,
   lender: LenderIdentity,
   penaltyMonthlyRate: number,
-  signaturePng: Buffer | null,
-  logoPng: Buffer | null,
+  images: AgreementImages,
   photos: Buffer[],
   generatedAt: Date,
 ): CollateralAgreementData => ({
-  base: toAgreementData(loan, lender, penaltyMonthlyRate, signaturePng, logoPng, generatedAt),
+  base: toAgreementData(loan, lender, penaltyMonthlyRate, images, generatedAt),
   collateral: {
     item: loan.collateralItem ?? '',
     identifier: loan.collateralIdentifier ?? '',

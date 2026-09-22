@@ -134,6 +134,9 @@ export enum DocumentKind {
   BankStatement = 'bank_statement',
   // The applicant's captured signature image (drawn or uploaded at intake).
   Signature = 'signature',
+  // The applicant's captured initials, printed on every agreement page that
+  // does not carry the full signature.
+  Initials = 'initials',
   // A generated (or wet-signed, uploaded) NAMFISA loan agreement PDF.
   LoanAgreement = 'loan_agreement',
   // A photo of the pledged collateral item (collateral loans; multiple allowed).

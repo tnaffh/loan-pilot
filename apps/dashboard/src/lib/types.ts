@@ -230,8 +230,10 @@ export interface LoanDetail extends LoanRow {
   writeOffReason: string | null;
   cancelReason: string | null;
   closedAt: string | null;
-  // Points at the captured-signature Document, when the loan carries one.
+  updatedAt: string;
+  // Point at the captured signature / initials Documents, when the loan carries them.
   signatureDocumentId: string | null;
+  initialsDocumentId: string | null;
   // Structured collateral (collateral loans); `collateral` (on LoanRow) is a summary.
   collateralItem: string | null;
   collateralIdentifier: string | null;
@@ -295,23 +297,6 @@ export interface DocumentRow {
   url: string | null;
   fileName: string;
   uploadedAt: string;
-}
-
-export interface BorrowerStatement {
-  generatedAt: string;
-  lender: { name: string; short: string; town: string | null; logoUrl: string | null; accent: string };
-  borrower: { name: string; idNumber: string; address: string; phone: string };
-  loans: {
-    id: string;
-    type: LoanType;
-    disbursedAt: string | null;
-    principal: number;
-    balance: number;
-    payoff: number;
-    status: LoanStatus;
-  }[];
-  totals: { outstanding: number; lifetimeBorrowed: number; openLoans: number; settledLoans: number };
-  hasOutstanding: boolean;
 }
 
 export interface MonthlyPoint {

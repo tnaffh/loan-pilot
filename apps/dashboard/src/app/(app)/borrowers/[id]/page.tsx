@@ -3,12 +3,14 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
+import { toast } from 'sonner';
 import {
   Activity,
   AlertTriangle,
   FileSignature,
   FileText,
   GitMerge,
+  Loader2,
   Pencil,
   Wallet,
 } from 'lucide-react';
@@ -36,6 +38,7 @@ import { BorrowerDocuments } from '@/components/borrowers/borrower-documents';
 import { EditBorrowerSheet } from '@/components/borrowers/edit-borrower-sheet';
 import { MergeBorrowerDialog } from '@/components/borrowers/merge-borrower-dialog';
 import { AuditLog } from '@/components/audit-log';
+import { ApiError, downloadFile } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
 import { formatDate } from '@/lib/format';
@@ -44,9 +47,10 @@ import type { BorrowerDetail } from '@/lib/types';
 const BorrowerDetailPage = () => {
   const params = useParams<{ id: string }>();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const [editing, setEditing] = useState(false);
   const [merging, setMerging] = useState(false);
+  const [downloadingStatement, setDownloadingStatement] = useState(false);
   const { data, loading, error, refresh } = useApi<BorrowerDetail>(
     params.id ? `/borrowers/${params.id}` : null,
   );
@@ -70,6 +74,21 @@ const BorrowerDetailPage = () => {
     (loan) => loan.status === LoanStatus.Active || loan.status === LoanStatus.Arrears,
   );
 
+  // The statement letter is a signed, stamped PDF rendered by the API; it lands
+  // under its own name ("Statement of Account - <name> - <date>.pdf").
+  const downloadStatement = async () => {
+    setDownloadingStatement(true);
+    try {
+      await downloadFile(`/borrowers/${data.id}/statement-letter`, 'Statement of Account.pdf', token);
+    } catch (downloadError) {
+      toast.error(
+        downloadError instanceof ApiError ? downloadError.message : 'Could not download the statement',
+      );
+    } finally {
+      setDownloadingStatement(false);
+    }
+  };
+
   const summary = (() => {
     const open = data.loans.filter(
       (loan) => loan.status === LoanStatus.Active || loan.status === LoanStatus.Arrears,
@@ -90,15 +109,19 @@ const BorrowerDetailPage = () => {
           <p className="text-sm text-muted-foreground">Borrower since {formatDate(data.since)}</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
-          {canEdit ? (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => window.open(`/borrowers/${data.id}/statement`, '_blank')}
-            >
-              <FileSignature className="size-4" /> Statement letter
-            </Button>
-          ) : null}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={downloadStatement}
+            disabled={downloadingStatement}
+          >
+            {downloadingStatement ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <FileSignature className="size-4" />
+            )}
+            Statement letter
+          </Button>
           {canMerge ? (
             <Button size="sm" variant="outline" onClick={() => setMerging(true)}>
               <GitMerge className="size-4" /> Merge duplicate

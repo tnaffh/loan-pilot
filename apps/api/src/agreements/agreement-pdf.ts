@@ -1,21 +1,22 @@
 import PDFDocument from 'pdfkit';
 import type { AgreementData } from './agreement-data';
 import { COLORS, DASH } from '../common/pdf/document-layout';
-import { createAgreementLayout } from './agreement-layout';
+import { AGREEMENT_PAGE_OPTIONS, createAgreementLayout } from './agreement-layout';
 
 /**
  * Render a NAMFISA-compliant loan agreement as a professional PDF.
  *
  * Uses pdfkit (pure Node, no headless browser) so it runs on a read-only
  * filesystem and returns an in-memory Buffer. Shared layout (letterhead, section
- * headings, field grids, summary box, signature block with the drawn lender
- * stamp, footer) comes from {@link createAgreementLayout} so the loan agreement
- * and the collateral agreement look identical; only the loan-specific body
- * (borrower info, loan terms, itemised cost breakdown) lives here.
+ * headings, field grids, summary box, the two-party signature block with the
+ * company stamp, the per-page initials strip, footer) comes from
+ * {@link createAgreementLayout} so the loan agreement and the collateral
+ * agreement look identical; only the loan-specific body (borrower info, loan
+ * terms, itemised cost breakdown) lives here.
  */
 export const renderAgreementPdf = (data: AgreementData): Promise<Buffer> =>
   new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'A4', margin: 48, bufferPages: true });
+    const doc = new PDFDocument(AGREEMENT_PAGE_OPTIONS);
     const chunks: Buffer[] = [];
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
@@ -26,7 +27,7 @@ export const renderAgreementPdf = (data: AgreementData): Promise<Buffer> =>
 
     layout.letterhead({
       lender: data.lender,
-      logoPng: data.logoPng,
+      logoPng: data.images.logoPng,
       title: 'LOAN AGREEMENT',
       preamble: data.terms.preamble,
     });
@@ -145,10 +146,13 @@ export const renderAgreementPdf = (data: AgreementData): Promise<Buffer> =>
         { width: W },
       );
 
-    // ── Signatures → Terms & Conditions → footer ─────────────────────────
+    // ── Signatures → Terms & Conditions → footer + initials ──────────────
     layout.signatureBlock({
-      signaturePng: data.signaturePng,
+      signaturePng: data.images.signaturePng,
       lender: data.lender,
+      officerName: data.lender.principalOfficerName,
+      officerSignaturePng: data.images.officerSignaturePng,
+      stampPng: data.images.stampPng,
       borrowerName: data.borrower.fullName,
       disbursedAt: data.loan.disbursedAt,
       generatedAt: data.generatedAt,
@@ -156,7 +160,10 @@ export const renderAgreementPdf = (data: AgreementData): Promise<Buffer> =>
       termsVersion: data.terms.version,
     });
     layout.renderTermsSections(data.terms);
-    layout.footer(data.lender);
+    layout.finish(data.lender, {
+      borrowerPng: data.images.initialsPng,
+      lenderPng: data.images.officerInitialsPng,
+    });
 
     doc.end();
   });

@@ -429,6 +429,7 @@ const LoanDetailPage = () => {
 
           <LoanAgreementCard
             loanId={data.id}
+            loanUpdatedAt={data.updatedAt}
             user={user}
             token={token}
             hasSignature={Boolean(data.signatureDocumentId)}
@@ -437,6 +438,7 @@ const LoanDetailPage = () => {
           {data.type === 'collateral' ? (
             <CollateralAgreementCard
               loanId={data.id}
+              loanUpdatedAt={data.updatedAt}
               user={user}
               token={token}
               hasSignature={Boolean(data.signatureDocumentId)}

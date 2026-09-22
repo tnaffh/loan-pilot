@@ -177,6 +177,15 @@ model TenantSettings {
   postalAddress    String?
   contactPhone     String?
   contactEmail     String?
+  website          String?
+  // The principal officer who signs for the lender on generated agreements and
+  // statement letters, with their signature / initials images, plus an optional
+  // custom (undated) company stamp image — when absent the stamp is drawn from
+  // the identity above. Image columns hold storage keys (see StorageService).
+  principalOfficerName      String?
+  principalOfficerSignature String?
+  principalOfficerInitials  String?
+  companyStamp              String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -468,10 +477,12 @@ model Loan {
   collexiaStatus   CollexiaStatus @default(pending)
   collexiaMarkedAt DateTime?
   // Loan-agreement facts carried over from the application at approval: which
-  // T&C version the borrower accepted, when, and the captured signature image.
+  // T&C version the borrower accepted, when, and the captured signature and
+  // initials images (each a Document of kind 'signature' / 'initials').
   tcVersion           String?
   tcAcceptedAt        DateTime?
   signatureDocumentId String?
+  initialsDocumentId  String?
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
@@ -555,11 +566,13 @@ model LoanApplication {
   quotedTotal       Int
   quotedInstalment  Int
   affordabilityRatio Float
-  // Terms acceptance + captured signature (draw or photo) at intake. The
-  // signature is stored as a Document (kind 'signature'); this points at it.
+  // Terms acceptance + captured signature and initials (draw or photo) at
+  // intake. Each is stored as a Document (kind 'signature' / 'initials'); these
+  // point at them.
   tcVersion           String?
   tcAcceptedAt        DateTime?
   signatureDocumentId String?
+  initialsDocumentId  String?
   status         ApplicationStatus   @default(pending)
   affordability  AffordabilityResult @default(review)
   // Reason captured when an application is declined; shown in its activity timeline.

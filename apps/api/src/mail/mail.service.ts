@@ -5,6 +5,11 @@ import { Resend } from 'resend';
 const BRAND_NAVY = '#25397a';
 const BRAND_LIME = '#d7df21';
 
+/** How an agreement copy is framed: the original signed copy, or a replacement after an edit. */
+export interface AgreementMailOptions {
+  updated?: boolean;
+}
+
 /**
  * Transactional email via Resend (HTTP API — no SMTP egress concerns on Cloud
  * Run). When `RESEND_API_KEY` is unset, emails are logged instead of sent so
@@ -60,18 +65,24 @@ export class MailService {
     name: string,
     lenderName: string,
     pdf: Buffer,
+    fileName = 'Loan Agreement.pdf',
+    options: AgreementMailOptions = {},
   ): Promise<void> {
     await this.send(
       email,
-      `Your loan agreement — ${lenderName}`,
+      options.updated
+        ? `Your updated loan agreement — ${lenderName}`
+        : `Your loan agreement — ${lenderName}`,
       this.template({
         heading: `Hi ${name}`,
-        body: `Please find attached your signed loan agreement with ${lenderName}. Keep it for your records — you can request another copy at any time.`,
+        body: options.updated
+          ? `Your loan agreement with ${lenderName} has been updated by our office (for example a correction to the amount, charges or dates). The attached copy replaces any earlier version — please keep it for your records and contact us if anything looks wrong.`
+          : `Please find attached your signed loan agreement with ${lenderName}. Keep it for your records — you can request another copy at any time.`,
         cta: 'Contact us',
         url: 'mailto:' + (this.from.match(/<(.+)>/)?.[1] ?? this.from),
         note: 'This copy is provided at no cost in line with NAMFISA requirements.',
       }),
-      [{ filename: 'loan-agreement.pdf', content: pdf }],
+      [{ filename: fileName, content: pdf }],
     );
   }
 
@@ -81,18 +92,24 @@ export class MailService {
     name: string,
     lenderName: string,
     pdf: Buffer,
+    fileName = 'Collateral Agreement.pdf',
+    options: AgreementMailOptions = {},
   ): Promise<void> {
     await this.send(
       email,
-      `Your collateral agreement — ${lenderName}`,
+      options.updated
+        ? `Your updated collateral agreement — ${lenderName}`
+        : `Your collateral agreement — ${lenderName}`,
       this.template({
         heading: `Hi ${name}`,
-        body: `Please find attached your signed collateral agreement with ${lenderName}, which secures your loan. Keep it for your records — you can request another copy at any time.`,
+        body: options.updated
+          ? `Your collateral agreement with ${lenderName} has been updated by our office to match a change to your loan. The attached copy replaces any earlier version — please keep it for your records and contact us if anything looks wrong.`
+          : `Please find attached your signed collateral agreement with ${lenderName}, which secures your loan. Keep it for your records — you can request another copy at any time.`,
         cta: 'Contact us',
         url: 'mailto:' + (this.from.match(/<(.+)>/)?.[1] ?? this.from),
         note: 'This copy is provided at no cost.',
       }),
-      [{ filename: 'collateral-agreement.pdf', content: pdf }],
+      [{ filename: fileName, content: pdf }],
     );
   }
 

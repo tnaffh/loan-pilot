@@ -6,7 +6,7 @@ import { Download, FileSignature, Loader2, Mail, RefreshCw, Upload } from 'lucid
 import { can, type SessionUser } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ApiError, apiFetch, uploadDocument } from '@/lib/api';
+import { ApiError, apiFetch, downloadDocument, uploadDocument } from '@/lib/api';
 import { formatDate } from '@/lib/format';
 
 interface AgreementView {
@@ -19,18 +19,20 @@ interface AgreementView {
 
 interface Props {
   loanId: string;
+  /** The loan's last edit; a change reloads the card, since edits regenerate the agreement. */
+  loanUpdatedAt: string;
   user: SessionUser | null;
   token: string | null;
   /** Whether the loan carries a captured signature; drives the wet-sign hint. */
   hasSignature: boolean;
 }
 
-export const LoanAgreementCard = ({ loanId, user, token, hasSignature }: Props) => {
+export const LoanAgreementCard = ({ loanId, loanUpdatedAt, user, token, hasSignature }: Props) => {
   const canRead = Boolean(user && can(user, 'agreements:read'));
   const canGenerate = Boolean(user && can(user, 'agreements:generate'));
   const [agreement, setAgreement] = useState<AgreementView | null>(null);
   const [loading, setLoading] = useState(true);
-  const [busy, setBusy] = useState<'generate' | 'email' | 'upload' | null>(null);
+  const [busy, setBusy] = useState<'generate' | 'email' | 'upload' | 'download' | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const load = async () => {
@@ -70,7 +72,7 @@ export const LoanAgreementCard = ({ loanId, user, token, hasSignature }: Props) 
       state.active = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loanId, canRead]);
+  }, [loanId, canRead, loanUpdatedAt]);
 
   if (!canRead) return null;
 
@@ -98,6 +100,18 @@ export const LoanAgreementCard = ({ loanId, user, token, hasSignature }: Props) 
       toast.success('A copy was emailed to the borrower');
     } catch (error) {
       toast.error(error instanceof ApiError ? error.message : 'Could not email the agreement');
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const download = async () => {
+    if (!agreement) return;
+    setBusy('download');
+    try {
+      await downloadDocument(agreement, token);
+    } catch (error) {
+      toast.error(error instanceof ApiError ? error.message : 'Could not download the agreement');
     } finally {
       setBusy(null);
     }
@@ -138,15 +152,14 @@ export const LoanAgreementCard = ({ loanId, user, token, hasSignature }: Props) 
                 Generated {formatDate(agreement.uploadedAt)}
               </div>
             </div>
-            {agreement.url ? (
-              <Button
-                size="sm"
-                variant="outline"
-                render={<a href={agreement.url} target="_blank" rel="noreferrer" />}
-              >
-                <Download className="size-4" /> Download
-              </Button>
-            ) : null}
+            <Button size="sm" variant="outline" onClick={download} disabled={busy !== null}>
+              {busy === 'download' ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Download className="size-4" />
+              )}
+              Download
+            </Button>
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
@@ -203,6 +216,10 @@ export const LoanAgreementCard = ({ loanId, user, token, hasSignature }: Props) 
             />
           </div>
         ) : null}
+        <p className="text-xs text-muted-foreground">
+          Editing the loan (amount, term, rate, fees or dates) regenerates this agreement and
+          emails the borrower the updated copy.
+        </p>
       </CardContent>
     </Card>
   );
