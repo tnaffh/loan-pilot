@@ -11,17 +11,33 @@ import {
   type FieldPath,
 } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CheckCircle2, ChevronLeft, ChevronRight, Loader2, Plus, Trash2, XCircle } from 'lucide-react';
 import {
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  Plus,
+  Trash2,
+  XCircle,
+} from 'lucide-react';
+import {
+  AFFORDABILITY_OUTCOME_COPY,
+  APPLICATION_DOCUMENT_SLOTS,
+  APPLICATION_STEP_FIELDS,
+  APPLICATION_STEPS,
+  BANK_ACCOUNT_TYPES,
   DocumentKind,
+  EMPLOYMENT_TYPE_OPTIONS,
   EmploymentType,
   GENDER_OPTIONS,
+  MARITAL_STATUS_OPTIONS,
   LOAN_PURPOSE_LABELS,
   LoanType,
   NAMIBIAN_REGIONS,
   TERMS_VERSION,
   createApplicationSchema,
   formatNad,
+  isDocumentSlotRequired,
   toCents,
   type CreateApplicationInput,
 } from '@loan-pilot/domain';
@@ -53,77 +69,9 @@ import {
 import { computeQuote, fetchPricingConfig, type PricingConfig } from '@/lib/pricing';
 import { PRODUCTS } from '@/lib/site-data';
 
-const STEPS = ['Your loan', 'Personal', 'Employment & bank', 'References & docs', 'Review & sign'] as const;
-
-const STEP_FIELDS: FieldPath<CreateApplicationInput>[][] = [
-  [
-    'loanType',
-    'amount',
-    'termMonths',
-    'purpose',
-    'purposeCategory',
-    'collateral.item',
-    'collateral.identifier',
-    'collateral.description',
-    'collateral.condition',
-    'collateral.estimatedValue',
-  ],
-  [
-    'firstName',
-    'lastName',
-    'idNumber',
-    'dateOfBirth',
-    'phone',
-    'email',
-    'address.street',
-    'address.city',
-    'address.country',
-    'postalSameAsResidential',
-    'postalAddress',
-    'maritalStatus',
-    'gender',
-  ],
-  [
-    'employmentType',
-    'employer',
-    'employerPhone',
-    'employerAddress',
-    'employeeNo',
-    'occupation',
-    'monthlyIncome',
-    'bankAccount.bankName',
-    'bankAccount.accountNumber',
-    'bankAccount.accountHolderName',
-    'bankAccount.accountType',
-  ],
-  ['references', 'consent'],
-  ['tcAccepted', 'tcVersion', 'signature', 'initials'],
-];
-
-const DOCUMENT_SLOTS: { kind: DocumentKind; label: string; required?: boolean }[] = [
-  { kind: DocumentKind.IdDocument, label: 'ID / passport copy', required: true },
-  { kind: DocumentKind.Payslip, label: 'Latest payslip', required: true },
-  { kind: DocumentKind.BankStatement, label: '3-month bank statement', required: true },
-  { kind: DocumentKind.ProofOfResidence, label: 'Proof of residence' },
-];
-
-const EMPLOYMENT_OPTIONS: { value: EmploymentType; label: string }[] = [
-  { value: EmploymentType.PermanentlyEmployed, label: 'Permanently employed' },
-  { value: EmploymentType.CivilServant, label: 'Civil servant' },
-  { value: EmploymentType.SelfEmployed, label: 'Self-employed' },
-  { value: EmploymentType.Contract, label: 'Contract' },
-  { value: EmploymentType.Pensioner, label: 'Pensioner' },
-];
-
-const ACCOUNT_TYPES = ['Savings', 'Cheque', 'Transmission'];
-
-const MARITAL_OPTIONS = ['Single', 'Married', 'Divorced', 'Widowed', 'Other'];
-
-const AFFORDABILITY_COPY: Record<ApplicationResult['affordability'], string> = {
-  pass: 'Great news — based on what you told us, this loan looks comfortably affordable.',
-  review: 'Your application needs a quick manual review by our team. We will be in touch shortly.',
-  fail: 'Based on the income provided, this amount may stretch your budget. Our team will suggest a more affordable option.',
-};
+const STEPS = APPLICATION_STEPS;
+const STEP_FIELDS = APPLICATION_STEP_FIELDS;
+const DOCUMENT_SLOTS = APPLICATION_DOCUMENT_SLOTS;
 
 export const ApplyForm = () => {
   const [step, setStep] = useState(0);
@@ -153,7 +101,14 @@ export const ApplyForm = () => {
       dateOfBirth: '',
       phone: '',
       email: '',
-      address: { label: 'Residential', street: '', suburb: '', city: '', region: '', country: 'Namibia' },
+      address: {
+        label: 'Residential',
+        street: '',
+        suburb: '',
+        city: '',
+        region: '',
+        country: 'Namibia',
+      },
       postalSameAsResidential: true,
       // Left undefined so the optional postal address doesn't validate an empty
       // object while it's hidden; it's populated only when the box is unticked.
@@ -240,7 +195,7 @@ export const ApplyForm = () => {
    * blocked "Continue" can list them (some failing fields may be off-screen). */
   const collectStepErrors = (
     errs: FieldErrors<CreateApplicationInput>,
-    fieldsForStep: FieldPath<CreateApplicationInput>[],
+    fieldsForStep: readonly FieldPath<CreateApplicationInput>[],
   ): string[] => {
     const messages: string[] = [];
     const seen = new Set<string>();
@@ -284,8 +239,7 @@ export const ApplyForm = () => {
   /** Whether a slot is required for the current loan type. Collateral loans make
    * payslip & bank statement optional (the collateral secures the loan instead). */
   const slotRequired = (slot: (typeof DOCUMENT_SLOTS)[number]): boolean =>
-    Boolean(slot.required) &&
-    !(isCollateral && (slot.kind === DocumentKind.Payslip || slot.kind === DocumentKind.BankStatement));
+    isDocumentSlotRequired(slot, watchedType);
 
   /** Required supporting documents aren't part of the zod schema (they upload
    * separately), so gate them here. Returns true when all required files are
@@ -359,7 +313,7 @@ export const ApplyForm = () => {
           <div className="space-y-2">
             <h2 className="text-2xl">Application received</h2>
             <p className="mx-auto max-w-md text-muted-foreground">
-              {AFFORDABILITY_COPY[result.affordability]}
+              {AFFORDABILITY_OUTCOME_COPY[result.affordability]}
             </p>
           </div>
           <div className="mx-auto grid max-w-sm grid-cols-2 gap-4 rounded-xl bg-muted p-5 text-left">
@@ -395,7 +349,9 @@ export const ApplyForm = () => {
         <ol className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {STEPS.map((label, index) => (
             <li key={label} className="space-y-1.5">
-              <div className={cn('h-1.5 rounded-full', index <= step ? 'bg-primary' : 'bg-muted')} />
+              <div
+                className={cn('h-1.5 rounded-full', index <= step ? 'bg-primary' : 'bg-muted')}
+              />
               <span
                 className={cn(
                   'text-xs',
@@ -452,7 +408,11 @@ export const ApplyForm = () => {
                 />
 
                 <div className="grid gap-5 sm:grid-cols-2">
-                  <FormField label="Amount needed (N$)" htmlFor="amount" error={errors.amount?.message}>
+                  <FormField
+                    label="Amount needed (N$)"
+                    htmlFor="amount"
+                    error={errors.amount?.message}
+                  >
                     <Input
                       id="amount"
                       type="number"
@@ -553,7 +513,8 @@ export const ApplyForm = () => {
                     <div className="space-y-1">
                       <h3 className="font-heading text-lg font-medium">Collateral</h3>
                       <p className="text-sm text-muted-foreground">
-                        Tell us about the asset you are putting up as security, and add clear photos of it.
+                        Tell us about the asset you are putting up as security, and add clear photos
+                        of it.
                       </p>
                     </div>
                     <div className="grid gap-5 sm:grid-cols-2">
@@ -631,7 +592,11 @@ export const ApplyForm = () => {
                   </p>
                 </div>
                 <div className="grid gap-5 sm:grid-cols-2">
-                  <FormField label="First name" htmlFor="firstName" error={errors.firstName?.message}>
+                  <FormField
+                    label="First name"
+                    htmlFor="firstName"
+                    error={errors.firstName?.message}
+                  >
                     <Input id="firstName" autoComplete="given-name" {...register('firstName')} />
                   </FormField>
                   <FormField label="Surname" htmlFor="lastName" error={errors.lastName?.message}>
@@ -670,7 +635,13 @@ export const ApplyForm = () => {
                     error={errors.phone?.message}
                     description="e.g. 081 123 4567"
                   >
-                    <Input id="phone" type="tel" inputMode="tel" autoComplete="tel" {...register('phone')} />
+                    <Input
+                      id="phone"
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel"
+                      {...register('phone')}
+                    />
                   </FormField>
                   <FormField label="Email" htmlFor="email" error={errors.email?.message}>
                     <Input id="email" type="email" autoComplete="email" {...register('email')} />
@@ -691,7 +662,11 @@ export const ApplyForm = () => {
                   <FormField label="Suburb" htmlFor="address.suburb" optional>
                     <Input id="address.suburb" {...register('address.suburb')} />
                   </FormField>
-                  <FormField label="City / town" htmlFor="address.city" error={errors.address?.city?.message}>
+                  <FormField
+                    label="City / town"
+                    htmlFor="address.city"
+                    error={errors.address?.city?.message}
+                  >
                     <Input id="address.city" {...register('address.city')} />
                   </FormField>
                   <FormField label="Region" htmlFor="address.region" optional>
@@ -751,7 +726,7 @@ export const ApplyForm = () => {
                             <SelectValue placeholder="Select" />
                           </SelectTrigger>
                           <SelectContent>
-                            {MARITAL_OPTIONS.map((option) => (
+                            {MARITAL_STATUS_OPTIONS.map((option) => (
                               <SelectItem key={option} value={option}>
                                 {option}
                               </SelectItem>
@@ -844,7 +819,8 @@ export const ApplyForm = () => {
                 <div className="space-y-1">
                   <h2 className="text-2xl tracking-tight">Employment &amp; bank</h2>
                   <p className="text-muted-foreground">
-                    We use this to assess affordability — you always keep at least 50% of your income.
+                    We use this to assess affordability — you always keep at least 50% of your
+                    income.
                   </p>
                 </div>
                 <div className="grid gap-5 sm:grid-cols-2">
@@ -862,7 +838,7 @@ export const ApplyForm = () => {
                             <SelectValue placeholder="Select" />
                           </SelectTrigger>
                           <SelectContent>
-                            {EMPLOYMENT_OPTIONS.map((option) => (
+                            {EMPLOYMENT_TYPE_OPTIONS.map((option) => (
                               <SelectItem key={option.value} value={option.value}>
                                 {option.label}
                               </SelectItem>
@@ -889,11 +865,20 @@ export const ApplyForm = () => {
                   <FormField label="Employer" htmlFor="employer" error={errors.employer?.message}>
                     <Input id="employer" {...register('employer')} />
                   </FormField>
-                  <FormField label="Occupation" htmlFor="occupation" error={errors.occupation?.message}>
+                  <FormField
+                    label="Occupation"
+                    htmlFor="occupation"
+                    error={errors.occupation?.message}
+                  >
                     <Input id="occupation" {...register('occupation')} />
                   </FormField>
                   <FormField label="Employer telephone" htmlFor="employerPhone" optional>
-                    <Input id="employerPhone" type="tel" inputMode="tel" {...register('employerPhone')} />
+                    <Input
+                      id="employerPhone"
+                      type="tel"
+                      inputMode="tel"
+                      {...register('employerPhone')}
+                    />
                   </FormField>
                   <FormField label="Payslip / employee no." htmlFor="employeeNo" optional>
                     <Input id="employeeNo" {...register('employeeNo')} />
@@ -910,7 +895,9 @@ export const ApplyForm = () => {
 
                 <div className="space-y-1 pt-2">
                   <h3 className="font-heading text-lg font-medium">Bank account</h3>
-                  <p className="text-sm text-muted-foreground">Where we will pay out and collect.</p>
+                  <p className="text-sm text-muted-foreground">
+                    Where we will pay out and collect.
+                  </p>
                 </div>
                 <div className="grid gap-5 sm:grid-cols-2">
                   <FormField
@@ -955,7 +942,7 @@ export const ApplyForm = () => {
                             <SelectValue placeholder="Select" />
                           </SelectTrigger>
                           <SelectContent>
-                            {ACCOUNT_TYPES.map((type) => (
+                            {BANK_ACCOUNT_TYPES.map((type) => (
                               <SelectItem key={type} value={type}>
                                 {type}
                               </SelectItem>
@@ -1078,8 +1065,8 @@ export const ApplyForm = () => {
                         className="mt-0.5"
                       />
                       <span className="text-muted-foreground">
-                        I confirm the information provided is accurate and I agree to an affordability
-                        assessment and credit check in line with NAMFISA requirements.
+                        I confirm the information provided is accurate and I agree to an
+                        affordability assessment and credit check in line with NAMFISA requirements.
                       </span>
                     </label>
                   )}
@@ -1145,8 +1132,8 @@ export const ApplyForm = () => {
                 <div className="space-y-2">
                   <div className="text-sm font-medium">Your initials</div>
                   <p className="text-xs text-muted-foreground">
-                    Every page of your loan agreement except the signature page is initialled.
-                    We print these initials on those pages for you.
+                    Every page of your loan agreement except the signature page is initialled. We
+                    print these initials on those pages for you.
                   </p>
                   <Controller
                     control={control}
