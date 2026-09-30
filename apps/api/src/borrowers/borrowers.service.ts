@@ -4,12 +4,19 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import type { $Enums, Borrower, BorrowerAddress, BorrowerBankAccount, Prisma } from '@prisma/client';
+import type {
+  $Enums,
+  Borrower,
+  BorrowerAddress,
+  BorrowerBankAccount,
+  Prisma,
+} from '@prisma/client';
 import {
   LoanStatus,
   RepaymentStatus,
   assessArrears,
   fromCents,
+  phoneKey,
   toCents,
   type CreateBorrowerAddressInput,
   type CreateBorrowerBankAccountInput,
@@ -68,7 +75,12 @@ export interface BorrowerStatement {
   borrower: { name: string; idNumber: string; address: string; phone: string; email: string };
   /** Only loans still open (active / in arrears / partly paid). */
   loans: StatementLoan[];
-  totals: { outstanding: number; lifetimeBorrowed: number; openLoans: number; settledLoans: number };
+  totals: {
+    outstanding: number;
+    lifetimeBorrowed: number;
+    openLoans: number;
+    settledLoans: number;
+  };
   hasOutstanding: boolean;
 }
 
@@ -317,7 +329,11 @@ export class BorrowersService {
     });
     return {
       pdf,
-      fileName: documentFileName('Statement of Account', statement.borrower.name, statement.generatedAt),
+      fileName: documentFileName(
+        'Statement of Account',
+        statement.borrower.name,
+        statement.generatedAt,
+      ),
     };
   }
 
@@ -330,6 +346,7 @@ export class BorrowersService {
           lastName: input.lastName,
           idNumber: input.idNumber,
           phone: input.phone,
+          phoneKey: phoneKey(input.phone),
           email: input.email,
           employer: input.employer,
           occupation: input.occupation,
@@ -450,6 +467,7 @@ export class BorrowersService {
     if (payDay !== undefined) data.payDay = payDay || null;
     if (collexiaClientNo !== undefined) data.collexiaClientNo = collexiaClientNo || null;
     if (status) data.status = status;
+    if (rest.phone !== undefined) data.phoneKey = phoneKey(rest.phone);
 
     let updated: Borrower;
     try {
@@ -528,7 +546,10 @@ export class BorrowersService {
     if (input.accountHolderName !== undefined) data.accountHolderName = input.accountHolderName;
     if (input.accountType !== undefined) data.accountType = input.accountType;
 
-    const updated = await this.prisma.borrowerBankAccount.update({ where: { id: accountId }, data });
+    const updated = await this.prisma.borrowerBankAccount.update({
+      where: { id: accountId },
+      data,
+    });
     const before = bankAuditMap(existing);
     await this.audit.record(tenantId, actor, {
       entity: 'borrower',
@@ -641,9 +662,7 @@ export class BorrowersService {
     });
     const targetName = nameKey(target.firstName, target.lastName);
     return candidates
-      .filter(
-        (c) => c.phone === target.phone || nameKey(c.firstName, c.lastName) === targetName,
-      )
+      .filter((c) => c.phone === target.phone || nameKey(c.firstName, c.lastName) === targetName)
       .slice(0, 5);
   }
 }

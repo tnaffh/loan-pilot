@@ -14,6 +14,7 @@ import {
   addMonths,
   assessAffordability,
   quote,
+  phoneKey,
   toCents,
 } from '@loan-pilot/domain';
 
@@ -69,7 +70,10 @@ const seedLoanForBorrower = async (
       // so they surface in the loading reminder.
       fundsReleased: true,
       fundsReleasedAt: disbursedAt,
-      nextDueAt: loan.status === LoanStatus.Settled ? null : addMonths(disbursedAt, loan.instalmentsPaid + 1),
+      nextDueAt:
+        loan.status === LoanStatus.Settled
+          ? null
+          : addMonths(disbursedAt, loan.instalmentsPaid + 1),
       schedule: {
         create: loanQuote.schedule.map((item) => ({
           number: item.number,
@@ -84,9 +88,7 @@ const seedLoanForBorrower = async (
 };
 
 /** Seed the two built-in system roles for a tenant, from the domain catalog. */
-const seedSystemRoles = async (
-  tenantId: string,
-): Promise<{ adminId: string; staffId: string }> => {
+const seedSystemRoles = async (tenantId: string): Promise<{ adminId: string; staffId: string }> => {
   const admin = await prisma.role.create({
     data: {
       tenantId,
@@ -115,6 +117,7 @@ const main = async (): Promise<void> => {
   await prisma.borrowerReference.deleteMany();
   await prisma.document.deleteMany();
   await prisma.loanApplication.deleteMany();
+  await prisma.phoneOtp.deleteMany();
   await prisma.payment.deleteMany();
   await prisma.loan.deleteMany();
   await prisma.invoice.deleteMany();
@@ -268,12 +271,19 @@ const main = async (): Promise<void> => {
       return prisma.borrower.create({
         data: {
           ...rest,
+          phoneKey: phoneKey(rest.phone),
           // Seed incomes above are in major N$; the column stores cents.
           monthlyIncome: toCents(monthlyIncome),
           tenant: { connect: { id: rfs.id } },
           addresses: {
             create: [
-              { label: 'Residential', street: address, city: 'Windhoek', country: 'Namibia', isActive: true },
+              {
+                label: 'Residential',
+                street: address,
+                city: 'Windhoek',
+                country: 'Namibia',
+                isActive: true,
+              },
             ],
           },
           bankAccounts: {
@@ -298,6 +308,7 @@ const main = async (): Promise<void> => {
     await prisma.user.create({
       data: {
         email: 'helena@email.na',
+        phone: firstBorrower.phoneKey,
         name: `${firstBorrower.firstName} ${firstBorrower.lastName}`,
         role: UserRole.Borrower,
         passwordHash: DEV_PASSWORD_HASH,
@@ -406,6 +417,7 @@ const main = async (): Promise<void> => {
           idNumber: seed.idNumber,
           dateOfBirth: '1990-01-01',
           phone: '+264 81 000 0000',
+          phoneKey: phoneKey('+264 81 000 0000'),
           email: `${seed.firstName.toLowerCase()}@email.na`,
           addrStreet: '1 Independence Ave',
           addrCity: 'Windhoek',

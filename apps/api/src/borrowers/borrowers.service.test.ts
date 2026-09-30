@@ -1,6 +1,11 @@
 import { Test } from '@nestjs/testing';
 import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
-import { EmploymentType, UserRole, type CreateBorrowerInput, type SessionUser } from '@loan-pilot/domain';
+import {
+  EmploymentType,
+  UserRole,
+  type CreateBorrowerInput,
+  type SessionUser,
+} from '@loan-pilot/domain';
 import { BorrowersService } from './borrowers.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.service';
@@ -89,6 +94,7 @@ describe('BorrowersService', () => {
   const actor: SessionUser = {
     id: 'user_1',
     email: 'admin@rfs.na',
+    phone: null,
     name: 'Admin',
     role: UserRole.LenderAdmin,
     tenantId: 'tenant_1',
@@ -213,7 +219,17 @@ describe('BorrowersService', () => {
       country: 'Namibia',
     });
     addressUpdate.mockImplementation((args: { data: Record<string, unknown> }) =>
-      Promise.resolve({ id: 'addr_1', borrowerId: 'bor_1', street: 'New St', city: 'Windhoek', country: 'Namibia', label: null, suburb: null, region: null, ...args.data }),
+      Promise.resolve({
+        id: 'addr_1',
+        borrowerId: 'bor_1',
+        street: 'New St',
+        city: 'Windhoek',
+        country: 'Namibia',
+        label: null,
+        suburb: null,
+        region: null,
+        ...args.data,
+      }),
     );
     await service.updateAddress('tenant_1', actor, 'bor_1', 'addr_1', { street: 'New St' });
     expect(addressUpdate).toHaveBeenCalled();
@@ -298,7 +314,9 @@ describe('BorrowersService', () => {
   });
 
   it('suggests same-phone / same-name borrowers and excludes the target', async () => {
-    findFirst.mockResolvedValue(borrower({ id: 'bor_1', phone: '0811', firstName: 'Selma', lastName: 'N' }));
+    findFirst.mockResolvedValue(
+      borrower({ id: 'bor_1', phone: '0811', firstName: 'Selma', lastName: 'N' }),
+    );
     findMany.mockResolvedValue([
       borrower({ id: 'same_phone', phone: '0811', firstName: 'Different', lastName: 'Name' }),
       borrower({ id: 'same_name', phone: '0822', firstName: 'selma', lastName: 'n' }),
@@ -353,7 +371,9 @@ describe('BorrowersService', () => {
           schedule: [],
         },
       ],
-      addresses: [{ street: '1 Main', suburb: null, city: 'Windhoek', region: null, country: 'Namibia' }],
+      addresses: [
+        { street: '1 Main', suburb: null, city: 'Windhoek', region: null, country: 'Namibia' },
+      ],
     });
 
   it('builds a statement of the open accounts only, with payoff (incl. default interest) and totals', async () => {
@@ -377,7 +397,11 @@ describe('BorrowersService', () => {
 
   it('renders the statement letter as a PDF named after the borrower', async () => {
     findFirst.mockResolvedValue(borrowerWithHistory());
-    tenantFindUnique.mockResolvedValue({ name: 'Regal Financial Solutions', town: 'Windhoek', logoUrl: null });
+    tenantFindUnique.mockResolvedValue({
+      name: 'Regal Financial Solutions',
+      town: 'Windhoek',
+      logoUrl: null,
+    });
 
     const { pdf, fileName } = await service.statementLetterPdf('tenant_1', 'bor_1');
 

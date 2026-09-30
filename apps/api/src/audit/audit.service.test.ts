@@ -11,6 +11,7 @@ describe('AuditService', () => {
   const actor: SessionUser = {
     id: 'user_1',
     email: 'a@b.na',
+    phone: null,
     name: 'Eufemia',
     role: UserRole.LenderAdmin,
     tenantId: 'tenant_1',
@@ -55,7 +56,11 @@ describe('AuditService', () => {
     });
     expect(auditCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        data: expect.objectContaining({ actorName: 'Eufemia', entity: 'borrower', action: 'updated' }),
+        data: expect.objectContaining({
+          actorName: 'Eufemia',
+          entity: 'borrower',
+          action: 'updated',
+        }),
       }),
     );
   });

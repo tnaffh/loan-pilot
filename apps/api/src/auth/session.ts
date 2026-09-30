@@ -45,7 +45,8 @@ export const buildSessionUser = (user: UserForSession): SessionUser => {
   const role = ROLE_MAP[user.role] ?? UserRole.Borrower;
   return {
     id: user.id,
-    email: user.email,
+    email: user.email ?? '',
+    phone: user.phone,
     name: user.name,
     role,
     tenantId: user.tenantId,

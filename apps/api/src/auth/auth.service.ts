@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  UnauthorizedException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { compare, hash } from 'bcryptjs';
@@ -51,7 +47,8 @@ export class AuthService {
     private readonly mail: MailService,
   ) {}
 
-  private async issue(user: UserForSession): Promise<LoginResponse> {
+  /** Sign a session token for a resolved user (password, OAuth and SMS-code sign-in). */
+  async issue(user: UserForSession): Promise<LoginResponse> {
     const sessionUser = buildSessionUser(user);
     const payload: JwtPayload = {
       sub: sessionUser.id,
@@ -117,7 +114,11 @@ export class AuthService {
         },
       },
       update: {},
-      create: { userId: user.id, provider: profile.provider, providerAccountId: profile.providerAccountId },
+      create: {
+        userId: user.id,
+        provider: profile.provider,
+        providerAccountId: profile.providerAccountId,
+      },
     });
     const refreshed = await this.prisma.user.update({
       where: { id: user.id },
@@ -138,7 +139,7 @@ export class AuthService {
 
   async invitePreview(token: string): Promise<{ email: string; name: string }> {
     const user = await this.requireValidToken('invite', token);
-    return { email: user.email, name: user.name };
+    return { email: user.email ?? '', name: user.name };
   }
 
   async acceptInvite(input: AcceptInviteInput): Promise<LoginResponse> {
@@ -176,21 +177,31 @@ export class AuthService {
   /** Always resolves (no account enumeration); emails a reset link when the user exists. */
   async forgotPassword(email: string): Promise<void> {
     const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
-    if (!user || user.status === UserStatus.Disabled) {
+    if (!user?.email || user.status === UserStatus.Disabled) {
       return;
     }
     const token = newToken();
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { resetTokenHash: hashToken(token), resetExpiresAt: new Date(Date.now() + RESET_TTL_MS) },
+      data: {
+        resetTokenHash: hashToken(token),
+        resetExpiresAt: new Date(Date.now() + RESET_TTL_MS),
+      },
     });
-    const dashboard = (this.config.get<string>('DASHBOARD_URL') ?? 'http://localhost:3001').replace(/\/+$/, '');
-    await this.mail.sendPasswordReset(user.email, user.name, `${dashboard}/reset-password?token=${token}`);
+    const dashboard = (this.config.get<string>('DASHBOARD_URL') ?? 'http://localhost:3001').replace(
+      /\/+$/,
+      '',
+    );
+    await this.mail.sendPasswordReset(
+      user.email,
+      user.name,
+      `${dashboard}/reset-password?token=${token}`,
+    );
   }
 
   async resetPreview(token: string): Promise<{ email: string }> {
     const user = await this.requireValidToken('reset', token);
-    return { email: user.email };
+    return { email: user.email ?? '' };
   }
 
   async resetPassword(input: ResetPasswordInput): Promise<LoginResponse> {

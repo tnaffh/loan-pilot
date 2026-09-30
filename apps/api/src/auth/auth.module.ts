@@ -3,7 +3,10 @@ import { ConfigService } from '@nestjs/config';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { MailModule } from '../mail/mail.module';
+import { SmsModule } from '../sms/sms.module';
+import { TenantsModule } from '../tenants/tenants.module';
 import { AuthService } from './auth.service';
+import { OtpService } from './otp.service';
 import { AuthController } from './auth.controller';
 import { JwtStrategy, JWT_DEFAULT_SECRET } from './jwt.strategy';
 import { GoogleStrategy } from './google.strategy';
@@ -22,6 +25,8 @@ const googleStrategyProvider: Provider = {
   imports: [
     PassportModule,
     MailModule,
+    SmsModule,
+    TenantsModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -30,7 +35,7 @@ const googleStrategyProvider: Provider = {
       }),
     }),
   ],
-  providers: [AuthService, JwtStrategy, GoogleAuthGuard, googleStrategyProvider],
+  providers: [AuthService, OtpService, JwtStrategy, GoogleAuthGuard, googleStrategyProvider],
   controllers: [AuthController],
   exports: [AuthService],
 })

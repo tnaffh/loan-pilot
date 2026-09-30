@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './health/health.module';
 import { ApplicationsModule } from './applications/applications.module';
@@ -22,6 +23,8 @@ import { ReportsModule } from './reports/reports.module';
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    // Limits are declared per route (@Throttle + ThrottlerGuard); nothing is global.
+    ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 60 }]),
     PrismaModule,
     HealthModule,
     ApplicationsModule,

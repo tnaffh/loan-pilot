@@ -26,6 +26,9 @@ const bootstrap = async (): Promise<void> => {
   // modestly — the client downscales signatures to well under this.
   app.useBodyParser('json', { limit: '5mb' });
 
+  // Behind nginx: trust its X-Forwarded-For so per-IP throttling sees clients.
+  app.set('trust proxy', 1);
+
   app.setGlobalPrefix('api');
   app.enableCors({
     origin: (process.env.CORS_ORIGINS ?? 'http://localhost:3000,http://localhost:3001').split(','),

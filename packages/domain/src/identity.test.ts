@@ -6,6 +6,7 @@ import {
   isPlausiblePhone,
   normalizePhone,
   parseNamibianId,
+  phoneKey,
 } from './identity';
 
 const TODAY = new Date('2026-06-18T00:00:00Z');
@@ -90,5 +91,24 @@ describe('age helpers', () => {
   it('rejects unparseable dates', () => {
     expect(ageOnDate('not-a-date', TODAY)).toBeNull();
     expect(isAdult('not-a-date', TODAY)).toBe(false);
+  });
+});
+
+describe('phoneKey', () => {
+  it('maps local, international and spaced Namibian numbers to one E.164 key', () => {
+    expect(phoneKey('081 234 5678')).toBe('+264812345678');
+    expect(phoneKey('+264 81 234 5678')).toBe('+264812345678');
+    expect(phoneKey('264812345678')).toBe('+264812345678');
+    expect(phoneKey('00264-81-234-5678')).toBe('+264812345678');
+  });
+
+  it('keeps foreign international numbers as they are', () => {
+    expect(phoneKey('+27 82 555 1234')).toBe('+27825551234');
+  });
+
+  it('is null for blank or non-numeric values', () => {
+    expect(phoneKey('')).toBeNull();
+    expect(phoneKey('  ')).toBeNull();
+    expect(phoneKey('n/a')).toBeNull();
   });
 });

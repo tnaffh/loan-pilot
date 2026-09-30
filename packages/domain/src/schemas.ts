@@ -138,128 +138,130 @@ export const GENDER_OPTIONS = ['Male', 'Female', 'Other'] as const;
  * The public loan-application payload. Monetary values are submitted in
  * major Namibian Dollar units and converted to cents server-side.
  */
-export const createApplicationSchema = z.object({
-  // Step 1 — the loan
-  loanType: z.nativeEnum(LoanType),
-  amount: z.coerce.number().int().min(500, 'Minimum amount is N$ 500').max(500000),
-  termMonths: z.coerce.number().int().min(1).max(MAX_TERM_MONTHS),
-  purpose: z.string().max(280).optional().or(z.literal('')),
-  // The NAMFISA purpose category (Part 7.3 of the quarterly return). Carried
-  // onto the loan at approval; `purpose` above stays the borrower's own wording.
-  purposeCategory: z.nativeEnum(LoanPurpose).optional(),
-  // The pledged asset — only meaningful for collateral loans (required-when-
-  // collateral is enforced in the refinement below). Left undefined otherwise.
-  collateral: collateralItemSchema.optional(),
+export const createApplicationSchema = z
+  .object({
+    // Step 1 — the loan
+    loanType: z.nativeEnum(LoanType),
+    amount: z.coerce.number().int().min(500, 'Minimum amount is N$ 500').max(500000),
+    termMonths: z.coerce.number().int().min(1).max(MAX_TERM_MONTHS),
+    purpose: z.string().max(280).optional().or(z.literal('')),
+    // The NAMFISA purpose category (Part 7.3 of the quarterly return). Carried
+    // onto the loan at approval; `purpose` above stays the borrower's own wording.
+    purposeCategory: z.nativeEnum(LoanPurpose).optional(),
+    // The pledged asset — only meaningful for collateral loans (required-when-
+    // collateral is enforced in the refinement below). Left undefined otherwise.
+    collateral: collateralItemSchema.optional(),
 
-  // Step 2 — personal
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Surname is required'),
-  idNumber: z
-    .string()
-    .min(6, 'A valid ID or passport number is required')
-    .refine(isPlausibleId, 'Enter a valid Namibian ID or passport number'),
-  dateOfBirth: z
-    .string()
-    .min(1, 'Date of birth is required')
-    .refine((value) => ageOnDate(value) !== null, 'Enter a valid date of birth')
-    .refine((value) => isAdult(value), 'Applicant must be at least 18 years old'),
-  phone: z
-    .string()
-    .min(6, 'A contact number is required')
-    .refine(isPlausiblePhone, 'Enter a valid phone number'),
-  email: z.string().email('A valid email is required'),
-  address: addressSchema,
-  // Postal address, distinct from the residential one above. Fully optional —
-  // rarely used, so it never blocks a submission. `postalSameAsResidential`
-  // (default true) simply hides the fields and reuses the residential address.
-  postalSameAsResidential: z.boolean().optional(),
-  postalAddress: optionalAddressSchema.optional(),
-  maritalStatus: z.string().optional().or(z.literal('')),
-  // Required by the NAMFISA return's gender splits (Parts 15 and 7.2), which
-  // cannot be derived — a Namibian ID encodes only the date of birth.
-  gender: z.enum(GENDER_OPTIONS).optional(),
+    // Step 2 — personal
+    firstName: z.string().min(1, 'First name is required'),
+    lastName: z.string().min(1, 'Surname is required'),
+    idNumber: z
+      .string()
+      .min(6, 'A valid ID or passport number is required')
+      .refine(isPlausibleId, 'Enter a valid Namibian ID or passport number'),
+    dateOfBirth: z
+      .string()
+      .min(1, 'Date of birth is required')
+      .refine((value) => ageOnDate(value) !== null, 'Enter a valid date of birth')
+      .refine((value) => isAdult(value), 'Applicant must be at least 18 years old'),
+    phone: z
+      .string()
+      .min(6, 'A contact number is required')
+      .refine(isPlausiblePhone, 'Enter a valid phone number'),
+    email: z.string().email('A valid email is required'),
+    address: addressSchema,
+    // Postal address, distinct from the residential one above. Fully optional —
+    // rarely used, so it never blocks a submission. `postalSameAsResidential`
+    // (default true) simply hides the fields and reuses the residential address.
+    postalSameAsResidential: z.boolean().optional(),
+    postalAddress: optionalAddressSchema.optional(),
+    maritalStatus: z.string().optional().or(z.literal('')),
+    // Required by the NAMFISA return's gender splits (Parts 15 and 7.2), which
+    // cannot be derived — a Namibian ID encodes only the date of birth.
+    gender: z.enum(GENDER_OPTIONS).optional(),
 
-  // Step 3 — employment & bank
-  employmentType: z.nativeEnum(EmploymentType),
-  employer: z.string().min(1, 'Employer is required'),
-  employerPhone: z.string().max(40).optional().or(z.literal('')),
-  employerAddress: z.string().max(200).optional().or(z.literal('')),
-  employeeNo: z.string().max(60).optional().or(z.literal('')),
-  occupation: z.string().min(1, 'Occupation is required'),
-  monthlyIncome: z.coerce.number().int().min(1, 'Monthly income is required'),
-  bankAccount: bankAccountSchema,
+    // Step 3 — employment & bank
+    employmentType: z.nativeEnum(EmploymentType),
+    employer: z.string().min(1, 'Employer is required'),
+    employerPhone: z.string().max(40).optional().or(z.literal('')),
+    employerAddress: z.string().max(200).optional().or(z.literal('')),
+    employeeNo: z.string().max(60).optional().or(z.literal('')),
+    occupation: z.string().min(1, 'Occupation is required'),
+    monthlyIncome: z.coerce.number().int().min(1, 'Monthly income is required'),
+    bankAccount: bankAccountSchema,
 
-  // Step 4 — references & consent
-  references: z.array(referenceSchema).min(1, 'At least one reference is required').max(4),
-  consent: z.literal(true, {
-    errorMap: () => ({ message: 'You must agree to the terms to continue' }),
-  }),
+    // Step 4 — references & consent
+    references: z.array(referenceSchema).min(1, 'At least one reference is required').max(4),
+    consent: z.literal(true, {
+      errorMap: () => ({ message: 'You must agree to the terms to continue' }),
+    }),
 
-  // Step 5 — review & sign. The applicant reads the full NAMFISA-approved terms,
-  // agrees to them, signs, and initials. `tcVersion` pins which wording was
-  // accepted; the signature and initials are normalized PNG data-URLs (drawn or
-  // photographed), stored server-side and embedded into the generated agreement
-  // PDF — the signature on the signing page, the initials on every other page.
-  tcAccepted: z.literal(true, {
-    errorMap: () => ({ message: 'You must read and agree to the Terms & Conditions' }),
-  }),
-  tcVersion: z.string().min(1, 'Missing terms version'),
-  signature: signatureImageSchema,
-  initials: initialsImageSchema,
-}).superRefine((value, ctx) => {
-  // When the ID is a Namibian national ID, its encoded birth date must agree
-  // with the supplied date of birth. Passports carry no such data, so skip.
-  const parsed = parseNamibianId(value.idNumber);
-  if (parsed.isNamibianId && parsed.dateOfBirth && parsed.dateOfBirth !== value.dateOfBirth) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['dateOfBirth'],
-      message: 'Date of birth does not match the ID number',
-    });
-  }
-  // The accepted terms version must match the current wording; a mismatch means
-  // the applicant read stale terms (e.g. a cached form) and must re-read.
-  if (value.tcVersion !== TERMS_VERSION) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ['tcVersion'],
-      message: 'The terms have been updated — please re-read and agree',
-    });
-  }
-  // Collateral loans must describe the pledged asset. (Photos are gated in the
-  // form, outside zod, like the required supporting-document uploads.)
-  if (value.loanType === LoanType.Collateral) {
-    const collateral = value.collateral;
-    if (!collateral?.item) {
+    // Step 5 — review & sign. The applicant reads the full NAMFISA-approved terms,
+    // agrees to them, signs, and initials. `tcVersion` pins which wording was
+    // accepted; the signature and initials are normalized PNG data-URLs (drawn or
+    // photographed), stored server-side and embedded into the generated agreement
+    // PDF — the signature on the signing page, the initials on every other page.
+    tcAccepted: z.literal(true, {
+      errorMap: () => ({ message: 'You must read and agree to the Terms & Conditions' }),
+    }),
+    tcVersion: z.string().min(1, 'Missing terms version'),
+    signature: signatureImageSchema,
+    initials: initialsImageSchema,
+  })
+  .superRefine((value, ctx) => {
+    // When the ID is a Namibian national ID, its encoded birth date must agree
+    // with the supplied date of birth. Passports carry no such data, so skip.
+    const parsed = parseNamibianId(value.idNumber);
+    if (parsed.isNamibianId && parsed.dateOfBirth && parsed.dateOfBirth !== value.dateOfBirth) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ['collateral', 'item'],
-        message: 'Describe what is being put up as collateral',
+        path: ['dateOfBirth'],
+        message: 'Date of birth does not match the ID number',
       });
     }
-    if (!collateral?.identifier) {
+    // The accepted terms version must match the current wording; a mismatch means
+    // the applicant read stale terms (e.g. a cached form) and must re-read.
+    if (value.tcVersion !== TERMS_VERSION) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ['collateral', 'identifier'],
-        message: 'A serial number, registration or other identifier is required',
+        path: ['tcVersion'],
+        message: 'The terms have been updated — please re-read and agree',
       });
     }
-    if (!collateral?.description) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['collateral', 'description'],
-        message: 'A brief description is required',
-      });
+    // Collateral loans must describe the pledged asset. (Photos are gated in the
+    // form, outside zod, like the required supporting-document uploads.)
+    if (value.loanType === LoanType.Collateral) {
+      const collateral = value.collateral;
+      if (!collateral?.item) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['collateral', 'item'],
+          message: 'Describe what is being put up as collateral',
+        });
+      }
+      if (!collateral?.identifier) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['collateral', 'identifier'],
+          message: 'A serial number, registration or other identifier is required',
+        });
+      }
+      if (!collateral?.description) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['collateral', 'description'],
+          message: 'A brief description is required',
+        });
+      }
+      if (!collateral?.condition) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['collateral', 'condition'],
+          message: 'The condition of the item is required',
+        });
+      }
     }
-    if (!collateral?.condition) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['collateral', 'condition'],
-        message: 'The condition of the item is required',
-      });
-    }
-  }
-});
+  });
 export type CreateApplicationInput = z.infer<typeof createApplicationSchema>;
 
 /** Credentials for the authenticated dashboard (used from Phase 2). */
@@ -329,6 +331,21 @@ export const forgotPasswordSchema = z.object({
 });
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 
+/** Borrower sign-in, step 1: ask for a one-time code by SMS (mobile app). */
+export const otpRequestSchema = z.object({
+  phone: z
+    .string()
+    .min(6, 'Enter your phone number')
+    .refine(isPlausiblePhone, 'Enter a valid phone number'),
+});
+export type OtpRequestInput = z.infer<typeof otpRequestSchema>;
+
+/** Borrower sign-in, step 2: exchange the 6-digit code for a session. */
+export const otpVerifySchema = otpRequestSchema.extend({
+  code: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code'),
+});
+export type OtpVerifyInput = z.infer<typeof otpVerifySchema>;
+
 /** Set a new password from a reset link. */
 export const resetPasswordSchema = z.object({
   token: z.string().min(10),
@@ -380,7 +397,6 @@ export const updateBorrowerSchema = createBorrowerSchema
   })
   .partial();
 export type UpdateBorrowerInput = z.infer<typeof updateBorrowerSchema>;
-
 
 /** Add the English ordinal suffix to a day number (1 → "1st", 22 → "22nd"). */
 const ordinalDay = (n: number): string => {

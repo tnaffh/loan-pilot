@@ -33,13 +33,16 @@ describe('UsersService', () => {
     role: { findFirst: roleFindFirst },
   };
   const mailMock = { sendInvite, sendPasswordReset: jest.fn() };
-  const configMock = { get: (key: string) => (key === 'DASHBOARD_URL' ? 'https://pilot.example.com' : undefined) };
+  const configMock = {
+    get: (key: string) => (key === 'DASHBOARD_URL' ? 'https://pilot.example.com' : undefined),
+  };
 
   let service: UsersService;
 
   const admin: SessionUser = {
     id: 'admin_1',
     email: 'admin@rfs.na',
+    phone: null,
     name: 'Admin',
     role: UserRole.LenderAdmin,
     tenantId: 'tenant_1',
@@ -61,7 +64,13 @@ describe('UsersService', () => {
   beforeEach(async () => {
     jest.clearAllMocks();
     userCreate.mockImplementation((args: { data: Record<string, unknown> }) =>
-      Promise.resolve({ id: 'user_new', accounts: [], customRole: staffRole, createdAt: new Date(), ...args.data }),
+      Promise.resolve({
+        id: 'user_new',
+        accounts: [],
+        customRole: staffRole,
+        createdAt: new Date(),
+        ...args.data,
+      }),
     );
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -123,9 +132,9 @@ describe('UsersService', () => {
       customRole: managerRole,
     });
     userCount.mockResolvedValue(0); // no other active managers
-    await expect(
-      service.update(admin, 'admin_2', { status: UserStatus.Disabled }),
-    ).rejects.toThrow(BadRequestException);
+    await expect(service.update(admin, 'admin_2', { status: UserStatus.Disabled })).rejects.toThrow(
+      BadRequestException,
+    );
     expect(userUpdate).not.toHaveBeenCalled();
   });
 
@@ -151,6 +160,8 @@ describe('UsersService', () => {
       status: UserStatus.Active,
       customRole: staffRole,
     });
-    await expect(service.update(admin, 'other', { name: 'Nope' })).rejects.toThrow(NotFoundException);
+    await expect(service.update(admin, 'other', { name: 'Nope' })).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

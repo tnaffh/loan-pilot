@@ -143,6 +143,7 @@ model Tenant {
   products     LoanProduct[]
   roles        Role[]
   returns      RegulatoryReturn[]
+  phoneOtps    PhoneOtp[]
 }
 
 /**
@@ -260,7 +261,10 @@ model AuditEvent {
 
 model User {
   id           String     @id @default(cuid())
-  email        String     @unique
+  // Null for borrowers who sign in to the mobile app by SMS code only.
+  email        String?    @unique
+  // E.164 phone key (see domain `phoneKey`) for SMS-code sign-in; unique per tenant.
+  phone        String?
   // Null for OAuth-only users or those who haven't accepted an invite yet.
   passwordHash String?
   name         String
@@ -287,6 +291,7 @@ model User {
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
 
+  @@unique([tenantId, phone])
   @@index([tenantId])
   @@index([roleId])
 }
@@ -332,6 +337,8 @@ model Borrower {
   lastName       String
   idNumber       String
   phone          String
+  // E.164 form of `phone` (domain `phoneKey`), for matching app sign-ins.
+  phoneKey       String?
   email          String
   employer       String
   // Employer contact details, captured for the loan agreement.
@@ -364,6 +371,7 @@ model Borrower {
   @@unique([tenantId, idNumber])
   @@unique([tenantId, collexiaClientNo])
   @@index([tenantId])
+  @@index([tenantId, phoneKey])
 }
 
 model BorrowerAddress {
@@ -518,6 +526,8 @@ model LoanApplication {
   idNumber       String
   dateOfBirth    String
   phone          String
+  // E.164 form of `phone` (domain `phoneKey`), for matching app sign-ins.
+  phoneKey       String?
   email          String
   // Structured residential address snapshot (becomes the borrower's active address on approval).
   addrStreet     String
@@ -587,7 +597,29 @@ model LoanApplication {
   documents  Document[]
 
   @@index([tenantId])
+  @@index([tenantId, phoneKey])
   @@index([status])
+}
+
+/**
+ * A one-time SMS sign-in code for the borrower mobile app. Only the peppered
+ * sha256 of the code is stored; a code is single-use, short-lived and locks
+ * after a few wrong attempts. Rows double as the per-number send log that the
+ * resend cooldown and hourly cap are counted from.
+ */
+model PhoneOtp {
+  id         String    @id @default(cuid())
+  tenantId   String
+  tenant     Tenant    @relation(fields: [tenantId], references: [id])
+  // E.164 phone key the code was sent to.
+  phone      String
+  codeHash   String
+  expiresAt  DateTime
+  attempts   Int       @default(0)
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@index([tenantId, phone, createdAt])
 }
 
 model ApplicationReference {

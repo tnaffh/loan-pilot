@@ -7,6 +7,7 @@ import {
   assessAffordability,
   buildApplicationActivity,
   isPlaceholderId,
+  phoneKey,
   toCents,
   type ActivityEvent,
   type CreateApplicationInput,
@@ -65,6 +66,21 @@ export interface ApplicationDecision {
 /** Public pricing config for the marketing calculators: the active rate per loan
  * type (null falls back to the loan type's standard rate) plus the tenant's fee
  * settings, so the client can gross loans up exactly as {@link LoansService} does. */
+/** An application as its applicant sees it in the mobile app (money in cents). */
+export interface BorrowerApplicationView {
+  id: string;
+  status: string;
+  type: string;
+  amount: number;
+  termMonths: number;
+  quotedTotal: number;
+  quotedInstalment: number;
+  affordability: string;
+  submittedAt: Date;
+  decidedAt: Date | null;
+  declineReason: string | null;
+}
+
 export interface PricingConfig {
   rates: Record<LoanType, number | null>;
   feeSettings: FeeSettings;
@@ -148,6 +164,7 @@ export class ApplicationsService {
       idNumber: input.idNumber,
       dateOfBirth: input.dateOfBirth,
       phone: input.phone,
+      phoneKey: phoneKey(input.phone),
       email: input.email,
       addrStreet: input.address.street,
       addrSuburb: input.address.suburb || null,
@@ -241,6 +258,41 @@ export class ApplicationsService {
       originalName: fileName,
     });
     return { key, sizeBytes: buffer.length };
+  }
+
+  /**
+   * A borrower login's own applications: matched on the phone they signed in
+   * with and, once linked, their borrower's ID number (covers an application
+   * made from a different number).
+   */
+  async findForBorrowerUser(tenantId: string, userId: string): Promise<BorrowerApplicationView[]> {
+    const account = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { phone: true, borrower: { select: { idNumber: true } } },
+    });
+    const matchers: Prisma.LoanApplicationWhereInput[] = [];
+    if (account?.phone) matchers.push({ phoneKey: account.phone });
+    if (account?.borrower?.idNumber) matchers.push({ idNumber: account.borrower.idNumber });
+    if (matchers.length === 0) {
+      return [];
+    }
+    return this.prisma.loanApplication.findMany({
+      where: { tenantId, OR: matchers },
+      orderBy: { submittedAt: 'desc' },
+      select: {
+        id: true,
+        status: true,
+        type: true,
+        amount: true,
+        termMonths: true,
+        quotedTotal: true,
+        quotedInstalment: true,
+        affordability: true,
+        submittedAt: true,
+        decidedAt: true,
+        declineReason: true,
+      },
+    });
   }
 
   findAllForTenant(tenantId: string): Promise<ApplicationWithReferences[]> {

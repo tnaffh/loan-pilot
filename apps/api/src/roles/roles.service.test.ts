@@ -26,6 +26,7 @@ describe('RolesService', () => {
   const admin: SessionUser = {
     id: 'admin_1',
     email: 'admin@rfs.na',
+    phone: null,
     name: 'Admin',
     role: UserRole.LenderAdmin,
     tenantId: 'tenant_1',
@@ -56,7 +57,9 @@ describe('RolesService', () => {
 
   it('blocks editing a system role', async () => {
     roleFindFirst.mockResolvedValue(systemRole());
-    await expect(service.update(admin, 'role_sys', { name: 'X' })).rejects.toThrow(ForbiddenException);
+    await expect(service.update(admin, 'role_sys', { name: 'X' })).rejects.toThrow(
+      ForbiddenException,
+    );
     expect(roleUpdate).not.toHaveBeenCalled();
   });
 
@@ -95,6 +98,8 @@ describe('RolesService', () => {
 
   it('hides roles from other tenants (out of scope = not found)', async () => {
     roleFindFirst.mockResolvedValue(null);
-    await expect(service.update(admin, 'role_other', { name: 'X' })).rejects.toThrow(NotFoundException);
+    await expect(service.update(admin, 'role_other', { name: 'X' })).rejects.toThrow(
+      NotFoundException,
+    );
   });
 });

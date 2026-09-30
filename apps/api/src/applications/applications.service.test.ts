@@ -38,6 +38,8 @@ describe('ApplicationsService', () => {
   const loanCreate = jest.fn();
   const generateForLoan = jest.fn();
   const emailToBorrower = jest.fn();
+  const userFindFirst = jest.fn();
+  const userUpdate = jest.fn();
 
   const txMock = {
     loanApplication: { findFirst: applicationFindFirst, update: applicationUpdate, create },
@@ -48,6 +50,7 @@ describe('ApplicationsService', () => {
     borrowerReference: { deleteMany: jest.fn(), createMany: jest.fn() },
     document: { updateMany: jest.fn(), create: documentCreate },
     loan: { create: loanCreate },
+    user: { findFirst: userFindFirst, update: userUpdate },
   };
 
   const prismaMock = {
@@ -70,6 +73,7 @@ describe('ApplicationsService', () => {
     );
     txMock.applicationReference.findMany.mockResolvedValue([]);
     borrowerUpsert.mockResolvedValue({ id: 'bor_new' });
+    userFindFirst.mockResolvedValue(null);
     loanCreate.mockImplementation((args: { data: Record<string, unknown> }) =>
       Promise.resolve({ id: 'loan_new', ...args.data }),
     );
@@ -83,9 +87,15 @@ describe('ApplicationsService', () => {
         { provide: PrismaService, useValue: prismaMock },
         {
           provide: StorageService,
-          useValue: { accessUrl: jest.fn(), save: jest.fn().mockResolvedValue({ key: 'documents/sig.png' }) },
+          useValue: {
+            accessUrl: jest.fn(),
+            save: jest.fn().mockResolvedValue({ key: 'documents/sig.png' }),
+          },
         },
-        { provide: DocumentsService, useValue: { listForBorrower: jest.fn().mockResolvedValue([]) } },
+        {
+          provide: DocumentsService,
+          useValue: { listForBorrower: jest.fn().mockResolvedValue([]) },
+        },
         {
           provide: AuditService,
           useValue: { record: jest.fn(), diff: jest.fn().mockReturnValue([]), listFor: jest.fn() },
@@ -235,6 +245,25 @@ describe('ApplicationsService', () => {
     expect(result.loanId).toBe('loan_new');
   });
 
+  it('approving links an app login made from the applicant phone to the new borrower', async () => {
+    applicationFindFirst.mockResolvedValue(pendingApplication);
+    userFindFirst
+      .mockResolvedValueOnce(null) // nobody holds the borrower yet
+      .mockResolvedValueOnce({ id: 'app_user' }); // the phone-only login
+
+    await service.updateStatus('tenant_1', 'app_1', { status: ApplicationStatus.Approved });
+
+    expect(userFindFirst).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ phone: '+264811112222', borrowerId: null }),
+      }),
+    );
+    expect(userUpdate).toHaveBeenCalledWith({
+      where: { id: 'app_user' },
+      data: { borrowerId: 'bor_new' },
+    });
+  });
+
   it('declining flips the status without creating a loan and stores the reason', async () => {
     applicationFindFirst.mockResolvedValue(pendingApplication);
 
@@ -266,7 +295,9 @@ describe('ApplicationsService', () => {
     expect(loanCreate).not.toHaveBeenCalled();
     expect(result.loanId).toBeNull();
     expect(applicationUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ data: expect.objectContaining({ status: ApplicationStatus.Review }) }),
+      expect.objectContaining({
+        data: expect.objectContaining({ status: ApplicationStatus.Review }),
+      }),
     );
   });
 

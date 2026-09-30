@@ -5,6 +5,7 @@ import { hasPermission, type SessionUser } from './auth';
 const user = (over: Partial<SessionUser>): SessionUser => ({
   id: 'u',
   email: 'u@x.na',
+  phone: null,
   name: 'U',
   role: UserRole.LenderStaff,
   tenantId: 't',

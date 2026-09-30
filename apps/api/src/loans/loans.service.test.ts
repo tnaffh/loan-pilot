@@ -237,7 +237,10 @@ describe('LoansService', () => {
       schedule: [],
     });
 
-    await service.settle('tenant_1', 'loan_1', { method: PaymentMethod.Cash, paidAt: '2026-06-18' });
+    await service.settle('tenant_1', 'loan_1', {
+      method: PaymentMethod.Cash,
+      paidAt: '2026-06-18',
+    });
 
     expect(paymentCreate).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ amount: 520000 }) }),
@@ -288,6 +291,7 @@ describe('LoansService', () => {
   const actor: SessionUser = {
     id: 'user_1',
     email: 'admin@rfs.na',
+    phone: null,
     name: 'Admin',
     role: UserRole.LenderAdmin,
     tenantId: 'tenant_1',
@@ -365,9 +369,9 @@ describe('LoansService', () => {
   it('rejects changing the amount of a loan that has payments', async () => {
     loanFindFirst.mockResolvedValue(loanRow({ _count: { payments: 3 } }));
 
-    await expect(
-      service.update('tenant_1', actor, 'loan_1', { amount: 2000 }),
-    ).rejects.toThrow(BadRequestException);
+    await expect(service.update('tenant_1', actor, 'loan_1', { amount: 2000 })).rejects.toThrow(
+      BadRequestException,
+    );
     expect(loanUpdate).not.toHaveBeenCalled();
   });
 
@@ -402,9 +406,9 @@ describe('LoansService', () => {
   it('refuses to cancel a loan that has payments', async () => {
     loanFindFirst.mockResolvedValue(loanRow({ _count: { payments: 2 } }));
 
-    await expect(
-      service.cancel('tenant_1', actor, 'loan_1', { reason: 'oops' }),
-    ).rejects.toThrow(BadRequestException);
+    await expect(service.cancel('tenant_1', actor, 'loan_1', { reason: 'oops' })).rejects.toThrow(
+      BadRequestException,
+    );
     expect(loanUpdate).not.toHaveBeenCalled();
   });
 
@@ -433,7 +437,9 @@ describe('LoansService', () => {
   });
 
   it('does not recompute the total on a fee-only edit of a term loan', async () => {
-    loanFindFirst.mockResolvedValue(loanRow({ termMonths: 2, total: 200000, _count: { payments: 0 } }));
+    loanFindFirst.mockResolvedValue(
+      loanRow({ termMonths: 2, total: 200000, _count: { payments: 0 } }),
+    );
 
     await service.update('tenant_1', actor, 'loan_1', { namfisaLevy: 50 });
 
@@ -452,7 +458,14 @@ describe('LoansService', () => {
       balance: 130000,
       payments: [],
       schedule: [
-        { id: 's1', number: 1, amount: 130000, dueAt: overdue, status: RepaymentStatus.Due, paidAt: null },
+        {
+          id: 's1',
+          number: 1,
+          amount: 130000,
+          dueAt: overdue,
+          status: RepaymentStatus.Due,
+          paidAt: null,
+        },
       ],
     });
 
@@ -474,7 +487,10 @@ describe('LoansService', () => {
       schedule: [{ amount: 130000, dueAt: new Date('2026-01-01'), status: RepaymentStatus.Due }],
     });
 
-    await service.settle('tenant_1', 'loan_1', { method: PaymentMethod.Cash, paidAt: '2026-06-01' });
+    await service.settle('tenant_1', 'loan_1', {
+      method: PaymentMethod.Cash,
+      paidAt: '2026-06-01',
+    });
 
     const amount = paymentCreate.mock.calls[0][0].data.amount;
     expect(amount).toBeGreaterThan(130000); // balance + default interest

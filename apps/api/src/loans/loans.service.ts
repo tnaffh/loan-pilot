@@ -6,12 +6,14 @@ import {
   LoanStatus,
   LoanType,
   RepaymentStatus,
+  UserRole,
   addMonths,
   assessArrears,
   buildLoanActivity,
   computeFees,
   daysBetween,
   fromCents,
+  phoneKey,
   quote,
   toCents,
   type ActivityEvent,
@@ -194,7 +196,12 @@ export class LoansService {
     ]);
     const interestRate = params.interestRateOverride ?? product?.interestRate;
     const fees = computeFees(params.principalCents, feeSettings, params.bankChargesCents ?? 0);
-    return { interestRate, monthlyRate: feeSettings.monthlyRate, productId: product?.id ?? null, fees };
+    return {
+      interestRate,
+      monthlyRate: feeSettings.monthlyRate,
+      productId: product?.id ?? null,
+      fees,
+    };
   }
 
   /**
@@ -250,7 +257,15 @@ export class LoansService {
 
   /** Loans visible to a borrower-role user: only those on their own record. */
   async findAllForBorrowerUser(userId: string): Promise<LoanWithBorrower[]> {
-    const borrowerId = await this.resolveBorrowerId(userId);
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { borrowerId: true },
+    });
+    // An applicant signed in before approval has no borrower yet: no loans.
+    const borrowerId = user?.borrowerId;
+    if (!borrowerId) {
+      return [];
+    }
     return this.prisma.loan.findMany({
       where: { borrowerId },
       include: { borrower: { select: { id: true, firstName: true, lastName: true } } },
@@ -292,7 +307,13 @@ export class LoansService {
       where: { id, tenantId },
       include: {
         borrower: {
-          select: { id: true, firstName: true, lastName: true, idNumber: true, collexiaClientNo: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            idNumber: true,
+            collexiaClientNo: true,
+          },
         },
         schedule: { orderBy: { number: 'asc' } },
         payments: { orderBy: { paidAt: 'desc' } },
@@ -311,7 +332,11 @@ export class LoansService {
       overdueAmount: arrears.overdueCents,
       payoff: loan.balance + arrears.defaultInterestCents,
       borrowerDocuments: await this.documents.listForBorrower(tenantId, loan.borrowerId),
-      collateralPhotos: await this.documents.listForLoan(tenantId, id, DocumentKind.CollateralPhoto),
+      collateralPhotos: await this.documents.listForLoan(
+        tenantId,
+        id,
+        DocumentKind.CollateralPhoto,
+      ),
     };
   }
 
@@ -321,7 +346,13 @@ export class LoansService {
       where: { id, borrowerId },
       include: {
         borrower: {
-          select: { id: true, firstName: true, lastName: true, idNumber: true, collexiaClientNo: true },
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            idNumber: true,
+            collexiaClientNo: true,
+          },
         },
         schedule: { orderBy: { number: 'asc' } },
         payments: { orderBy: { paidAt: 'desc' } },
@@ -403,6 +434,7 @@ export class LoansService {
       },
       update: {
         phone: application.phone,
+        phoneKey: phoneKey(application.phone),
         email: application.email,
         employer: application.employer,
         employerPhone: application.employerPhone,
@@ -422,6 +454,7 @@ export class LoansService {
         lastName: application.lastName,
         idNumber: application.idNumber,
         phone: application.phone,
+        phoneKey: phoneKey(application.phone),
         email: application.email,
         employer: application.employer,
         employerPhone: application.employerPhone,
@@ -434,6 +467,31 @@ export class LoansService {
         gender: application.gender,
       },
     });
+
+    // An applicant who already signed in to the mobile app by SMS code has a
+    // borrower login with no Borrower yet; link it now so their loans appear
+    // without signing in again. Skipped if another login already holds it.
+    const applicantPhone = phoneKey(application.phone);
+    if (applicantPhone) {
+      const alreadyLinked = await tx.user.findFirst({
+        where: { borrowerId: borrower.id },
+        select: { id: true },
+      });
+      if (!alreadyLinked) {
+        const login = await tx.user.findFirst({
+          where: {
+            tenantId: application.tenantId,
+            phone: applicantPhone,
+            role: UserRole.Borrower,
+            borrowerId: null,
+          },
+          select: { id: true },
+        });
+        if (login) {
+          await tx.user.update({ where: { id: login.id }, data: { borrowerId: borrower.id } });
+        }
+      }
+    }
 
     // Carry the application's address + bank snapshot onto the borrower as the
     // new active records (deactivating any previous active ones first).
@@ -603,7 +661,8 @@ export class LoansService {
       const newBalance = Math.max(0, loan.balance - nextItem.amount);
       const settled = newBalance === 0 || !nextUnpaid;
       const now = new Date();
-      const daysLate = nextUnpaid && nextUnpaid.dueAt < now ? daysBetween(nextUnpaid.dueAt, now) : 0;
+      const daysLate =
+        nextUnpaid && nextUnpaid.dueAt < now ? daysBetween(nextUnpaid.dueAt, now) : 0;
       const status = settled
         ? LoanStatus.Settled
         : daysLate > 0
@@ -753,7 +812,9 @@ export class LoansService {
       const newTerm = input.termMonths ?? loan.termMonths;
       const newRate = input.interestRate ?? loan.interestRate;
       const coreChanged =
-        newPrincipal !== loan.principal || newTerm !== loan.termMonths || newRate !== loan.interestRate;
+        newPrincipal !== loan.principal ||
+        newTerm !== loan.termMonths ||
+        newRate !== loan.interestRate;
       if (coreChanged) {
         if (loan._count.payments > 0) {
           throw new BadRequestException(

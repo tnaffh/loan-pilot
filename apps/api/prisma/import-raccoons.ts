@@ -25,6 +25,7 @@ import {
   LoanType,
   PaymentMethod,
   addMonths,
+  phoneKey,
 } from '@loan-pilot/domain';
 
 const prisma = new PrismaClient();
@@ -88,12 +89,25 @@ const DEFAULT_RATE = 0.3;
 
 /** Normalise a name for matching: trim, collapse spaces, lowercase. */
 const nameKey = (name: string): string => name.trim().replace(/\s+/g, ' ').toLowerCase();
-const slug = (name: string): string => nameKey(name).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const slug = (name: string): string =>
+  nameKey(name)
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 const toDate = (iso: string | null): Date | null => (iso ? new Date(`${iso}T00:00:00.000Z`) : null);
 
 const MONTHS: Record<string, string> = {
-  jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
-  jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
+  jan: '01',
+  feb: '02',
+  mar: '03',
+  apr: '04',
+  may: '05',
+  jun: '06',
+  jul: '07',
+  aug: '08',
+  sep: '09',
+  oct: '10',
+  nov: '11',
+  dec: '12',
 };
 /** "October 2023" -> first-of-month Date, else null. */
 const monthLabelToDate = (label: string | null | undefined): Date | null => {
@@ -171,8 +185,7 @@ const deriveLoanFields = (
   // Payments are the reliable signal. If they fully cover the loan it is settled,
   // regardless of a stale "dispersed"/"partly paid" note left in the register.
   const fullyPaid = total > 0 && collected >= total;
-  const status =
-    fullyPaid && !CLOSED_OUT.has(registerStatus) ? LoanStatus.Settled : registerStatus;
+  const status = fullyPaid && !CLOSED_OUT.has(registerStatus) ? LoanStatus.Settled : registerStatus;
 
   const closedOut = CLOSED_OUT.has(status);
   const balance = closedOut ? 0 : Math.max(0, total - collected);
@@ -266,6 +279,7 @@ const main = async (): Promise<void> => {
         lastName,
         idNumber,
         phone: input.phone?.trim() ?? '',
+        phoneKey: phoneKey(input.phone ?? ''),
         email: '',
         employer,
         occupation: '',
@@ -305,7 +319,8 @@ const main = async (): Promise<void> => {
         interestRate: row.interestRate || DEFAULT_RATE,
         total: row.totalRepayable,
         termMonths: row.termMonths,
-        instalment: row.termMonths > 0 ? Math.round(row.totalRepayable / row.termMonths) : row.totalRepayable,
+        instalment:
+          row.termMonths > 0 ? Math.round(row.totalRepayable / row.termMonths) : row.totalRepayable,
         instalmentsPaid,
         instalmentsTotal: row.termMonths,
         balance,

@@ -4,7 +4,10 @@ import type { Permission } from './permissions';
 /** The authenticated user shape returned by the API and stored client-side. */
 export interface SessionUser {
   id: string;
+  /** Empty for borrowers who signed in by phone and have no email login. */
   email: string;
+  /** E.164 phone key for borrowers who sign in by SMS code; null otherwise. */
+  phone: string | null;
   name: string;
   role: UserRole;
   tenantId: string | null;

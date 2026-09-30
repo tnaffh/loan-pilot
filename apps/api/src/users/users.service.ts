@@ -90,7 +90,7 @@ export class UsersService {
     });
 
     const acceptUrl = `${this.dashboardUrl()}/invite/accept?token=${token}`;
-    await this.mail.sendInvite(user.email, user.name, acceptUrl);
+    await this.mail.sendInvite(input.email, user.name, acceptUrl);
     return { user: this.toRow(user), acceptUrl };
   }
 
@@ -140,16 +140,20 @@ export class UsersService {
 
   async resendInvite(actor: SessionUser, id: string): Promise<{ acceptUrl: string }> {
     const target = await this.requireInScope(actor, id);
-    if (target.status !== UserStatus.Invited) {
+    if (target.status !== UserStatus.Invited || !target.email) {
       throw new BadRequestException('This user has already accepted their invitation');
     }
+    const email = target.email;
     const token = newToken();
     await this.prisma.user.update({
       where: { id },
-      data: { inviteTokenHash: hashToken(token), inviteExpiresAt: new Date(Date.now() + INVITE_TTL_MS) },
+      data: {
+        inviteTokenHash: hashToken(token),
+        inviteExpiresAt: new Date(Date.now() + INVITE_TTL_MS),
+      },
     });
     const acceptUrl = `${this.dashboardUrl()}/invite/accept?token=${token}`;
-    await this.mail.sendInvite(target.email, target.name, acceptUrl);
+    await this.mail.sendInvite(email, target.name, acceptUrl);
     return { acceptUrl };
   }
 
@@ -165,7 +169,10 @@ export class UsersService {
   // ----- helpers -------------------------------------------------------------
 
   private dashboardUrl(): string {
-    return (this.config.get<string>('DASHBOARD_URL') ?? 'http://localhost:3001').replace(/\/+$/, '');
+    return (this.config.get<string>('DASHBOARD_URL') ?? 'http://localhost:3001').replace(
+      /\/+$/,
+      '',
+    );
   }
 
   /** Resolve the account-type, tenant, and custom role for a new invite. */
@@ -200,7 +207,10 @@ export class UsersService {
 
   /** Load a user and confirm the actor administers it (same tenant / platform). */
   private async requireInScope(actor: SessionUser, id: string): Promise<UserWithRole> {
-    const target = await this.prisma.user.findUnique({ where: { id }, include: { customRole: true } });
+    const target = await this.prisma.user.findUnique({
+      where: { id },
+      include: { customRole: true },
+    });
     if (!target) {
       throw new NotFoundException('User not found');
     }
@@ -237,7 +247,7 @@ export class UsersService {
     return {
       id: user.id,
       name: user.name,
-      email: user.email,
+      email: user.email ?? '',
       role: user.role,
       roleId: user.roleId,
       roleName: user.customRole?.name ?? null,

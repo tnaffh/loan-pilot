@@ -26,6 +26,7 @@ describe('TenantsService.brandingForUser', () => {
   const lenderUser: SessionUser = {
     id: 'user_1',
     email: 'admin@raccoons.na',
+    phone: null,
     name: 'Eufemia N.',
     role: UserRole.LenderAdmin,
     tenantId: 'tenant_1',

@@ -11,6 +11,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
+  UserRole,
   createApplicationSchema,
   fromCents,
   updateApplicationStatusSchema,
@@ -22,6 +23,8 @@ import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { requireTenantId } from '../common/tenant';
 import { TenantsService } from '../tenants/tenants.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 import { PermissionsGuard } from '../auth/permissions.guard';
 import { RequirePermissions } from '../auth/permissions.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -30,6 +33,7 @@ import {
   type ApplicationDecision,
   type ApplicationDetail,
   type ApplicationWithReferences,
+  type BorrowerApplicationView,
   type PricingConfig,
 } from './applications.service';
 
@@ -97,6 +101,14 @@ export class ApplicationsController {
   async pricing(@Headers('x-tenant') tenantSlug?: string): Promise<PricingConfig> {
     const tenant = await this.tenants.resolveForPublicRequest(tenantSlug);
     return this.applications.pricingConfig(tenant.id);
+  }
+
+  /** The signed-in borrower's own applications (mobile app). */
+  @Get('mine')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(UserRole.Borrower)
+  mine(@CurrentUser() user: SessionUser): Promise<BorrowerApplicationView[]> {
+    return this.applications.findForBorrowerUser(requireTenantId(user), user.id);
   }
 
   @Get()

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Param,
@@ -11,22 +12,29 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import type { Request, Response } from 'express';
 import {
   acceptInviteSchema,
   changePasswordSchema,
   forgotPasswordSchema,
   loginSchema,
+  otpRequestSchema,
+  otpVerifySchema,
   resetPasswordSchema,
   type AcceptInviteInput,
   type ChangePasswordInput,
   type ForgotPasswordInput,
   type LoginInput,
+  type OtpRequestInput,
+  type OtpVerifyInput,
   type ResetPasswordInput,
   type SessionUser,
 } from '@loan-pilot/domain';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
+import { TenantsService } from '../tenants/tenants.service';
 import { AuthService, type LoginResponse } from './auth.service';
+import { OtpService } from './otp.service';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { GoogleAuthGuard } from './google-auth.guard';
 import { CurrentUser } from './current-user.decorator';
@@ -36,6 +44,8 @@ import type { OAuthProfile } from './google.strategy';
 export class AuthController {
   constructor(
     private readonly auth: AuthService,
+    private readonly otp: OtpService,
+    private readonly tenants: TenantsService,
     private readonly config: ConfigService,
   ) {}
 
@@ -43,6 +53,34 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   login(@Body(new ZodValidationPipe(loginSchema)) body: LoginInput): Promise<LoginResponse> {
     return this.auth.login(body);
+  }
+
+  // ----- borrower SMS-code sign-in (mobile app) -----------------------------
+  // Public; the tenant comes from x-tenant. Per-number limits live in
+  // OtpService; the per-IP throttle below blunts spraying many numbers.
+
+  @Post('otp/request')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 10, ttl: 10 * 60 * 1000 } })
+  async requestOtp(
+    @Body(new ZodValidationPipe(otpRequestSchema)) body: OtpRequestInput,
+    @Headers('x-tenant') tenantSlug?: string,
+  ): Promise<void> {
+    const tenant = await this.tenants.resolveForPublicRequest(tenantSlug);
+    await this.otp.request(tenant, body.phone);
+  }
+
+  @Post('otp/verify')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ThrottlerGuard)
+  @Throttle({ default: { limit: 20, ttl: 10 * 60 * 1000 } })
+  async verifyOtp(
+    @Body(new ZodValidationPipe(otpVerifySchema)) body: OtpVerifyInput,
+    @Headers('x-tenant') tenantSlug?: string,
+  ): Promise<LoginResponse> {
+    const tenant = await this.tenants.resolveForPublicRequest(tenantSlug);
+    return this.otp.verify(tenant.id, body.phone, body.code);
   }
 
   @Get('me')
@@ -128,6 +166,9 @@ export class AuthController {
   }
 
   private dashboardUrl(): string {
-    return (this.config.get<string>('DASHBOARD_URL') ?? 'http://localhost:3001').replace(/\/+$/, '');
+    return (this.config.get<string>('DASHBOARD_URL') ?? 'http://localhost:3001').replace(
+      /\/+$/,
+      '',
+    );
   }
 }

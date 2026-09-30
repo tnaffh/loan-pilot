@@ -106,6 +106,25 @@ export const isUnverifiedId = (value: string): boolean =>
 export const normalizePhone = (value: string): string => compact(value);
 
 /**
+ * A canonical E.164 key for matching one phone number across records captured in
+ * different formats (`081 234 5678`, `264812345678`, `+264 81 234 5678` all map to
+ * `+264812345678`). Local Namibian numbers (leading `0`) gain the `+264` country
+ * code; anything already international keeps its digits. Used for OTP sign-in,
+ * where a borrower is looked up by the number they type into the app. Null when
+ * the value holds no digits (imported registers carry blank phones).
+ */
+export const phoneKey = (value: string): string | null => {
+  const digits = normalizePhone(value).replace(/^\+/, '').replace(/^00/, '');
+  if (!/^\d+$/.test(digits)) {
+    return null;
+  }
+  if (digits.startsWith('0')) {
+    return `+264${digits.slice(1)}`;
+  }
+  return `+${digits}`;
+};
+
+/**
  * Accept Namibian (`081…`, `+264…`) and international numbers: an optional
  * leading `+` followed by 8–15 digits.
  */
