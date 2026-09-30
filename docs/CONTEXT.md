@@ -24,7 +24,7 @@ Think of it as "Shopify for Namibian micro-lenders": Raccoons is the first tenan
    - **Lender staff/admin** (e.g. Raccoons staff): reviews applications, manages borrowers, originates and disburses loans, captures repayments, chases arrears
    - **Borrower**: sees their loans, repayment schedule, statements
 3. **API** (`apps/api`, port 4000) — NestJS backend, single source of truth, multi-tenant Postgres via Prisma
-4. **Mobile app** (`apps/mobile`, future) — Expo React Native borrower app
+4. **Mobile app** (`apps/mobile`) — Expo React Native borrower app (Raccoons Finance): quote, apply, SMS-code sign-in, loans and statements
 
 ## Regulatory constraints (Namibian Microlending Act 2018 / NAMFISA)
 

@@ -165,10 +165,54 @@ Dashboard pages (borrower role):
 - `/statements` — downloadable/viewable statement per loan
 - Apply top-up: link through to `apps/web`
 
-### Phase 6 — Mobile (Expo React Native)
+### Phase 6 — Mobile (Expo React Native) — in progress
 
-- `apps/mobile` — Expo app, reuses `@loan-pilot/domain`
-- Borrower-focused: view loans, schedule, apply
+`apps/mobile` (`@loan-pilot/mobile`) is the Raccoons Finance borrower app. It was scaffolded with `create-expo-app` (SDK 57, React Native 0.86, `src/app` expo-router layout, React Compiler on) and reuses `@loan-pilot/domain`.
+
+Built:
+- **Styling:** Uniwind (Tailwind v4 for React Native).
+  - `src/global.css` carries the website's tokens under the same names (`bg-primary`, `text-muted-foreground`…), plus a branded dark palette as `@variant dark`.
+  - Fonts: Spectral / IBM Plex via `@expo-google-fonts`.
+- **Screens:**
+  - Welcome
+  - Loan calculator: `quoteWithPricing` against the live `/applications/pricing`.
+  - 5-step application.
+    - Shared `APPLICATION_STEPS` / `APPLICATION_STEP_FIELDS` / `APPLICATION_DOCUMENT_SLOTS` with the web form.
+    - Camera / photo / PDF documents.
+    - Full-screen signature and initials pad.
+    - Autosaved device draft.
+    - Upload progress.
+  - Result screen.
+  - SMS-code sign-in.
+  - Home: balance card and latest application.
+  - My loans, loan detail with repayment timeline, statement, Profile (appearance switch and contact links).
+- **Auth routing:** `Stack.Protected` guards in the root layout; no screen redirects by hand.
+
+**Borrower SMS sign-in (API):**
+- `POST /api/auth/otp/request { phone }`
+  - Always 204, so it can't be used to probe which numbers are customers.
+  - Codes go only to a number on a `Borrower` or `LoanApplication` (matched on the new `phoneKey` E.164 column).
+  - 60 s resend cooldown and 5 per hour per number; per-IP throttle on both routes.
+- `POST /api/auth/otp/verify { phone, code }`
+  - 5 attempts per code, single use.
+  - Finds or creates a borrower `User` keyed by tenant + phone and links it to the borrower once one exists.
+- Approving an application also links an existing phone-only login, so the loan appears without signing in again.
+- `GET /api/applications/mine` lists a borrower's own applications.
+- SMS sending goes through `SmsService` (`SMS_PROVIDER`). Only a log transport exists, so codes appear in the API log. **Pick and wire a vendor before launch.**
+
+Run it:
+- `pnpm --filter @loan-pilot/mobile dev`, then press `i` for the iOS simulator. On a phone, use Expo Go on the same Wi-Fi.
+- In development the app reaches the API on the Metro host at `:4000`; override with `EXPO_PUBLIC_API_URL`.
+
+Gotchas:
+- React Native needs the exact React its renderer was built for (19.2.3), while web/dashboard use 19.2.4. The root pins 19.2.4 and `apps/mobile/metro.config.js` resolves `react` from the app's own copy.
+- react-hook-form's `formState` / `fieldState` getters go stale under the React Compiler, so the application-form modules start with `'use no memo'`.
+
+Still to do:
+- A real SMS vendor.
+- Push reminders before due dates.
+- EAS build profiles and store listings.
+- Borrower access to agreement PDFs (`/documents/:id/download` is staff-only).
 
 ### Phase 7 — Hardening
 

@@ -17,7 +17,7 @@ micro-lender; other lenders subscribe to the platform.
 | Monorepo | Turborepo + pnpm workspaces                       |
 | API      | NestJS 11 + Prisma 6 + PostgreSQL                 |
 | Web      | Next.js 15 (App Router) + Tailwind v4 + shadcn/ui |
-| Mobile   | React Native (Expo) — _later phase_               |
+| Mobile   | React Native (Expo SDK 57) + Uniwind (Tailwind v4) |
 | Shared   | `@loan-pilot/domain` — Zod schemas + loan math    |
 
 ## Layout
@@ -27,7 +27,7 @@ apps/
   api/        NestJS API (Prisma, multi-tenant)
   web/        Next.js public marketing + apply site
   dashboard/  Next.js authenticated app (later phase)
-  mobile/     React Native app (later phase)
+  mobile/     Expo borrower app (Raccoons Finance)
 packages/
   domain/             Shared domain model, Zod validation, loan math (cents)
   ui/                 Shared shadcn components (later phase)

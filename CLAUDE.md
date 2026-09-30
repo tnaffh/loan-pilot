@@ -26,6 +26,7 @@ Scope a command to one workspace with `--filter`:
 ```bash
 pnpm --filter @loan-pilot/api dev
 pnpm --filter @loan-pilot/domain test
+pnpm --filter @loan-pilot/mobile dev     # Expo; press i for the iOS simulator
 ```
 
 Single test (Jest, only `api` and `domain` have tests; test files are `*.test.ts`):
@@ -51,6 +52,7 @@ pnpm --filter @loan-pilot/api prisma:studio
 - `apps/api` (`@loan-pilot/api`) — NestJS 11 + Prisma 6 + Passport JWT. Global route prefix `/api`.
 - `apps/web` (`@loan-pilot/web`) — Next.js 16 public marketing + loan application site.
 - `apps/dashboard` (`@loan-pilot/dashboard`) — Next.js 16 authenticated management portal (shell built; interior pages are in progress).
+- `apps/mobile` (`@loan-pilot/mobile`) — Expo SDK 57 borrower app (Raccoons Finance), expo-router under `src/app`, styled with Uniwind (Tailwind v4 classes; tokens in `src/global.css` mirror the web's `globals.css`). Borrowers sign in by SMS code (`/api/auth/otp/*`). Read `apps/mobile/AGENTS.md` before touching Expo APIs; add native packages with `npx expo install`.
 - `packages/typescript-config`, `packages/eslint-config` — shared configs, inherited by every workspace.
 - `docs/CONTEXT.md`, `docs/IMPLEMENTATION.md` — product/regulatory context and build status/roadmap.
 - `deploy/` — the production stack: `README.md` (runbook), `docker-compose.yml`, `nginx/` vhost snippets, `scripts/pg-backup.sh`. Deploys are CI-only; nothing is built on the server.

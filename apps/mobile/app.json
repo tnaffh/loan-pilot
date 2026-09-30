@@ -1,0 +1,48 @@
+{
+  "expo": {
+    "name": "Raccoons Finance",
+    "slug": "raccoons-finance",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "raccoons",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "com.raccoonsfinance.app",
+      "supportsTablet": false
+    },
+    "android": {
+      "package": "com.raccoonsfinance.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#25397a",
+        "foregroundImage": "./assets/adaptive-icon.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#25397a",
+          "image": "./assets/lockup-white.png",
+          "imageWidth": 220,
+          "dark": { "backgroundColor": "#0e1322", "image": "./assets/lockup-white.png" }
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Take photos of your ID, payslip and other documents for your loan application.",
+          "photosPermission": "Choose photos of your documents for your loan application."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    }
+  }
+}

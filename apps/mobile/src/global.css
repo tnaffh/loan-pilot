@@ -1,0 +1,108 @@
+@import 'tailwindcss';
+@import 'uniwind';
+
+/*
+ * Raccoons design tokens — the same names and values as the website
+ * (apps/web/src/app/globals.css, the source of truth; keep them in step), so
+ * `bg-primary`, `text-muted-foreground`, `border-border`… mean the same thing
+ * in both apps. React Native has no oklch, so the web's oklch values
+ * (destructive, success, warning) are written here as hex.
+ *
+ * The web ships no branded dark palette, so dark is derived: deep navy
+ * surfaces, lime as the primary action colour on ink text, and navy kept for
+ * brand surfaces (hero, balance card). Text pairs meet WCAG AA.
+ */
+@layer theme {
+  :root {
+    @variant light {
+      --color-background: #f7f6f3;
+      --color-foreground: #16191c;
+      --color-card: #ffffff;
+      --color-card-foreground: #16191c;
+      --color-popover: #ffffff;
+      --color-popover-foreground: #16191c;
+      --color-primary: #25397a;
+      --color-primary-foreground: #ffffff;
+      --color-secondary: #eef1f8;
+      --color-secondary-foreground: #1b2a5e;
+      --color-muted: #edebe4;
+      --color-muted-foreground: #6b7178;
+      --color-accent: #eef1f8;
+      --color-accent-foreground: #1b2a5e;
+      --color-destructive: #e7000b; /* oklch(0.577 0.245 27.325) */
+      --color-destructive-foreground: #ffffff;
+      --color-border: #e3e0d9;
+      --color-input: #e3e0d9;
+      --color-ring: #25397a;
+      --color-brand: #25397a;
+      --color-brand-foreground: #ffffff;
+      --color-brand-deep: #1b2a5e;
+      --color-highlight: #d7df21;
+      --color-highlight-foreground: #16191c;
+      --color-success: #2e9e52; /* oklch(0.62 0.15 150) */
+      --color-warning: #dc8900; /* oklch(0.7 0.16 70) */
+      --color-success-soft: #e6f4ea;
+      --color-warning-soft: #fbf0dc;
+      --color-destructive-soft: #fde7e7;
+      --color-overlay: rgba(22, 25, 28, 0.45);
+    }
+
+    @variant dark {
+      --color-background: #0e1322;
+      --color-foreground: #f2f1ec;
+      --color-card: #161d33;
+      --color-card-foreground: #f2f1ec;
+      --color-popover: #161d33;
+      --color-popover-foreground: #f2f1ec;
+      --color-primary: #d7df21;
+      --color-primary-foreground: #16191c;
+      --color-secondary: #1e2945;
+      --color-secondary-foreground: #e6e9f2;
+      --color-muted: #1a2138;
+      --color-muted-foreground: #98a0b3;
+      --color-accent: #1e2945;
+      --color-accent-foreground: #e6e9f2;
+      --color-destructive: #ff6467; /* oklch(0.704 0.191 22.216), the web's dark destructive */
+      --color-destructive-foreground: #16191c;
+      --color-border: rgba(255, 255, 255, 0.09);
+      --color-input: rgba(255, 255, 255, 0.14);
+      --color-ring: #d7df21;
+      --color-brand: #25397a;
+      --color-brand-foreground: #ffffff;
+      --color-brand-deep: #1b2a5e;
+      --color-highlight: #d7df21;
+      --color-highlight-foreground: #16191c;
+      --color-success: #53be70;
+      --color-warning: #efa831;
+      --color-success-soft: rgba(83, 190, 112, 0.14);
+      --color-warning-soft: rgba(239, 168, 49, 0.14);
+      --color-destructive-soft: rgba(255, 100, 103, 0.14);
+      --color-overlay: rgba(0, 0, 0, 0.6);
+    }
+  }
+}
+
+@theme {
+  /* --radius: 0.75rem and the web's multiplier scale. */
+  --radius-sm: 7.2px;
+  --radius-md: 9.6px;
+  --radius-lg: 12px;
+  --radius-xl: 16.8px;
+  --radius-2xl: 21.6px;
+  --radius-3xl: 26.4px;
+
+  /*
+   * React Native picks a font file per family, not per weight, so each weight
+   * is its own family (loaded with expo-font in the root layout). Headings are
+   * Spectral like the web's h1–h4; body copy IBM Plex Sans; figures IBM Plex Mono.
+   */
+  --font-heading: 'Spectral_600SemiBold';
+  --font-heading-italic: 'Spectral_600SemiBold_Italic';
+  --font-heading-bold: 'Spectral_700Bold';
+  --font-sans: 'IBMPlexSans_400Regular';
+  --font-sans-medium: 'IBMPlexSans_500Medium';
+  --font-sans-semibold: 'IBMPlexSans_600SemiBold';
+  --font-sans-bold: 'IBMPlexSans_700Bold';
+  --font-mono: 'IBMPlexMono_400Regular';
+  --font-mono-medium: 'IBMPlexMono_500Medium';
+}
