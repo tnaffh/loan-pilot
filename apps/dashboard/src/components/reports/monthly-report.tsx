@@ -47,20 +47,9 @@ const GENDER_LABELS: Record<string, string> = {
   unknown: '—',
 };
 
+// The register deliberately shows no borrower identifiers: the management report
+// is read beyond the people who may see personal data.
 const columns: ColumnDef<MonthlyReportLoanRow>[] = [
-  {
-    accessorKey: 'borrowerName',
-    header: 'Borrower',
-    cell: ({ row }) => (
-      <div className="min-w-0">
-        <p className="truncate font-medium">{row.original.borrowerName}</p>
-        <p className="truncate text-xs text-muted-foreground">
-          {row.original.clientNo ? `#${row.original.clientNo} · ` : ''}
-          {row.original.idNumber}
-        </p>
-      </div>
-    ),
-  },
   {
     accessorKey: 'gender',
     header: 'Gender',
@@ -125,6 +114,43 @@ const columns: ColumnDef<MonthlyReportLoanRow>[] = [
   },
 ];
 
+interface SummaryLine {
+  readonly label: string;
+  readonly pick: (summary: MonthlyReportData['summary']) => number;
+  readonly strong?: boolean;
+}
+
+/**
+ * The cash roll-forward, in the order the lender's own register states it:
+ * Total capital = cash to lend after the month's costs, Available funds = what
+ * is left after lending, and the month's collections carry into next month.
+ */
+const CASH_LINES: readonly SummaryLine[] = [
+  { label: 'Cash at start of month', pick: (s) => s.openingCash },
+  { label: 'Capital injected', pick: (s) => s.capitalIn },
+  { label: 'Operating expenses', pick: (s) => s.expenses },
+  { label: 'Owner drawings', pick: (s) => s.drawings },
+  { label: 'Total capital', pick: (s) => s.totalCapital, strong: true },
+  { label: 'Loaned this month', pick: (s) => s.disbursedValue },
+  { label: 'Available funds', pick: (s) => s.availableFunds, strong: true },
+  { label: 'Collected from borrowers', pick: (s) => s.collected },
+  { label: 'Other income received', pick: (s) => s.otherIncome },
+  { label: 'Cash at end of month', pick: (s) => s.closingCash, strong: true },
+  { label: 'Net cash movement', pick: (s) => s.netCashMovement },
+];
+
+const BOOK_LINES: readonly SummaryLine[] = [
+  { label: 'Loan book at start of month', pick: (s) => s.openingBookValue },
+  { label: 'Advanced to borrowers', pick: (s) => s.disbursedValue },
+  { label: 'Interest booked on new loans', pick: (s) => s.interestBooked },
+  { label: 'Total repayable on new loans', pick: (s) => s.expectedRepayable },
+  { label: 'Collected from borrowers', pick: (s) => s.collected },
+  { label: 'Loan book at end of month', pick: (s) => s.closingBookValue, strong: true },
+  { label: 'In arrears at month end', pick: (s) => s.arrearsValue },
+  { label: 'NAMFISA levies charged', pick: (s) => s.namfisaLevies },
+  { label: 'Stamp duties charged', pick: (s) => s.stampDuties },
+];
+
 interface Props {
   month: string;
 }
@@ -160,10 +186,6 @@ export const MonthlyReport = ({ month }: Props) => {
     downloadCsv(
       `monthly-report-${month}.csv`,
       [
-        'Client no',
-        'Borrower',
-        'ID number',
-        'Phone',
         'Gender',
         'Monthly income (N$)',
         'Loan amount (N$)',
@@ -179,10 +201,6 @@ export const MonthlyReport = ({ month }: Props) => {
         'Disbursed',
       ],
       data.loans.map((loan) => [
-        loan.clientNo ?? '',
-        loan.borrowerName,
-        loan.idNumber,
-        loan.phone,
         GENDER_LABELS[loan.gender] ?? '',
         fromCents(loan.monthlyIncome),
         fromCents(loan.principal),
@@ -209,19 +227,20 @@ export const MonthlyReport = ({ month }: Props) => {
         value: formatNad(summary.totalCapital),
         icon: PiggyBank,
         tone: 'brand',
-        hint: 'On loan plus available',
+        hint: 'Loaned this month plus available funds',
       },
       {
-        label: 'Capital on loan',
-        value: formatNad(summary.closingBookValue),
+        label: 'Loaned this month',
+        value: formatNad(summary.disbursedValue),
         icon: Banknote,
-        hint: `${summary.loansDisbursed} advanced this month`,
+        hint: `${summary.loansDisbursed} loan(s) advanced`,
       },
       {
         label: 'Available funds',
         value: formatNad(summary.availableFunds),
         icon: Wallet,
         tone: summary.availableFunds >= 0 ? 'green' : 'red',
+        hint: 'After lending, before collections',
       },
       {
         label: 'Collected',
@@ -283,24 +302,21 @@ export const MonthlyReport = ({ month }: Props) => {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>The month</CardTitle>
-            <CardDescription>How the book moved</CardDescription>
+            <CardTitle>Cash</CardTitle>
+            <CardDescription>
+              Each line follows from the one above; the last is next month&apos;s first
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableBody>
-                {[
-                  ['Loan book at start of month', summary.openingBookValue],
-                  ['Advanced to borrowers', summary.disbursedValue],
-                  ['Interest booked on new loans', summary.interestBooked],
-                  ['Total repayable on new loans', summary.expectedRepayable],
-                  ['Collected from borrowers', summary.collected],
-                  ['Loan book at end of month', summary.closingBookValue],
-                ].map(([label, value]) => (
-                  <TableRow key={String(label)}>
-                    <TableCell className="text-muted-foreground">{label}</TableCell>
+                {CASH_LINES.map(({ label, pick, strong }) => (
+                  <TableRow key={label} className={strong ? 'font-semibold' : undefined}>
+                    <TableCell className={strong ? undefined : 'text-muted-foreground'}>
+                      {label}
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatNad(Number(value))}
+                      {formatNad(pick(summary))}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -311,33 +327,22 @@ export const MonthlyReport = ({ month }: Props) => {
 
         <Card>
           <CardHeader>
-            <CardTitle>Cash &amp; charges</CardTitle>
-            <CardDescription>Everything else that moved money</CardDescription>
+            <CardTitle>The book</CardTitle>
+            <CardDescription>How the loan book moved, and the charges raised</CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableBody>
-                {[
-                  ['Other income received', summary.otherIncome],
-                  ['Capital injected', summary.capitalIn],
-                  ['Operating expenses', summary.expenses],
-                  ['Owner drawings', summary.drawings],
-                  ['NAMFISA levies charged', summary.namfisaLevies],
-                  ['Stamp duties charged', summary.stampDuties],
-                ].map(([label, value]) => (
-                  <TableRow key={String(label)}>
-                    <TableCell className="text-muted-foreground">{label}</TableCell>
+                {BOOK_LINES.map(({ label, pick, strong }) => (
+                  <TableRow key={label} className={strong ? 'font-semibold' : undefined}>
+                    <TableCell className={strong ? undefined : 'text-muted-foreground'}>
+                      {label}
+                    </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {formatNad(Number(value))}
+                      {formatNad(pick(summary))}
                     </TableCell>
                   </TableRow>
                 ))}
-                <TableRow className="font-semibold">
-                  <TableCell>Net cash movement</TableCell>
-                  <TableCell className="text-right tabular-nums">
-                    {formatNad(summary.netCashMovement)}
-                  </TableCell>
-                </TableRow>
               </TableBody>
             </Table>
           </CardContent>
@@ -421,12 +426,7 @@ export const MonthlyReport = ({ month }: Props) => {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <DataTable
-            columns={columns}
-            data={[...data.loans]}
-            searchPlaceholder="Search borrower or ID…"
-            pageSize={20}
-          />
+          <DataTable columns={columns} data={[...data.loans]} pageSize={20} />
         </CardContent>
       </Card>
     </div>

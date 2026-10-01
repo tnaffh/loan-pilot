@@ -14,6 +14,7 @@ import {
   ageingBucketFor,
   termBandKeyFor,
   bandKeyFor,
+  creditsUpTo,
   figure,
   formatMonthLabel,
   formatQuarterLabel,
@@ -92,16 +93,13 @@ const REPORT_LOAN_SELECT = {
   collateralItem: true,
   disbursedAt: true,
   closedAt: true,
+  // Only the borrower's profile, never their identity: the reports group by
+  // gender and salary band and must not carry names or ID numbers.
   borrower: {
     select: {
       id: true,
-      firstName: true,
-      lastName: true,
-      idNumber: true,
-      phone: true,
       gender: true,
       monthlyIncome: true,
-      collexiaClientNo: true,
     },
   },
 } as const;
@@ -130,14 +128,17 @@ interface ReportLoan {
   closedAt: Date | null;
   borrower: {
     id: string;
-    firstName: string;
-    lastName: string;
-    idNumber: string;
-    phone: string;
     gender: string | null;
     monthlyIncome: number;
-    collexiaClientNo: string | null;
   };
+}
+
+/** Non-loan cash movements (cents) over some window. */
+interface CashFlows {
+  readonly expenses: number;
+  readonly drawings: number;
+  readonly invested: number;
+  readonly income: number;
 }
 
 /** A blank gender × band accumulator. */
@@ -352,25 +353,36 @@ export class ReportsService {
   // ── Shared loading ─────────────────────────────────────────────────────
 
   /**
-   * Load every loan disbursed before `end` with its full credit history. Three
-   * queries, then all bucketing happens in memory — the ledgers are needed at
-   * both the opening and closing instants, so there is no useful lower bound.
+   * Load the tenant's whole loan book with its **full** credit history. Three
+   * queries, then all bucketing happens in memory; every figure then filters by
+   * date at the instant it needs (`onBookAt`, `creditsUpTo`, `creditsInPeriod`).
+   *
+   * Nothing is cut off at the report's dates, for two reasons:
+   *   - the closure date of a loan whose `closedAt` was never written is derived
+   *     from its last credit, so credits cut at the period end make a loan
+   *     settled the following month look closed on its disbursement date and
+   *     drop it from the book — when it was in fact outstanding;
+   *   - a repayment is cash in the month it carries, whatever its loan's dates
+   *     say (the register has a handful dated before their loan). If loans were
+   *     cut at the period end, that cash would be missing from one month's
+   *     closing position and present in the next month's opening one, and the
+   *     roll-forward would not add up.
    */
-  private async loadLedgers(tenantId: string, end: Date) {
+  private async loadLedgers(tenantId: string) {
     const [loans, payments, scheduleItems] = await Promise.all([
       this.prisma.loan.findMany({
-        where: { tenantId, disbursedAt: { not: null, lt: end } },
+        where: { tenantId },
         select: REPORT_LOAN_SELECT,
       }),
       this.prisma.payment.findMany({
-        where: { tenantId, paidAt: { lt: end } },
+        where: { tenantId },
         select: { loanId: true, paidAt: true, amount: true, method: true },
       }),
       this.prisma.repaymentScheduleItem.findMany({
         where: {
           loan: { tenantId },
           status: RepaymentStatus.Paid,
-          paidAt: { not: null, lt: end },
+          paidAt: { not: null },
         },
         select: { loanId: true, amount: true, paidAt: true, status: true },
       }),
@@ -433,7 +445,7 @@ export class ReportsService {
     }
 
     const [ledgerMap, lender, manual] = await Promise.all([
-      this.loadLedgers(tenantId, range.end),
+      this.loadLedgers(tenantId),
       this.lender(tenantId),
       this.figures(tenantId, period),
     ]);
@@ -671,27 +683,19 @@ export class ReportsService {
     }
     const lastDay = new Date(range.end.getTime() - 86_400_000);
 
-    const [ledgerMap, lender, expenseRows, investmentAgg, incomeAgg, settings] = await Promise.all([
-      this.loadLedgers(tenantId, range.end),
-      this.lender(tenantId),
-      this.prisma.expense.groupBy({
-        by: ['kind'],
-        where: { tenantId, incurredAt: { gte: range.start, lt: range.end } },
-        _sum: { amount: true },
-      }),
-      this.prisma.investment.aggregate({
-        where: { tenantId, contributedAt: { gte: range.start, lt: range.end } },
-        _sum: { amount: true },
-      }),
-      this.prisma.income.aggregate({
-        where: { tenantId, incurredAt: { gte: range.start, lt: range.end } },
-        _sum: { amount: true },
-      }),
-      this.prisma.tenantSettings.findUnique({
-        where: { tenantId },
-        select: { openingBalance: true },
-      }),
-    ]);
+    const [ledgerMap, lender, inMonth, beforeMonth, undated, settings, expenseBreakdown] =
+      await Promise.all([
+        this.loadLedgers(tenantId),
+        this.lender(tenantId),
+        this.cashFlows(tenantId, { gte: range.start, lt: range.end }),
+        this.cashFlows(tenantId, { lt: range.start }),
+        this.undatedCashFlows(tenantId),
+        this.prisma.tenantSettings.findUnique({
+          where: { tenantId },
+          select: { openingBalance: true },
+        }),
+        this.expenseBreakdown(tenantId, range.start, range.end),
+      ]);
     const ledgers = [...ledgerMap.values()];
 
     const disbursed = this.disbursedIn(ledgerMap, range.start, range.end);
@@ -699,41 +703,56 @@ export class ReportsService {
     const credits = creditsInPeriod(ledgers, range.start, range.end);
     const methods = this.splitByMethod(credits);
 
-    const expenses = expenseRows.find((row) => row.kind === ExpenseKind.Expense)?._sum.amount ?? 0;
-    const drawings = expenseRows.find((row) => row.kind === ExpenseKind.Drawing)?._sum.amount ?? 0;
-    const capitalIn = investmentAgg._sum.amount ?? 0;
-    const otherIncome = incomeAgg._sum.amount ?? 0;
     const collected = sumBy(credits, (credit) => credit.amountCents);
     const disbursedValue = sumBy(disbursed, ({ loan }) => loan.principal);
     const closingBookValue = sumBy(closing, (entry) => entry.outstandingCents);
 
-    // Cash position as at month end, on the same basis as the dashboard overview
-    // (opening balance + capital + collections + income − advances − costs), but
-    // accumulated over everything up to this month's end rather than all time.
-    const [lifetime] = await Promise.all([this.lifetimeFlows(tenantId, range.end)]);
-    const availableFunds =
-      (settings?.openingBalance ?? 0) +
-      lifetime.invested +
-      lifetime.collected +
-      lifetime.income -
-      lifetime.disbursed -
-      lifetime.expenses -
-      lifetime.drawings;
+    // The cash position follows the lender's own roll-forward (see
+    // MonthlyReportSummary in @loan-pilot/domain): cash at the start of the
+    // month is the opening balance plus every flow before the month began, the
+    // month's costs and injections give the capital available to lend, advances
+    // come off that, and the month's collections carry into the next month.
+    //
+    // Advances and collections come from the same ledgers as the loan book, so
+    // a repayment that only exists as a paid instalment moves the cash and the
+    // book together. Undated capital, income and expense rows cannot be placed
+    // in a month; they are taken as predating the records (as the overview
+    // does) and the report says so.
+    const advancedBefore = sumBy(
+      ledgers.filter(
+        ({ loan }) =>
+          loan.status !== LoanStatus.Cancelled &&
+          loan.disbursedAt !== null &&
+          loan.disbursedAt.getTime() < range.start.getTime(),
+      ),
+      ({ loan }) => loan.principal,
+    );
+    const collectedBefore = sumBy(ledgers, (ledger) => creditsUpTo(ledger.credits, range.start));
+    const openingBalance = settings?.openingBalance ?? 0;
+    const openingCash =
+      openingBalance +
+      beforeMonth.invested +
+      undated.invested +
+      collectedBefore +
+      beforeMonth.income +
+      undated.income -
+      advancedBefore -
+      beforeMonth.expenses -
+      undated.expenses -
+      beforeMonth.drawings -
+      undated.drawings;
+    const totalCapital = openingCash + inMonth.invested - inMonth.expenses - inMonth.drawings;
+    const availableFunds = totalCapital - disbursedValue;
+    const closingCash = availableFunds + collected + inMonth.income;
 
     const arrears = closing.filter(
       (entry) => ageingBucketFor(entry.ageing.daysLate) !== 'current',
     );
 
-    const expenseBreakdown = await this.expenseBreakdown(tenantId, range.start, range.end);
-
     const loans: MonthlyReportLoanRow[] = disbursed.map((ledger) => {
       const { loan } = ledger;
       return {
         loanId: loan.id,
-        clientNo: loan.borrower.collexiaClientNo,
-        borrowerName: `${loan.borrower.firstName} ${loan.borrower.lastName}`.trim(),
-        idNumber: loan.borrower.idNumber,
-        phone: loan.borrower.phone,
         gender: normaliseGender(loan.borrower.gender),
         monthlyIncome: loan.borrower.monthlyIncome,
         principal: loan.principal,
@@ -782,19 +801,21 @@ export class ReportsService {
             value: methods[method],
           }),
         ),
-        expenses,
-        drawings,
-        otherIncome,
-        capitalIn,
+        expenses: inMonth.expenses,
+        drawings: inMonth.drawings,
+        otherIncome: inMonth.income,
+        capitalIn: inMonth.invested,
         namfisaLevies: sumBy(disbursed, ({ loan }) => loan.namfisaLevy),
         stampDuties: sumBy(disbursed, ({ loan }) => loan.stampDuty),
         insurance: sumBy(disbursed, ({ loan }) => loan.insurance),
         bankCharges: sumBy(disbursed, ({ loan }) => loan.bankCharges),
+        openingCash,
+        totalCapital,
         availableFunds,
-        totalCapital: availableFunds + closingBookValue,
+        closingCash,
         arrearsLoans: arrears.length,
         arrearsValue: sumBy(arrears, (entry) => entry.outstandingCents),
-        netCashMovement: collected - disbursedValue - expenses,
+        netCashMovement: closingCash - openingCash,
       },
       loans,
       expenseBreakdown,
@@ -815,42 +836,71 @@ export class ReportsService {
         credits,
         variance: derivedBook - storedBook,
         includeManual: false,
+        cash: { undatedRows: undated.rows, openingBalanceSet: openingBalance !== 0 },
       }),
     };
   }
 
-  /** Cash flows from the beginning of time up to `end`, for the cash position. */
-  private async lifetimeFlows(tenantId: string, end: Date) {
-    const [disbursedAgg, collectedAgg, expenseRows, investedAgg, incomeAgg] = await Promise.all([
-      this.prisma.loan.aggregate({
-        where: { tenantId, disbursedAt: { not: null, lt: end }, status: { not: LoanStatus.Cancelled } },
-        _sum: { principal: true },
-      }),
-      this.prisma.payment.aggregate({
-        where: { tenantId, paidAt: { lt: end } },
-        _sum: { amount: true },
-      }),
+  /** The non-loan cash flows that fall in a window: `{ gte?, lt }` on their dates. */
+  private async cashFlows(
+    tenantId: string,
+    window: { readonly gte?: Date; readonly lt: Date },
+  ): Promise<CashFlows> {
+    const [expenseRows, investmentAgg, incomeAgg] = await Promise.all([
       this.prisma.expense.groupBy({
         by: ['kind'],
-        where: { tenantId, incurredAt: { lt: end } },
+        where: { tenantId, incurredAt: window },
         _sum: { amount: true },
       }),
       this.prisma.investment.aggregate({
-        where: { tenantId, contributedAt: { lt: end } },
+        where: { tenantId, contributedAt: window },
         _sum: { amount: true },
       }),
       this.prisma.income.aggregate({
-        where: { tenantId, incurredAt: { lt: end } },
+        where: { tenantId, incurredAt: window },
         _sum: { amount: true },
       }),
     ]);
     return {
-      disbursed: disbursedAgg._sum.principal ?? 0,
-      collected: collectedAgg._sum.amount ?? 0,
       expenses: expenseRows.find((row) => row.kind === ExpenseKind.Expense)?._sum.amount ?? 0,
       drawings: expenseRows.find((row) => row.kind === ExpenseKind.Drawing)?._sum.amount ?? 0,
-      invested: investedAgg._sum.amount ?? 0,
+      invested: investmentAgg._sum.amount ?? 0,
       income: incomeAgg._sum.amount ?? 0,
+    };
+  }
+
+  /**
+   * Cash flows with no date at all. A date filter silently drops these — which
+   * is how N$104,100 of capital injections vanished from every month — so they
+   * are gathered separately, counted into the opening cash of every month, and
+   * disclosed in the report's notes until someone dates them.
+   */
+  private async undatedCashFlows(tenantId: string): Promise<CashFlows & { rows: number }> {
+    const [expenseRows, investmentAgg, incomeAgg] = await Promise.all([
+      this.prisma.expense.groupBy({
+        by: ['kind'],
+        where: { tenantId, incurredAt: null },
+        _sum: { amount: true },
+        _count: true,
+      }),
+      this.prisma.investment.aggregate({
+        where: { tenantId, contributedAt: null },
+        _sum: { amount: true },
+        _count: true,
+      }),
+      this.prisma.income.aggregate({
+        where: { tenantId, incurredAt: null },
+        _sum: { amount: true },
+        _count: true,
+      }),
+    ]);
+    return {
+      expenses: expenseRows.find((row) => row.kind === ExpenseKind.Expense)?._sum.amount ?? 0,
+      drawings: expenseRows.find((row) => row.kind === ExpenseKind.Drawing)?._sum.amount ?? 0,
+      invested: investmentAgg._sum.amount ?? 0,
+      income: incomeAgg._sum.amount ?? 0,
+      rows:
+        sumBy(expenseRows, (row) => row._count) + investmentAgg._count + incomeAgg._count,
     };
   }
 
@@ -900,14 +950,37 @@ export class ReportsService {
     credits,
     variance,
     includeManual = true,
+    cash,
   }: {
     coverage: { loansInPeriod: number; loansMissingGender: number; loansMissingPurpose: number };
     manual: RegulatoryFigures;
     credits: readonly LoanCredit[];
     variance: number;
     includeManual?: boolean;
+    /** Monthly report only: how sound the cash position's inputs are. */
+    cash?: { undatedRows: number; openingBalanceSet: boolean };
   }): ReportWarning[] {
     const warnings: ReportWarning[] = [];
+
+    if (cash && cash.undatedRows > 0) {
+      warnings.push({
+        code: 'undated_flows',
+        severity: 'warning',
+        message:
+          `${cash.undatedRows} capital, income or expense entr${cash.undatedRows === 1 ? 'y' : 'ies'} ` +
+          'under Finance have no date. They are counted in the cash position from the start of ' +
+          'the records; give them dates to place them in the right month.',
+      });
+    }
+    if (cash && !cash.openingBalanceSet) {
+      warnings.push({
+        code: 'opening_balance_unset',
+        severity: 'info',
+        message:
+          'No opening balance is set under Finance, so the cash figures assume the business ' +
+          'started with N$0 before its first recorded loan.',
+      });
+    }
 
     if (coverage.loansMissingGender > 0) {
       warnings.push({

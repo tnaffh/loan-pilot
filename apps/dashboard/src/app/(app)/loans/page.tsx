@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Activity, AlertTriangle, Eye, Plus, Wallet } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { LoanStatus, formatNad } from '@loan-pilot/domain';
+import { LoanStatus, formatNad, isLoanOverdue, isOpenLoanStatus } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/page-header';
@@ -22,6 +22,13 @@ import { useCommand } from '@/components/command-provider';
 import { useApi } from '@/lib/use-api';
 import { formatDate } from '@/lib/format';
 import type { LoanRow } from '@/lib/types';
+
+/**
+ * Live arrears: an open loan whose next instalment is past due, regardless of
+ * whether a repayment has been recorded to flip its stored status yet. The
+ * filter, the badge, the strip and the overview all use this one rule.
+ */
+const isOverdue = (loan: LoanRow): boolean => isLoanOverdue(loan);
 
 const baseColumns: ColumnDef<LoanRow>[] = [
   {
@@ -97,7 +104,9 @@ const baseColumns: ColumnDef<LoanRow>[] = [
     id: 'status',
     header: 'Status',
     accessorKey: 'status',
-    cell: ({ row }) => <StatusBadge value={row.original.status} />,
+    cell: ({ row }) => (
+      <StatusBadge value={isOverdue(row.original) ? LoanStatus.Arrears : row.original.status} />
+    ),
   },
   {
     id: 'ops',
@@ -111,18 +120,6 @@ const baseColumns: ColumnDef<LoanRow>[] = [
     ),
   },
 ];
-
-/**
- * Live arrears: an open loan whose next instalment is past due, regardless of
- * whether a repayment has been recorded to flip its stored status yet.
- */
-const isOverdue = (loan: LoanRow): boolean =>
-  loan.balance > 0 &&
-  (loan.status === LoanStatus.Active ||
-    loan.status === LoanStatus.Arrears ||
-    loan.status === LoanStatus.PartlyPaid) &&
-  loan.nextDueAt !== null &&
-  new Date(loan.nextDueAt) < new Date();
 
 type StatusFilter = 'all' | LoanStatus;
 
@@ -181,7 +178,10 @@ const LoansPage = () => {
     () =>
       (data ?? []).filter(
         (loan) =>
-          (statusFilter === 'all' || loan.status === statusFilter) &&
+          (statusFilter === 'all' ||
+            (statusFilter === LoanStatus.Arrears
+              ? isOverdue(loan)
+              : loan.status === statusFilter)) &&
           (activeMonth === ALL_MONTHS || toMonthKey(loan.disbursedAt) === activeMonth) &&
           isInRange(loan.disbursedAt, range),
       ),
@@ -189,14 +189,19 @@ const LoansPage = () => {
   );
 
   const summary = useMemo(() => {
-    const book = rows.reduce((sum, loan) => sum + loan.balance, 0);
+    // Only open loans owe anything; a written-off loan keeps its balance on record.
+    const book = rows
+      .filter((loan) => isOpenLoanStatus(loan.status))
+      .reduce((sum, loan) => sum + loan.balance, 0);
     const active = rows.filter((loan) => loan.status === LoanStatus.Active).length;
     const arrears = rows.filter(isOverdue).length;
     const avg = rows.length ? Math.round(rows.reduce((s, l) => s + l.principal, 0) / rows.length) : 0;
     return { book, active, arrears, avg };
   }, [rows]);
 
-  const outstanding = (data ?? []).reduce((sum, loan) => sum + loan.balance, 0);
+  const outstanding = (data ?? [])
+    .filter((loan) => isOpenLoanStatus(loan.status))
+    .reduce((sum, loan) => sum + loan.balance, 0);
 
   return (
     <div>

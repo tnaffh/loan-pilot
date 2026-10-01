@@ -50,6 +50,38 @@ const loanRow = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+/** A dated money row, as the finance tables store them (`at` null = undated). */
+interface FlowRow {
+  readonly at: Date | null;
+  readonly amount: number;
+  readonly kind?: ExpenseKind;
+  readonly category?: string;
+}
+
+interface PaymentRowMock {
+  readonly loanId: string;
+  readonly paidAt: Date;
+  readonly amount: number;
+  readonly method: PaymentMethod;
+}
+
+const isDateWindow = (value: unknown): value is { gte?: Date; lt?: Date } =>
+  typeof value === 'object' && value !== null;
+
+/** Does a row's date satisfy a Prisma date filter: absent, `null`, or `{ gte?, lt? }`? */
+const inWindow = (at: Date | null, filter: unknown): boolean => {
+  if (filter === undefined) return true;
+  if (filter === null) return at === null;
+  if (at === null || !isDateWindow(filter)) return false;
+  return (
+    (!(filter.gte instanceof Date) || at >= filter.gte) &&
+    (!(filter.lt instanceof Date) || at < filter.lt)
+  );
+};
+
+const sumRows = (rows: readonly FlowRow[]): number =>
+  rows.reduce((sum, row) => sum + row.amount, 0);
+
 describe('ReportsService', () => {
   const loanFindMany = jest.fn();
   const paymentFindMany = jest.fn();
@@ -59,12 +91,10 @@ describe('ReportsService', () => {
   const incomeAggregate = jest.fn();
   const expenseGroupBy = jest.fn();
   const investmentAggregate = jest.fn();
-  const loanAggregate = jest.fn();
-  const paymentAggregate = jest.fn();
 
   const prismaMock = {
-    loan: { findMany: loanFindMany, aggregate: loanAggregate },
-    payment: { findMany: paymentFindMany, aggregate: paymentAggregate },
+    loan: { findMany: loanFindMany },
+    payment: { findMany: paymentFindMany },
     repaymentScheduleItem: { findMany: scheduleFindMany },
     regulatoryReturn: { findUnique: returnFindUnique, upsert: returnUpsert },
     income: { aggregate: incomeAggregate },
@@ -72,6 +102,44 @@ describe('ReportsService', () => {
     investment: { aggregate: investmentAggregate },
     tenantSettings: { findUnique: jest.fn().mockResolvedValue({ openingBalance: 0 }) },
     tenant: { findUnique: jest.fn().mockResolvedValue({ logoUrl: null }) },
+  };
+
+  // The finance tables and payments are mocked as rows so that every window the
+  // service asks for (this month, before it, undated, everything) answers from
+  // the same data — the monthly report's roll-forward depends on that.
+  const flows: { expenses: FlowRow[]; investments: FlowRow[]; income: FlowRow[] } = {
+    expenses: [],
+    investments: [],
+    income: [],
+  };
+  const paymentRows: PaymentRowMock[] = [];
+
+  const aggregateOf =
+    (rows: readonly FlowRow[], field: string) =>
+    async (args: { where: Record<string, unknown> }) => {
+      const matched = rows.filter((row) => inWindow(row.at, args.where[field]));
+      return { _sum: { amount: sumRows(matched) }, _count: matched.length };
+    };
+  const groupExpenses = async (args: {
+    by: readonly string[];
+    where: { incurredAt?: unknown; kind?: unknown };
+  }) => {
+    const matched = flows.expenses.filter(
+      (row) =>
+        inWindow(row.at, args.where.incurredAt) &&
+        (args.where.kind === undefined || row.kind === args.where.kind),
+    );
+    const byCategory = args.by.includes('category');
+    const groups = new Map<string, FlowRow[]>();
+    for (const row of matched) {
+      const key = (byCategory ? row.category : row.kind) ?? '';
+      groups.set(key, [...(groups.get(key) ?? []), row]);
+    }
+    return [...groups.entries()].map(([key, rows]) =>
+      byCategory
+        ? { category: key, _sum: { amount: sumRows(rows) }, _count: rows.length }
+        : { kind: key, _sum: { amount: sumRows(rows) }, _count: rows.length },
+    );
   };
 
   const settingsMock = {
@@ -93,15 +161,21 @@ describe('ReportsService', () => {
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    flows.expenses.length = 0;
+    flows.investments.length = 0;
+    flows.income.length = 0;
+    paymentRows.length = 0;
     loanFindMany.mockResolvedValue([loanRow()]);
-    paymentFindMany.mockResolvedValue([]);
+    // Honour a `paidAt` filter if the service passes one, so a test can tell a
+    // windowed load from a full one.
+    paymentFindMany.mockImplementation(async (args: { where: { paidAt?: unknown } }) =>
+      paymentRows.filter((row) => inWindow(row.paidAt, args.where.paidAt)),
+    );
     scheduleFindMany.mockResolvedValue([]);
     returnFindUnique.mockResolvedValue(null);
-    incomeAggregate.mockResolvedValue({ _sum: { amount: 0 } });
-    expenseGroupBy.mockResolvedValue([]);
-    investmentAggregate.mockResolvedValue({ _sum: { amount: 0 } });
-    loanAggregate.mockResolvedValue({ _sum: { principal: 0 } });
-    paymentAggregate.mockResolvedValue({ _sum: { amount: 0 } });
+    incomeAggregate.mockImplementation(aggregateOf(flows.income, 'incurredAt'));
+    expenseGroupBy.mockImplementation(groupExpenses);
+    investmentAggregate.mockImplementation(aggregateOf(flows.investments, 'contributedAt'));
     prismaMock.tenantSettings.findUnique.mockResolvedValue({ openingBalance: 0 });
 
     const moduleRef = await Test.createTestingModule({
@@ -328,7 +402,9 @@ describe('ReportsService', () => {
       );
       expect(scheduleFindMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: expect.objectContaining({ loan: { tenantId: 'tenant_1' } }),
+          where: expect.objectContaining({
+            loan: expect.objectContaining({ tenantId: 'tenant_1' }),
+          }),
         }),
       );
     });
@@ -341,16 +417,17 @@ describe('ReportsService', () => {
   });
 
   describe('monthly', () => {
-    it('summarises the month and lists the loans advanced in it', async () => {
-      expenseGroupBy.mockResolvedValue([
-        { kind: ExpenseKind.Expense, _sum: { amount: 30_000 } },
-        { kind: ExpenseKind.Drawing, _sum: { amount: 10_000 } },
-      ]);
-      paymentFindMany.mockResolvedValue([
-        { loanId: 'loan_1', paidAt: utc('2026-02-25'), amount: 200_000, method: PaymentMethod.DebitOrder },
-      ]);
-      paymentAggregate.mockResolvedValue({ _sum: { amount: 200_000 } });
-      loanAggregate.mockResolvedValue({ _sum: { principal: 500_000 } });
+    it('summarises the month and lists the loans advanced in it, without identifying borrowers', async () => {
+      flows.expenses.push(
+        { at: utc('2026-02-03'), amount: 30_000, kind: ExpenseKind.Expense, category: 'Rent' },
+        { at: utc('2026-02-04'), amount: 10_000, kind: ExpenseKind.Drawing, category: 'Cash-out' },
+      );
+      paymentRows.push({
+        loanId: 'loan_1',
+        paidAt: utc('2026-02-25'),
+        amount: 200_000,
+        method: PaymentMethod.DebitOrder,
+      });
 
       const report = await service.monthly('tenant_1', '2026-02');
 
@@ -361,18 +438,108 @@ describe('ReportsService', () => {
       expect(report.summary.collected).toBe(200_000);
       expect(report.summary.expenses).toBe(30_000);
       expect(report.summary.drawings).toBe(10_000);
-      // Collected − advanced − expenses.
-      expect(report.summary.netCashMovement).toBe(200_000 - 500_000 - 30_000);
+      expect(report.expenseBreakdown).toEqual([{ key: 'Rent', label: 'Rent', value: 30_000 }]);
       expect(report.loans).toHaveLength(1);
-      expect(report.loans[0]?.borrowerName).toBe('Aina Shikongo');
-      expect(report.loans[0]?.clientNo).toBe('294');
+      expect(report.loans[0]).toMatchObject({ principal: 500_000, gender: 'female', balance: 450_000 });
+      // The register carries the loan's terms and the borrower's profile, never their identity.
+      expect(Object.keys(report.loans[0] ?? {})).toEqual(
+        expect.not.arrayContaining(['borrowerName', 'idNumber', 'clientNo', 'phone']),
+      );
+    });
+
+    it("follows the lender's roll-forward: total capital is loaned plus available, collections carry forward", async () => {
+      prismaMock.tenantSettings.findUnique.mockResolvedValue({ openingBalance: 1_000_000 });
+      flows.expenses.push(
+        { at: utc('2026-02-03'), amount: 30_000, kind: ExpenseKind.Expense, category: 'Rent' },
+        { at: utc('2026-02-04'), amount: 10_000, kind: ExpenseKind.Drawing, category: 'Cash-out' },
+      );
+      flows.investments.push({ at: utc('2026-02-01'), amount: 20_000 });
+      flows.income.push({ at: utc('2026-02-10'), amount: 5_000 });
+      paymentRows.push({
+        loanId: 'loan_1',
+        paidAt: utc('2026-02-25'),
+        amount: 200_000,
+        method: PaymentMethod.Cash,
+      });
+
+      const { summary } = await service.monthly('tenant_1', '2026-02');
+
+      expect(summary.openingCash).toBe(1_000_000);
+      expect(summary.totalCapital).toBe(1_000_000 + 20_000 - 30_000 - 10_000);
+      expect(summary.totalCapital).toBe(summary.disbursedValue + summary.availableFunds);
+      // Available funds exclude the month's own collections…
+      expect(summary.availableFunds).toBe(summary.totalCapital - 500_000);
+      // …which land in the closing cash instead, together with other income.
+      expect(summary.closingCash).toBe(summary.availableFunds + 200_000 + 5_000);
+      expect(summary.netCashMovement).toBe(summary.closingCash - summary.openingCash);
+    });
+
+    it("carries one month's closing cash and book into the next month's opening", async () => {
+      prismaMock.tenantSettings.findUnique.mockResolvedValue({ openingBalance: 1_000_000 });
+      flows.expenses.push({ at: utc('2026-02-03'), amount: 30_000, kind: ExpenseKind.Expense, category: 'Rent' });
+      flows.investments.push({ at: utc('2026-02-01'), amount: 20_000 });
+      paymentRows.push({
+        loanId: 'loan_1',
+        paidAt: utc('2026-02-25'),
+        amount: 200_000,
+        method: PaymentMethod.Cash,
+      });
+
+      const february = await service.monthly('tenant_1', '2026-02');
+      const march = await service.monthly('tenant_1', '2026-03');
+
+      expect(march.summary.openingCash).toBe(february.summary.closingCash);
+      expect(march.summary.openingBookValue).toBe(february.summary.closingBookValue);
+      expect(march.summary.loansDisbursed).toBe(0);
+    });
+
+    it('counts undated capital injections in the cash position and discloses them', async () => {
+      // N$104,100 of injections with no date: dropped entirely by a date filter.
+      flows.investments.push({ at: null, amount: 10_410_000 });
+
+      const report = await service.monthly('tenant_1', '2026-02');
+
+      expect(report.summary.openingCash).toBe(10_410_000);
+      expect(report.summary.capitalIn).toBe(0);
+      expect(report.warnings.map((warning) => warning.code)).toContain('undated_flows');
+    });
+
+    it('moves cash and book together for a repayment recorded as a paid instalment', async () => {
+      scheduleFindMany.mockResolvedValue([
+        { loanId: 'loan_1', amount: 130_000, paidAt: utc('2026-02-20'), status: RepaymentStatus.Paid },
+      ]);
+
+      const { summary } = await service.monthly('tenant_1', '2026-02');
+
+      expect(summary.collected).toBe(130_000);
+      expect(summary.closingBookValue).toBe(650_000 - 130_000);
+      expect(summary.closingCash - summary.availableFunds).toBe(130_000);
+    });
+
+    it("keeps a loan settled the following month on this month's book", async () => {
+      // Settled on 5 March with no closedAt written (recordRepayment and
+      // recomputeLoan never set it): at the end of February it was still owed in full.
+      loanFindMany.mockResolvedValue([loanRow({ status: LoanStatus.Settled, balance: 0 })]);
+      paymentRows.push({
+        loanId: 'loan_1',
+        paidAt: utc('2026-03-05'),
+        amount: 650_000,
+        method: PaymentMethod.Cash,
+      });
+
+      const report = await service.monthly('tenant_1', '2026-02');
+
+      expect(report.summary.closingBookValue).toBe(650_000);
+      expect(report.loans[0]?.balance).toBe(650_000);
+      expect(report.summary.collected).toBe(0);
     });
 
     it('reports the outstanding balance as at month end, not today', async () => {
       // A payment after the month must not reduce February's closing balance.
-      paymentFindMany.mockResolvedValue([
+      paymentRows.push(
         { loanId: 'loan_1', paidAt: utc('2026-02-15'), amount: 150_000, method: PaymentMethod.Cash },
-      ]);
+        { loanId: 'loan_1', paidAt: utc('2026-03-02'), amount: 100_000, method: PaymentMethod.Cash },
+      );
 
       const report = await service.monthly('tenant_1', '2026-02');
 
@@ -385,6 +552,15 @@ describe('ReportsService', () => {
       const report = await service.monthly('tenant_1', '2026-02');
       expect(report.loans).toHaveLength(0);
       expect(report.summary.openingBookValue).toBe(650_000);
+    });
+
+    it('notes when no opening balance has been set', async () => {
+      const unset = await service.monthly('tenant_1', '2026-02');
+      expect(unset.warnings.map((warning) => warning.code)).toContain('opening_balance_unset');
+
+      prismaMock.tenantSettings.findUnique.mockResolvedValue({ openingBalance: 2_600_000 });
+      const set = await service.monthly('tenant_1', '2026-02');
+      expect(set.warnings.map((warning) => warning.code)).not.toContain('opening_balance_unset');
     });
 
     it('rejects a malformed month', async () => {

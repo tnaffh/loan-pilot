@@ -118,6 +118,30 @@ const monthLabelToDate = (label: string | null | undefined): Date | null => {
   return mon && year ? new Date(`${year}-${mon}-01T00:00:00.000Z`) : null;
 };
 
+/**
+ * Where an undated repayment belongs: in its loan's register month.
+ *
+ * The register files every repayment under the month of the loan it settles
+ * ("Payments May 2025" holds the repayments of May 2025's loans), so a row with
+ * no date is still known to fall in that month. It is placed on the loan's due
+ * date when that falls inside the month — the day the money was expected — and
+ * otherwise on the month's last day. The loan key carries the month as
+ * `YYYY-MM#row`; this must not be handed to `monthLabelToDate`, which expects
+ * "May 2025" and would return null, dropping the row onto the tenant's join date.
+ */
+const undatedPaymentDate = (loanKey: string, nextDueAt: Date | null): Date | null => {
+  const m = loanKey.match(/^(\d{4})-(\d{2})#/);
+  if (!m) return null;
+  const year = Number(m[1]);
+  const month = Number(m[2]);
+  const start = new Date(Date.UTC(year, month - 1, 1));
+  const end = new Date(Date.UTC(year, month, 1));
+  if (nextDueAt && nextDueAt.getTime() >= start.getTime() && nextDueAt.getTime() < end.getTime()) {
+    return nextDueAt;
+  }
+  return new Date(end.getTime() - 86_400_000);
+};
+
 const splitName = (full: string): { firstName: string; lastName: string } => {
   const parts = full.trim().replace(/\s+/g, ' ').split(' ');
   return { firstName: parts[0] ?? full.trim(), lastName: parts.slice(1).join(' ') };
@@ -338,30 +362,30 @@ const main = async (): Promise<void> => {
   }
 
   // 4. Payments. Loan resolved by loanKey; ref is unique per (loanKey, payRef).
-  const loanIdByKey = new Map<string, string>();
+  const loansByKey = new Map<string, { id: string; nextDueAt: Date | null }>();
   for (const l of await prisma.loan.findMany({
     where: { tenantId, externalRef: { not: null } },
-    select: { id: true, externalRef: true },
+    select: { id: true, externalRef: true, nextDueAt: true },
   })) {
-    if (l.externalRef) loanIdByKey.set(l.externalRef, l.id);
+    if (l.externalRef) loansByKey.set(l.externalRef, { id: l.id, nextDueAt: l.nextDueAt });
   }
   let paymentsCreated = 0;
   let paymentsSkipped = 0;
   for (const p of paymentRows) {
-    const loanId = loanIdByKey.get(p.loanKey);
-    if (!loanId) {
+    const loan = loansByKey.get(p.loanKey);
+    if (!loan) {
       paymentsSkipped += 1;
       continue;
     }
-    const monthLabel = p.loanKey.split('#')[0] ?? null;
-    const paidAt = toDate(p.paidAt) ?? monthLabelToDate(monthLabel) ?? tenant.joinedAt;
+    const paidAt =
+      toDate(p.paidAt) ?? undatedPaymentDate(p.loanKey, loan.nextDueAt) ?? tenant.joinedAt;
     const externalRef = `${p.loanKey}~${p.payRef}`;
     await prisma.payment.upsert({
       where: { tenantId_externalRef: { tenantId, externalRef } },
       update: {},
       create: {
         tenantId,
-        loanId,
+        loanId: loan.id,
         paidAt,
         amount: p.amount,
         method: METHOD[p.method] ?? PaymentMethod.Cash,

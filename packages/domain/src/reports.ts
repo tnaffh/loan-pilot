@@ -323,6 +323,29 @@ export const OPEN_LOAN_STATUSES: readonly LoanStatusValue[] = [
 export const isOpenLoanStatus = (status: LoanStatusValue): boolean =>
   OPEN_LOAN_STATUSES.includes(status);
 
+/**
+ * Live arrears: an open loan with money owing whose next instalment is past due.
+ *
+ * The stored `arrears` status is only written by one repayment path, so most
+ * overdue loans still read `active` in the database. Every screen that counts,
+ * filters or badges arrears must use this rule rather than the stored status,
+ * or the list, the filter and the overview disagree with each other.
+ */
+export const isLoanOverdue = (
+  loan: {
+    readonly status: LoanStatusValue;
+    readonly balance: Cents;
+    readonly nextDueAt: Date | string | null;
+  },
+  now: Date = new Date(),
+): boolean => {
+  if (!isOpenLoanStatus(loan.status) || loan.balance <= 0 || loan.nextDueAt === null) {
+    return false;
+  }
+  const due = loan.nextDueAt instanceof Date ? loan.nextDueAt : new Date(loan.nextDueAt);
+  return due.getTime() < now.getTime();
+};
+
 // ── Historical reconstruction ────────────────────────────────────────────────
 
 /** Money credited to a loan at a point in time, from either repayment path. */
@@ -720,7 +743,9 @@ export interface ReportWarning {
     | 'unreconciled_repayments'
     | 'book_reconciliation'
     | 'income_basis'
-    | 'manual_missing';
+    | 'manual_missing'
+    | 'undated_flows'
+    | 'opening_balance_unset';
   readonly severity: 'warning' | 'info';
   readonly message: string;
 }
@@ -770,12 +795,14 @@ export interface QuarterlyReturn {
   readonly warnings: readonly ReportWarning[];
 }
 
+/**
+ * One advance in the month's register. Deliberately carries no borrower
+ * identifiers (no name, ID number, client number or phone): the management
+ * report is shared beyond the people who may see personal data, so it reports
+ * the loan's terms and the borrower's profile only.
+ */
 export interface MonthlyReportLoanRow {
   readonly loanId: string;
-  readonly clientNo: string | null;
-  readonly borrowerName: string;
-  readonly idNumber: string;
-  readonly phone: string;
   readonly gender: ReportGender;
   readonly monthlyIncome: Cents;
   readonly principal: Cents;
@@ -810,11 +837,31 @@ export interface MonthlyReportSummary {
   readonly stampDuties: Cents;
   readonly insurance: Cents;
   readonly bankCharges: Cents;
-  readonly availableFunds: Cents;
+  /**
+   * The month's cash, on the lender's own roll-forward model (the one its
+   * register has always used, and the one it will compare these figures to):
+   *
+   *   openingCash      cash at the start of the month: the opening balance plus
+   *                    every flow before the month began
+   *   totalCapital     = openingCash + capitalIn − expenses − drawings
+   *                    what the lender had available to lend this month
+   *   availableFunds   = totalCapital − disbursedValue
+   *                    what was left after this month's advances, *before* the
+   *                    month's collections
+   *   closingCash      = availableFunds + collected + otherIncome
+   *                    cash at month end, and the next month's openingCash
+   *
+   * So "Total capital" is loaned-this-month plus available funds, exactly as the
+   * register's monthly summary states it, and each month's figures depend only on
+   * the cash position it inherited and its own movements.
+   */
+  readonly openingCash: Cents;
   readonly totalCapital: Cents;
+  readonly availableFunds: Cents;
+  readonly closingCash: Cents;
   readonly arrearsLoans: number;
   readonly arrearsValue: Cents;
-  /** Collected − disbursed − operating expenses for the month. */
+  /** closingCash − openingCash: how the cash position moved over the month. */
   readonly netCashMovement: Cents;
 }
 

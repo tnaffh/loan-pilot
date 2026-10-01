@@ -152,8 +152,12 @@ const monthly = (over: Partial<MonthlyReport> = {}): MonthlyReport => ({
     stampDuties: 500,
     insurance: 0,
     bankCharges: 0,
-    availableFunds: 1_000_000,
-    totalCapital: 1_650_000,
+    // 1,000,000 opening − 30,000 expenses = 970,000 to lend; 500,000 lent
+    // leaves 470,000, and nothing was collected, so that is also the close.
+    openingCash: 1_000_000,
+    totalCapital: 970_000,
+    availableFunds: 470_000,
+    closingCash: 470_000,
     arrearsLoans: 0,
     arrearsValue: 0,
     netCashMovement: -530_000,
@@ -161,10 +165,6 @@ const monthly = (over: Partial<MonthlyReport> = {}): MonthlyReport => ({
   loans: [
     {
       loanId: 'loan_1',
-      clientNo: '294',
-      borrowerName: 'Aina Shikongo',
-      idNumber: '90010112345',
-      phone: '0811234567',
       gender: 'female',
       monthlyIncome: 2_100_000,
       principal: 500_000,
@@ -258,8 +258,12 @@ describe('renderMonthlyReportXlsx', () => {
     const rows: unknown[][] = XLSX.utils.sheet_to_json(loans, { header: 1 });
     const header = rows[0];
     const first = rows[1];
-    expect(header?.[1]).toBe('Borrower');
-    expect(first?.[1]).toBe('Aina Shikongo');
+    // No borrower identifiers leave in the export.
+    expect(header).not.toEqual(
+      expect.arrayContaining(['Borrower', 'ID number', 'Client no', 'Phone']),
+    );
+    expect(header?.[0]).toBe('Gender');
+    expect(first?.[0]).toBe('Female');
     // "Loan amount (N$)" — a number in major N$, not a formatted string.
     const amountIndex = (header ?? []).indexOf('Loan amount (N$)');
     expect(typeof first?.[amountIndex]).toBe('number');

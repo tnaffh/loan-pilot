@@ -14,7 +14,7 @@ import {
   Pencil,
   Wallet,
 } from 'lucide-react';
-import { LoanStatus, can, formatNad, isUnverifiedId } from '@loan-pilot/domain';
+import { LoanStatus, can, formatNad, isLoanOverdue, isOpenLoanStatus, isUnverifiedId } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,9 +70,7 @@ const BorrowerDetailPage = () => {
     );
   }
 
-  const activeLoan = data.loans.find(
-    (loan) => loan.status === LoanStatus.Active || loan.status === LoanStatus.Arrears,
-  );
+  const activeLoan = data.loans.find((loan) => isOpenLoanStatus(loan.status));
 
   // The statement letter is a signed, stamped PDF rendered by the API; it lands
   // under its own name ("Statement of Account - <name> - <date>.pdf").
@@ -90,9 +88,7 @@ const BorrowerDetailPage = () => {
   };
 
   const summary = (() => {
-    const open = data.loans.filter(
-      (loan) => loan.status === LoanStatus.Active || loan.status === LoanStatus.Arrears,
-    );
+    const open = data.loans.filter((loan) => isOpenLoanStatus(loan.status));
     const outstanding = open.reduce((sum, loan) => sum + loan.balance, 0);
     const lifetime = data.loans.reduce((sum, loan) => sum + loan.principal, 0);
     return { active: open.length, outstanding, lifetime, total: data.loans.length };
@@ -227,7 +223,7 @@ const BorrowerDetailPage = () => {
                   <TableCell className="text-right tabular-nums">{formatNad(loan.balance)}</TableCell>
                   <TableCell>{formatDate(loan.disbursedAt)}</TableCell>
                   <TableCell>
-                    <StatusBadge value={loan.status} />
+                    <StatusBadge value={isLoanOverdue(loan) ? LoanStatus.Arrears : loan.status} />
                   </TableCell>
                 </TableRow>
               ))}

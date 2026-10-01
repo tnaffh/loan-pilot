@@ -33,6 +33,9 @@ const amount = (cents: number): string =>
  * The lender's monthly management report: the month's position and movements,
  * then every loan advanced in the month. Landscape, because the loan table needs
  * the width; the letterhead is shared with the loan agreements.
+ *
+ * The register carries no borrower identifiers (see MonthlyReportLoanRow); the
+ * cash column follows the lender's own roll-forward (see MonthlyReportSummary).
  */
 export const renderMonthlyReportPdf = (
   report: MonthlyReport,
@@ -58,17 +61,17 @@ export const renderMonthlyReportPdf = (
 
     layout.summaryRow([
       { label: 'Total capital', value: formatNad(summary.totalCapital) },
-      { label: 'Capital on loan', value: formatNad(summary.closingBookValue) },
+      { label: 'Loaned this month', value: formatNad(summary.disbursedValue) },
       { label: 'Available funds', value: formatNad(summary.availableFunds) },
+      { label: 'Collected', value: formatNad(summary.collected) },
       { label: 'Loans advanced', value: String(summary.loansDisbursed) },
-      { label: 'Interest booked', value: formatNad(summary.interestBooked) },
     ]);
 
-    // Two columns of figures, so the position and the movements sit side by side.
+    // Two columns of figures, so the book and the cash sit side by side.
     const columnWidth = (layout.W - 24) / 2;
     const top = doc.y;
 
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.accent).text('THE MONTH', layout.M, top);
+    doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.accent).text('THE BOOK', layout.M, top);
     doc.moveDown(0.3);
     const leftStart = doc.y;
 
@@ -105,20 +108,25 @@ export const renderMonthlyReportPdf = (
       { label: 'Collected from borrowers', value: formatNad(summary.collected) },
       { label: 'Loan book at end of month', value: formatNad(summary.closingBookValue), strong: true },
       { label: 'In arrears at month end', value: `${formatNad(summary.arrearsValue)}  (${summary.arrearsLoans})` },
+      { label: 'NAMFISA levies charged', value: formatNad(summary.namfisaLevies) },
+      { label: 'Stamp duties charged', value: formatNad(summary.stampDuties) },
     ]);
 
     doc.y = leftStart;
     doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.accent)
-      .text('CASH & CHARGES', layout.M + columnWidth + 24, top);
+      .text('CASH', layout.M + columnWidth + 24, top);
     doc.y = leftStart;
     const rightBottom = renderColumn(layout.M + columnWidth + 24, [
-      { label: 'Other income received', value: formatNad(summary.otherIncome) },
+      { label: 'Cash at start of month', value: formatNad(summary.openingCash) },
       { label: 'Capital injected', value: formatNad(summary.capitalIn) },
       { label: 'Operating expenses', value: formatNad(summary.expenses) },
       { label: 'Owner drawings', value: formatNad(summary.drawings) },
-      { label: 'NAMFISA levies charged', value: formatNad(summary.namfisaLevies) },
-      { label: 'Stamp duties charged', value: formatNad(summary.stampDuties) },
-      { label: 'Net cash movement', value: formatNad(summary.netCashMovement), strong: true },
+      { label: 'Total capital', value: formatNad(summary.totalCapital), strong: true },
+      { label: 'Loaned this month', value: formatNad(summary.disbursedValue) },
+      { label: 'Available funds', value: formatNad(summary.availableFunds), strong: true },
+      { label: 'Collected from borrowers', value: formatNad(summary.collected) },
+      { label: 'Other income received', value: formatNad(summary.otherIncome) },
+      { label: 'Cash at end of month', value: formatNad(summary.closingCash), strong: true },
     ]);
 
     doc.y = Math.max(leftBottom, rightBottom) + 10;
@@ -150,22 +158,19 @@ export const renderMonthlyReportPdf = (
     layout.sectionHeading(`Loans advanced in ${report.period.label}`);
 
     const columns: ReportColumn<MonthlyReportLoanRow>[] = [
-      { header: 'Client', weight: 1.15, value: (row) => row.clientNo ?? '—' },
-      { header: 'Borrower', weight: 3.15, value: (row) => row.borrowerName },
-      { header: 'ID No', weight: 1.6, value: (row) => row.idNumber },
-      { header: 'Gender', weight: 1.1, value: (row) => GENDER_LABELS[row.gender] ?? '—' },
-      { header: 'Income', weight: 1.15, align: 'right', value: (row) => amount(row.monthlyIncome) },
-      { header: 'Amount', weight: 1.2, align: 'right', value: (row) => amount(row.principal) },
-      { header: 'Charge', weight: 1.15, align: 'right', value: (row) => amount(row.financeCharge) },
-      { header: 'Rate', weight: 0.75, align: 'right', value: (row) => `${Math.round(row.interestRate * 100)}%` },
-      { header: 'Levy', weight: 0.9, align: 'right', value: (row) => amount(row.namfisaLevy) },
+      { header: 'Gender', weight: 1.2, value: (row) => GENDER_LABELS[row.gender] ?? '—' },
+      { header: 'Income', weight: 1.4, align: 'right', value: (row) => amount(row.monthlyIncome) },
+      { header: 'Amount', weight: 1.4, align: 'right', value: (row) => amount(row.principal) },
+      { header: 'Charge', weight: 1.3, align: 'right', value: (row) => amount(row.financeCharge) },
+      { header: 'Rate', weight: 0.9, align: 'right', value: (row) => `${Math.round(row.interestRate * 100)}%` },
+      { header: 'Levy', weight: 1.0, align: 'right', value: (row) => amount(row.namfisaLevy) },
       { header: 'Stamp', weight: 1.0, align: 'right', value: (row) => amount(row.stampDuty) },
-      { header: 'Total', weight: 1.2, align: 'right', value: (row) => amount(row.total) },
-      { header: 'Instal.', weight: 1.2, align: 'right', value: (row) => amount(row.instalment) },
-      { header: 'Term', weight: 0.95, align: 'right', value: (row) => `${row.termMonths}m` },
-      { header: 'Balance', weight: 1.25, align: 'right', value: (row) => amount(row.balance) },
-      { header: 'Status', weight: 1.05, value: (row) => STATUS_LABELS[row.status] ?? row.status },
-      { header: 'Date', weight: 0.9, value: (row) => shortDate(row.disbursedAt) },
+      { header: 'Total', weight: 1.4, align: 'right', value: (row) => amount(row.total) },
+      { header: 'Instal.', weight: 1.4, align: 'right', value: (row) => amount(row.instalment) },
+      { header: 'Term', weight: 0.9, align: 'right', value: (row) => `${row.termMonths}m` },
+      { header: 'Balance', weight: 1.4, align: 'right', value: (row) => amount(row.balance) },
+      { header: 'Status', weight: 1.3, value: (row) => STATUS_LABELS[row.status] ?? row.status },
+      { header: 'Date', weight: 1.1, value: (row) => shortDate(row.disbursedAt) },
     ];
 
     layout.table(columns, report.loans, 'No loans were advanced in this month.');

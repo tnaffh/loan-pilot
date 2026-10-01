@@ -57,32 +57,88 @@ const str = (v) => (v == null ? '' : String(v).trim().replace(/\s+/g, ' '));
 
 const pad = (n) => String(n).padStart(2, '0');
 
-/** A date cell (Date object, ISO, dd/mm/yy or mm/dd/yyyy) to ISO yyyy-mm-dd, or null. */
-const isoDate = (v) => {
+/** Whole months from the `YYYY-MM` anchor to a (year, month) pair. */
+const monthsFrom = (anchor, year, mon) => {
+  const [ay, am] = anchor.split('-').map(Number);
+  return (year - ay) * 12 + (mon - am);
+};
+
+/**
+ * Pick between a date and its day/month-swapped twin.
+ *
+ * The lender types dates as dd/mm (Namibian convention) into a sheet that reads
+ * them as mm/dd, so a cell showing "06/10/23" is stored as 10 June when 6 October
+ * was meant. Whenever both readings are valid the one nearer the tab's month
+ * wins. `bias` settles near-ties from what the date is: a loan's start date
+ * often precedes its tab ('before'), while a repayment or due date cannot
+ * precede the loan ('after'), so a candidate on the wrong side of the tab's month
+ * carries a small penalty. On a dead tie the first candidate is kept.
+ */
+const nearestToAnchor = (anchor, preferred, alternative, bias) => {
+  if (!anchor) return preferred;
+  const cost = (d) => {
+    const offset = monthsFrom(anchor, d.year, d.mon);
+    const wrongSide = bias === 'after' ? offset < 0 : offset > 0;
+    return Math.abs(offset) + (wrongSide ? 0.5 : 0);
+  };
+  return cost(alternative) < cost(preferred) ? alternative : preferred;
+};
+
+/**
+ * Snap an obviously mistyped year back onto the tab's year. A repayment dated a
+ * whole year or more away from the loan's month cannot be real — the sheet has
+ * a run of January 2024 repayments dated 2025…2029 where a fill-handle dragged
+ * the year — and the same day/month in the tab's year lands where it belongs.
+ */
+const snapYear = (anchor, d) => {
+  if (!anchor || Math.abs(monthsFrom(anchor, d.year, d.mon)) < 12) return d;
+  const year = Number(anchor.slice(0, 4));
+  for (const candidate of [year, year + 1, year - 1]) {
+    if (Math.abs(monthsFrom(anchor, candidate, d.mon)) <= 3) return { ...d, year: candidate };
+  }
+  return d;
+};
+
+const validDay = (d) => d.mon >= 1 && d.mon <= 12 && d.day >= 1 && d.day <= 31;
+const fmt = (d) => `${d.year}-${pad(d.mon)}-${pad(d.day)}`;
+
+/**
+ * A date cell (Date object, ISO, dd/mm/yy or mm/dd/yyyy) to ISO yyyy-mm-dd, or
+ * null. `anchor` is the tab's `YYYY-MM`; it resolves day/month ambiguity and
+ * mistyped years (see above), so pass it for every loan and repayment date,
+ * with `bias` 'before' for a loan's start date and 'after' for everything else.
+ */
+const isoDate = (v, anchor = null, bias = 'after') => {
   if (v == null || v === '') return null;
+  const resolve = (year, a, b, preferSwapped) => {
+    // `a` is what the sheet calls the month, `b` the day. Both readings are
+    // candidates only when each field could be either.
+    const natural = { year, mon: a, day: b };
+    const swapped = { year, mon: b, day: a };
+    const ambiguous = a >= 1 && a <= 12 && b >= 1 && b <= 12 && a !== b;
+    const picked = !ambiguous
+      ? validDay(natural)
+        ? natural
+        : swapped
+      : !anchor
+        ? natural
+        : preferSwapped
+          ? nearestToAnchor(anchor, swapped, natural, bias)
+          : nearestToAnchor(anchor, natural, swapped, bias);
+    return validDay(picked) ? fmt(snapYear(anchor, picked)) : null;
+  };
   if (v instanceof Date && !Number.isNaN(v.getTime())) {
-    return `${v.getUTCFullYear()}-${pad(v.getUTCMonth() + 1)}-${pad(v.getUTCDate())}`;
+    // A stored Date is the sheet's mm/dd reading of what was typed as dd/mm.
+    return resolve(v.getUTCFullYear(), v.getUTCMonth() + 1, v.getUTCDate(), true);
   }
   const t = String(v).trim();
   let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
-  if (m) return `${m[1]}-${pad(m[2])}-${pad(m[3])}`;
+  if (m) return fmt(snapYear(anchor, { year: Number(m[1]), mon: Number(m[2]), day: Number(m[3]) }));
   m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
   if (m) {
-    const year = m[3].length === 2 ? `20${m[3]}` : m[3];
-    let a = Number(m[1]);
-    let b = Number(m[2]);
-    // Day/month order is inconsistent in the sheet; if the first field can't be a
-    // day (>12) treat it as month (US-style), otherwise assume dd/mm.
-    let day = a;
-    let mon = b;
-    if (a > 12 && b <= 12) {
-      day = a;
-      mon = b;
-    } else if (b > 12 && a <= 12) {
-      day = b;
-      mon = a;
-    }
-    if (mon >= 1 && mon <= 12 && day >= 1 && day <= 31) return `${year}-${pad(mon)}-${pad(day)}`;
+    const year = Number(m[3].length === 2 ? `20${m[3]}` : m[3]);
+    // Typed text is dd/mm first; the swapped (mm/dd) reading is the fallback.
+    return resolve(year, Number(m[2]), Number(m[1]), false);
   }
   return null;
 };
@@ -246,8 +302,8 @@ for (const tab of loanTabs) {
       totalRepayable: cents(row[col('total repayment amount')]),
       balance,
       status: loanStatus(row[col('status')]),
-      startDate: isoDate(row[col('start date')]),
-      dueDate: isoDate(row[col('end date')]),
+      startDate: isoDate(row[col('start date')], slug, 'before'),
+      dueDate: isoDate(row[col('end date')], slug),
     });
   }
 }
@@ -313,7 +369,7 @@ for (const tab of paymentTabs) {
     payments.push({
       payRef: String(n),
       loanKey,
-      paidAt: isoDate(row[dateC]),
+      paidAt: isoDate(row[dateC], slug),
       amount,
       method: payMethod(row[methodC]),
       badDebt: badC != null && truthy(row[badC]),

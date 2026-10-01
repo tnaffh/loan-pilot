@@ -8,6 +8,8 @@ import { fromCents, type MonthlyReport } from '@loan-pilot/domain';
  * Money is written as **numbers in major N$**, not formatted strings, so the
  * lender can total a column in Excel. Cent precision is preserved (2 decimals)
  * rather than rounded for display.
+ *
+ * The Loans sheet carries no borrower identifiers (see MonthlyReportLoanRow).
  */
 
 const money = (cents: number): number => Number(fromCents(cents).toFixed(2));
@@ -27,25 +29,31 @@ export const renderMonthlyReportXlsx = (report: MonthlyReport): Buffer => {
     [`Monthly management report — ${report.period.label}`],
     [`Period ${report.period.startDate} to ${report.period.endDate}`],
     [],
-    ['Position', 'Amount (N$)'],
-    ['Loan book at start of month', money(summary.openingBookValue)],
-    ['Loan book at end of month', money(summary.closingBookValue)],
-    ['Available funds', money(summary.availableFunds)],
+    // The cash lines follow the lender's own roll-forward: each line is derived
+    // from the one above it, and the last is next month's first.
+    ['Cash', 'Amount (N$)'],
+    ['Cash at start of month', money(summary.openingCash)],
+    ['Capital injected', money(summary.capitalIn)],
+    ['Operating expenses', money(summary.expenses)],
+    ['Owner drawings', money(summary.drawings)],
     ['Total capital', money(summary.totalCapital)],
-    ['In arrears at month end', money(summary.arrearsValue)],
-    ['Loans in arrears', summary.arrearsLoans],
+    ['Loaned this month', money(summary.disbursedValue)],
+    ['Available funds', money(summary.availableFunds)],
+    ['Collected from borrowers', money(summary.collected)],
+    ['Other income received', money(summary.otherIncome)],
+    ['Cash at end of month', money(summary.closingCash)],
+    ['Net cash movement', money(summary.netCashMovement)],
     [],
-    ['Movements', 'Amount (N$)'],
+    ['Loan book', 'Amount (N$)'],
+    ['Loan book at start of month', money(summary.openingBookValue)],
     ['Loans advanced (count)', summary.loansDisbursed],
     ['Advanced to borrowers', money(summary.disbursedValue)],
     ['Interest booked on new loans', money(summary.interestBooked)],
     ['Total repayable on new loans', money(summary.expectedRepayable)],
     ['Collected from borrowers', money(summary.collected)],
-    ['Other income received', money(summary.otherIncome)],
-    ['Capital injected', money(summary.capitalIn)],
-    ['Operating expenses', money(summary.expenses)],
-    ['Owner drawings', money(summary.drawings)],
-    ['Net cash movement', money(summary.netCashMovement)],
+    ['Loan book at end of month', money(summary.closingBookValue)],
+    ['In arrears at month end', money(summary.arrearsValue)],
+    ['Loans in arrears', summary.arrearsLoans],
     [],
     ['Charges raised', 'Amount (N$)'],
     ['NAMFISA levies', money(summary.namfisaLevies)],
@@ -75,10 +83,6 @@ export const renderMonthlyReportXlsx = (report: MonthlyReport): Buffer => {
   summarySheet['!cols'] = [{ wch: 40 }, { wch: 16 }];
 
   const loanHeader = [
-    'Client no',
-    'Borrower',
-    'ID number',
-    'Phone',
     'Gender',
     'Monthly income (N$)',
     'Loan amount (N$)',
@@ -97,10 +101,6 @@ export const renderMonthlyReportXlsx = (report: MonthlyReport): Buffer => {
   ];
 
   const loanRows = report.loans.map((loan) => [
-    loan.clientNo ?? '',
-    loan.borrowerName,
-    loan.idNumber,
-    loan.phone,
     GENDER_LABELS[loan.gender] ?? '',
     money(loan.monthlyIncome),
     money(loan.principal),

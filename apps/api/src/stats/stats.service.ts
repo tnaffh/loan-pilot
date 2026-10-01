@@ -3,14 +3,17 @@ import {
   ApplicationStatus,
   ExpenseKind,
   LoanStatus,
+  OPEN_LOAN_STATUSES,
   TenantStatus,
   hasPermission,
   isBorrower,
   isPlatform,
+  monthKeyOf,
   type SessionUser,
 } from '@loan-pilot/domain';
 import { PrismaService } from '../prisma/prisma.service';
 import { requireTenantId } from '../common/tenant';
+import { buildLedgers, type LoanLedger } from '../reports/reports.reconstruction';
 
 export interface LenderOverview {
   kind: 'lender';
@@ -76,12 +79,14 @@ const MONTH_LABELS = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
 /** Bucket a date into a "YYYY-MM" key, or null. */
-const monthKey = (date: Date | null): string | null =>
-  date ? `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}` : null;
+const monthKey = (date: Date | null): string | null => (date ? monthKeyOf(date) : null);
 const monthLabel = (key: string): string => {
   const [year, month] = key.split('-');
   return `${MONTH_LABELS[Number(month) - 1] ?? month} ${year}`;
 };
+
+/** Loans that are still on the book, as a Prisma `in` filter. */
+const OPEN_STATUSES = [...OPEN_LOAN_STATUSES];
 
 @Injectable()
 export class StatsService {
@@ -105,12 +110,8 @@ export class StatsService {
    * (loan-status donut) is shared with staff.
    */
   async lenderSeries(tenantId: string, includeSensitive: boolean): Promise<LenderSeries> {
-    const [loans, payments, expenses, statusGroups] = await Promise.all([
-      this.prisma.loan.findMany({
-        where: { tenantId, disbursedAt: { not: null } },
-        select: { disbursedAt: true, principal: true },
-      }),
-      this.prisma.payment.findMany({ where: { tenantId }, select: { paidAt: true, amount: true } }),
+    const [ledgers, expenses, statusGroups] = await Promise.all([
+      this.ledgers(tenantId),
       this.prisma.expense.findMany({
         where: { tenantId },
         select: { incurredAt: true, amount: true, kind: true, category: true },
@@ -130,16 +131,14 @@ export class StatsService {
       return created;
     };
 
-    for (const loan of loans) {
-      const key = monthKey(loan.disbursedAt);
+    for (const { loan, credits } of ledgers) {
+      // Cancelled loans never paid out, so they are not a disbursement.
+      const key = loan.status === LoanStatus.Cancelled ? null : monthKey(loan.disbursedAt);
       if (key) {
         bucket(key).disbursed += loan.principal;
       }
-    }
-    for (const payment of payments) {
-      const key = monthKey(payment.paidAt);
-      if (key) {
-        bucket(key).collected += payment.amount;
+      for (const credit of credits) {
+        bucket(monthKeyOf(credit.at)).collected += credit.amountCents;
       }
     }
     for (const expense of expenses) {
@@ -149,10 +148,11 @@ export class StatsService {
       }
     }
 
-    // Clamp to the register's real window; a few imported rows carry
-    // mis-parsed dates (e.g. a stray 2029) that would otherwise stretch the axis.
+    // A month that has not happened yet cannot have cash flows; the few imported
+    // rows with mis-parsed future dates would otherwise stretch the axis.
+    const currentMonth = monthKeyOf(new Date());
     const monthly = [...buckets.values()]
-      .filter((point) => point.month >= '2023-10' && point.month <= '2026-12')
+      .filter((point) => point.month <= currentMonth)
       .sort((a, b) => a.month.localeCompare(b.month));
 
     const categoryTotals = new Map<string, number>();
@@ -174,6 +174,40 @@ export class StatsService {
     return { monthly, statusMix, topExpenseCategories };
   }
 
+  /**
+   * Every disbursed loan with its reconciled repayment history — the same
+   * ledger the reports are built from, so "collected to date" here agrees with
+   * the monthly report's collections. Reading Payment rows alone would miss
+   * repayments recorded by marking an instalment paid (see `reconcileCredits`).
+   */
+  private async ledgers(tenantId: string): Promise<LoanLedger[]> {
+    const [loans, payments, scheduleItems] = await Promise.all([
+      this.prisma.loan.findMany({
+        where: { tenantId, disbursedAt: { not: null } },
+        select: {
+          id: true,
+          borrowerId: true,
+          status: true,
+          total: true,
+          principal: true,
+          financeCharge: true,
+          instalmentsTotal: true,
+          disbursedAt: true,
+          closedAt: true,
+        },
+      }),
+      this.prisma.payment.findMany({
+        where: { tenantId },
+        select: { loanId: true, paidAt: true, amount: true, method: true },
+      }),
+      this.prisma.repaymentScheduleItem.findMany({
+        where: { loan: { tenantId }, status: 'paid', paidAt: { not: null } },
+        select: { loanId: true, amount: true, paidAt: true, status: true },
+      }),
+    ]);
+    return [...buildLedgers({ loans, payments, scheduleItems }).values()];
+  }
+
   private async lenderOverview(
     tenantId: string,
     includeSensitive: boolean,
@@ -183,24 +217,26 @@ export class StatsService {
       arrears,
       pendingApplications,
       borrowers,
-      disbursed,
-      collected,
+      ledgers,
       expenseSums,
       invested,
       incomeAgg,
       settings,
     ] = await Promise.all([
+        // The book is every loan still open — including partly-paid ones.
         this.prisma.loan.aggregate({
-          where: { tenantId, status: { in: [LoanStatus.Active, LoanStatus.Arrears] } },
+          where: { tenantId, status: { in: OPEN_STATUSES } },
           _sum: { balance: true },
           _count: true,
         }),
-        // Live arrears: any open loan whose next instalment is past due, even if
-        // no repayment has been recorded to flip its stored status yet.
+        // Live arrears: any open loan with money owing whose next instalment is
+        // past due, even if no repayment has been recorded to flip its stored
+        // status yet (the same rule as `isLoanOverdue` in @loan-pilot/domain).
         this.prisma.loan.aggregate({
           where: {
             tenantId,
-            status: { in: [LoanStatus.Active, LoanStatus.Arrears, LoanStatus.PartlyPaid] },
+            status: { in: OPEN_STATUSES },
+            balance: { gt: 0 },
             nextDueAt: { lt: new Date() },
           },
           _sum: { balance: true },
@@ -213,8 +249,7 @@ export class StatsService {
           },
         }),
         this.prisma.borrower.count({ where: { tenantId } }),
-        this.prisma.loan.aggregate({ where: { tenantId }, _sum: { principal: true } }),
-        this.prisma.payment.aggregate({ where: { tenantId }, _sum: { amount: true } }),
+        this.ledgers(tenantId),
         this.prisma.expense.groupBy({
           by: ['kind'],
           where: { tenantId },
@@ -231,8 +266,15 @@ export class StatsService {
     const expenses =
       expenseSums.find((row) => row.kind === ExpenseKind.Expense)?._sum.amount ?? 0;
     const drawings = expenseSums.find((row) => row.kind === ExpenseKind.Drawing)?._sum.amount ?? 0;
-    const collectedTotal = collected._sum.amount ?? 0;
-    const disbursedTotal = disbursed._sum.principal ?? 0;
+    // Cancelled loans never paid out, so their principal was never cash out.
+    const disbursedTotal = ledgers.reduce(
+      (sum, { loan }) => (loan.status === LoanStatus.Cancelled ? sum : sum + loan.principal),
+      0,
+    );
+    const collectedTotal = ledgers.reduce(
+      (sum, { credits }) => sum + credits.reduce((inner, credit) => inner + credit.amountCents, 0),
+      0,
+    );
     const investedTotal = invested._sum.amount ?? 0;
     const incomeTotal = incomeAgg._sum.amount ?? 0;
     const openingBalance = settings?.openingBalance ?? 0;
@@ -273,7 +315,7 @@ export class StatsService {
       this.prisma.tenant.count(),
       this.prisma.tenant.count({ where: { status: TenantStatus.Active } }),
       this.prisma.loan.aggregate({
-        where: { status: { in: [LoanStatus.Active, LoanStatus.Arrears] } },
+        where: { status: { in: OPEN_STATUSES } },
         _sum: { balance: true },
       }),
       this.prisma.borrower.count(),
@@ -304,7 +346,7 @@ export class StatsService {
       this.prisma.loan.aggregate({
         where: {
           borrowerId: user.borrowerId,
-          status: { in: [LoanStatus.Active, LoanStatus.Arrears] },
+          status: { in: OPEN_STATUSES },
         },
         _sum: { balance: true },
         _count: true,
@@ -312,7 +354,7 @@ export class StatsService {
       this.prisma.loan.findFirst({
         where: {
           borrowerId: user.borrowerId,
-          status: { in: [LoanStatus.Active, LoanStatus.Arrears] },
+          status: { in: OPEN_STATUSES },
           nextDueAt: { not: null },
         },
         orderBy: { nextDueAt: 'asc' },
