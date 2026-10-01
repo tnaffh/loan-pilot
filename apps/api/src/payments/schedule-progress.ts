@@ -64,15 +64,20 @@ export const deriveScheduleProgress = (
     const threshold = required[index] ?? 0;
     const coveredBy = provided.findIndex((total) => total >= threshold);
     const paid = coveredBy !== -1;
+    // A waived instalment was let go when the loan was settled; it stays waived
+    // and counts as done, whatever later payments cover.
+    const waived = item.status === RepaymentStatus.Waived && !paid;
     return {
       id: item.id,
-      paid,
+      paid: paid || waived,
       paidAt: paid ? (payments[coveredBy]?.paidAt ?? null) : null,
       status: paid
         ? RepaymentStatus.Paid
-        : item.dueAt < now
-          ? RepaymentStatus.Overdue
-          : RepaymentStatus.Due,
+        : waived
+          ? RepaymentStatus.Waived
+          : item.dueAt < now
+            ? RepaymentStatus.Overdue
+            : RepaymentStatus.Due,
       currentStatus: item.status,
       currentPaidAt: item.paidAt,
     };

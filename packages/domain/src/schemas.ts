@@ -624,6 +624,16 @@ export const writeOffLoanSchema = z.object({
 export type WriteOffLoanInput = z.infer<typeof writeOffLoanSchema>;
 
 /**
+ * Settle a loan by waiving whatever is still owed (a small remainder after a
+ * rounding or loading error, typically). The loan reads settled; the waived
+ * amount is reported as bad debt. The reason is required.
+ */
+export const waiveLoanSchema = z.object({
+  reason: z.string().min(3, 'A reason is required').max(500),
+});
+export type WaiveLoanInput = z.infer<typeof waiveLoanSchema>;
+
+/**
  * Correct imported loan data. All optional. "Safe" fields apply any time; the
  * financial core (`amount` = principal in major N$, `termMonths`, `interestRate`)
  * is only accepted by the server while the loan has no payments, in which case it

@@ -65,7 +65,7 @@ describe('PaymentsService', () => {
 
   it('stores the amount in cents and connects loan + tenant', async () => {
     loanFindFirst.mockResolvedValue({ id: 'loan_1', total: 130000 });
-    loanFindUnique.mockResolvedValue({ id: 'loan_1', total: 130000, status: LoanStatus.Active });
+    loanFindUnique.mockResolvedValue({ id: 'loan_1', total: 130000, waived: 0, status: LoanStatus.Active });
     paymentFindMany.mockResolvedValue([{ amount: 50000, paidAt: new Date('2026-06-17') }]);
 
     await service.create('tenant_1', input);
@@ -78,7 +78,7 @@ describe('PaymentsService', () => {
 
   it('settles the loan once payments cover the total', async () => {
     loanFindFirst.mockResolvedValue({ id: 'loan_1', total: 130000 });
-    loanFindUnique.mockResolvedValue({ id: 'loan_1', total: 130000, status: LoanStatus.Active });
+    loanFindUnique.mockResolvedValue({ id: 'loan_1', total: 130000, waived: 0, status: LoanStatus.Active });
     paymentFindMany.mockResolvedValue([{ amount: 130000, paidAt: new Date('2026-06-17') }]);
 
     await service.create('tenant_1', { ...input, amount: 1300 });
@@ -88,7 +88,7 @@ describe('PaymentsService', () => {
 
   it('marks the loan partly paid when payments are below the total', async () => {
     loanFindFirst.mockResolvedValue({ id: 'loan_1', total: 130000 });
-    loanFindUnique.mockResolvedValue({ id: 'loan_1', total: 130000, status: LoanStatus.Active });
+    loanFindUnique.mockResolvedValue({ id: 'loan_1', total: 130000, waived: 0, status: LoanStatus.Active });
     paymentFindMany.mockResolvedValue([{ amount: 50000, paidAt: new Date('2026-06-17') }]);
 
     await service.create('tenant_1', input);
@@ -101,6 +101,7 @@ describe('PaymentsService', () => {
     loanFindUnique.mockResolvedValue({
       id: 'loan_1',
       total: 130000,
+      waived: 0,
       status: LoanStatus.WrittenOff,
     });
     paymentFindMany.mockResolvedValue([{ amount: 50000, paidAt: new Date('2026-06-17') }]);
@@ -157,6 +158,7 @@ describe('PaymentsService', () => {
       loanFindUnique.mockResolvedValue({
         id: 'loan_1',
         total: 1172884,
+        waived: 0,
         status: LoanStatus.Active,
       });
       scheduleFindMany.mockResolvedValue(twoMonthSchedule);

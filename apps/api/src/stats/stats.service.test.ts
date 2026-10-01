@@ -24,6 +24,7 @@ const loanRow = (over: Record<string, unknown> = {}) => ({
   instalmentsTotal: 1,
   disbursedAt: utc('2023-10-06'),
   closedAt: null,
+  waived: 0,
   ...over,
 });
 

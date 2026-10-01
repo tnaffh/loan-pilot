@@ -20,6 +20,7 @@ import {
   recordRepaymentSchema,
   settleLoanSchema,
   updateLoanSchema,
+  waiveLoanSchema,
   writeOffLoanSchema,
   type CancelLoanInput,
   type CreateLoanInput,
@@ -31,6 +32,7 @@ import {
   type SessionUser,
   type SettleLoanInput,
   type UpdateLoanInput,
+  type WaiveLoanInput,
   type WriteOffLoanInput,
 } from '@loan-pilot/domain';
 import type { Loan } from '@prisma/client';
@@ -147,6 +149,18 @@ export class LoansController {
     @Body(new ZodValidationPipe(writeOffLoanSchema)) body: WriteOffLoanInput,
   ): Promise<Loan> {
     return this.loans.writeOff(requireTenantId(user), id, body);
+  }
+
+  /** Settle by waiving the remainder owed; the waived amount reports as bad debt. */
+  @Post(':id/waive')
+  @HttpCode(HttpStatus.CREATED)
+  @RequirePermissions('loans:manage')
+  waive(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(waiveLoanSchema)) body: WaiveLoanInput,
+  ): Promise<Loan> {
+    return this.loans.waive(requireTenantId(user), user, id, body);
   }
 
   @Patch(':id/disbursement')

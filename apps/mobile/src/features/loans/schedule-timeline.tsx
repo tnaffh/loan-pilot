@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 import { Check } from 'lucide-react-native';
-import { RepaymentStatus, formatNad } from '@loan-pilot/domain';
+import { RepaymentStatus, formatNad, isInstalmentSettled } from '@loan-pilot/domain';
 import { Text } from '@/components/ui';
 import { cn } from '@/lib/cn';
 import { daysUntil, formatDate } from '@/lib/format';
@@ -8,12 +8,12 @@ import type { ScheduleItem } from '@/lib/types';
 
 /** Vertical repayment timeline: paid ✓, the next one due highlighted, overdue in red. */
 export const ScheduleTimeline = ({ schedule }: { schedule: ScheduleItem[] }) => {
-  const nextDue = schedule.find((item) => item.status !== RepaymentStatus.Paid);
+  const nextDue = schedule.find((item) => !isInstalmentSettled(item.status));
 
   return (
     <View>
       {schedule.map((item, index) => {
-        const paid = item.status === RepaymentStatus.Paid;
+        const paid = isInstalmentSettled(item.status);
         // Stored status lags until arrears are recomputed; a past due date doesn't.
         const overdue =
           item.status === RepaymentStatus.Overdue || (!paid && daysUntil(item.dueAt) < 0);

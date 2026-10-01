@@ -30,6 +30,7 @@ import {
   type SessionUser,
   type SettleLoanInput,
   type UpdateLoanInput,
+  type WaiveLoanInput,
   type WriteOffLoanInput,
 } from '@loan-pilot/domain';
 import { PrismaService } from '../prisma/prisma.service';
@@ -759,6 +760,84 @@ export class LoansService {
     return this.prisma.loan.update({
       where: { id: loan.id },
       data: { status: LoanStatus.WrittenOff, writeOffReason: input.reason, closedAt: new Date() },
+    });
+  }
+
+  /**
+   * Settle a loan by waiving what is still owed, with a reason.
+   *
+   * For the borrower who repaid all but a small remainder — a debit-order
+   * rounding or a loading error — and whom the lender lets go: the loan reads
+   * *settled*, not written off, while the waived amount is still reported as bad
+   * debt (the NAMFISA return and the monthly report count it exactly like a
+   * write-off, see `writeOffsInPeriod`). A written-off loan may be converted
+   * this way, keeping the date it left the book, which is how one written off
+   * over a few dollars is put right.
+   *
+   * The remaining instalments are marked *waived*, never paid: the reporting
+   * ledger reads a paid instalment as money received.
+   */
+  waive(
+    tenantId: string,
+    actor: SessionUser,
+    loanId: string,
+    input: WaiveLoanInput,
+  ): Promise<Loan> {
+    return this.prisma.$transaction(async (tx) => {
+      const loan = await tx.loan.findFirst({ where: { id: loanId, tenantId } });
+      if (!loan) {
+        throw new NotFoundException('Loan not found');
+      }
+      if (loan.status === LoanStatus.Settled || loan.status === LoanStatus.Closed) {
+        throw new BadRequestException('This loan is already settled');
+      }
+      if (loan.status === LoanStatus.Cancelled) {
+        throw new BadRequestException('A cancelled loan has nothing to waive');
+      }
+      if (loan.balance <= 0) {
+        throw new BadRequestException('This loan has no outstanding balance to waive');
+      }
+
+      const waived = loan.waived + loan.balance;
+      await tx.repaymentScheduleItem.updateMany({
+        where: { loanId: loan.id, status: { not: RepaymentStatus.Paid } },
+        data: { status: RepaymentStatus.Waived },
+      });
+      const updated = await tx.loan.update({
+        where: { id: loan.id },
+        data: {
+          status: LoanStatus.Settled,
+          balance: 0,
+          waived,
+          waiveReason: input.reason,
+          writeOffReason: null,
+          instalmentsPaid: loan.instalmentsTotal,
+          daysLate: 0,
+          nextDueAt: null,
+          // A written-off loan already left the book on its write-off date; keep it.
+          closedAt: loan.closedAt ?? new Date(),
+        },
+      });
+      await this.audit.record(
+        tenantId,
+        actor,
+        {
+          entity: 'loan',
+          entityId: loan.id,
+          action: 'waived',
+          changes: [
+            { field: 'status', from: loan.status, to: LoanStatus.Settled },
+            {
+              field: 'waived',
+              from: String(fromCents(loan.waived)),
+              to: String(fromCents(waived)),
+            },
+            { field: 'reason', from: loan.writeOffReason, to: input.reason },
+          ],
+        },
+        tx,
+      );
+      return updated;
     });
   }
 

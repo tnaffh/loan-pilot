@@ -95,7 +95,8 @@ export class PaymentsService {
     ]);
 
     const collected = payments.reduce((sum, payment) => sum + payment.amount, 0);
-    const balance = Math.max(0, loan.total - collected);
+    // A remainder waived on settlement is no longer owed, so it comes off too.
+    const balance = Math.max(0, loan.total - collected - loan.waived);
 
     // Don't override a manually written-off loan; otherwise derive from balance.
     const status =

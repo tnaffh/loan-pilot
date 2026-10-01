@@ -861,6 +861,8 @@ export interface MonthlyReportSummary {
   readonly closingCash: Cents;
   readonly arrearsLoans: number;
   readonly arrearsValue: Cents;
+  /** Bad debt recognised in the month: loans written off plus remainders waived on settlement. */
+  readonly writtenOff: Cents;
   /** closingCash − openingCash: how the cash position moved over the month. */
   readonly netCashMovement: Cents;
 }

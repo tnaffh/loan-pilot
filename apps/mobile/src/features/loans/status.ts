@@ -41,6 +41,7 @@ export const REPAYMENT_STATUS: Record<RepaymentStatus, { label: string; tone: Ba
   [RepaymentStatus.Paid]: { label: 'Paid', tone: 'success' },
   [RepaymentStatus.Due]: { label: 'Due', tone: 'brand' },
   [RepaymentStatus.Overdue]: { label: 'Overdue', tone: 'destructive' },
+  [RepaymentStatus.Waived]: { label: 'Waived', tone: 'neutral' },
 };
 
 /** Loans the borrower is still repaying. */

@@ -28,6 +28,7 @@ import { ApplicationReviewSheet } from '@/components/applications/review-sheet';
 import { RecordPaymentDialog } from '@/components/loans/record-payment-dialog';
 import { SettleDialog } from '@/components/loans/settle-dialog';
 import { WriteOffDialog } from '@/components/loans/write-off-dialog';
+import { WaiveDialog } from '@/components/loans/waive-dialog';
 import { CancelDialog } from '@/components/loans/cancel-dialog';
 import { LoanQuickViewSheet } from '@/components/loans/loan-quick-view-sheet';
 import { BorrowerQuickViewSheet } from '@/components/borrowers/borrower-quick-view-sheet';
@@ -49,6 +50,13 @@ interface WriteOffTarget {
   loanId: string;
   loanLabel?: string;
 }
+interface WaiveTarget {
+  loanId: string;
+  /** What is still owed, in cents. */
+  remainder: number;
+  loanLabel?: string;
+  writtenOff?: boolean;
+}
 interface CancelTarget {
   loanId: string;
   loanLabel?: string;
@@ -63,6 +71,7 @@ interface CommandContextValue {
   openRecordPayment: (target?: PaymentTarget) => void;
   openSettle: (target: SettleTarget) => void;
   openWriteOff: (target: WriteOffTarget) => void;
+  openWaive: (target: WaiveTarget) => void;
   openCancel: (target: CancelTarget) => void;
   openLoanQuickView: (loanId: string) => void;
   openBorrowerQuickView: (borrowerId: string) => void;
@@ -98,6 +107,7 @@ export const CommandProvider = ({ children }: { children: React.ReactNode }) => 
   const [recordPayment, setRecordPayment] = useState<PaymentTarget | null>(null);
   const [settle, setSettle] = useState<SettleTarget | null>(null);
   const [writeOff, setWriteOff] = useState<WriteOffTarget | null>(null);
+  const [waive, setWaive] = useState<WaiveTarget | null>(null);
   const [cancel, setCancel] = useState<CancelTarget | null>(null);
   const [loanQuickView, setLoanQuickView] = useState<string | null>(null);
   const [borrowerQuickView, setBorrowerQuickView] = useState<string | null>(null);
@@ -114,6 +124,7 @@ export const CommandProvider = ({ children }: { children: React.ReactNode }) => 
     openRecordPayment,
     openSettle: (target) => setSettle(target),
     openWriteOff: (target) => setWriteOff(target),
+    openWaive: (target) => setWaive(target),
     openCancel: (target) => setCancel(target),
     openLoanQuickView: (loanId) => setLoanQuickView(loanId),
     openBorrowerQuickView: (borrowerId) => setBorrowerQuickView(borrowerId),
@@ -294,6 +305,16 @@ export const CommandProvider = ({ children }: { children: React.ReactNode }) => 
           onOpenChange={(open) => (open ? null : setWriteOff(null))}
           loanId={writeOff.loanId}
           loanLabel={writeOff.loanLabel}
+        />
+      ) : null}
+      {waive ? (
+        <WaiveDialog
+          open
+          onOpenChange={(open) => (open ? null : setWaive(null))}
+          loanId={waive.loanId}
+          remainder={waive.remainder}
+          loanLabel={waive.loanLabel}
+          writtenOff={waive.writtenOff}
         />
       ) : null}
       {cancel ? (

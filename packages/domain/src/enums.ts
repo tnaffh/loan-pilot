@@ -80,6 +80,8 @@ export enum RepaymentStatus {
   Paid = 'paid',
   Due = 'due',
   Overdue = 'overdue',
+  /** Let go when the loan was settled with a waiver; never counts as money received. */
+  Waived = 'waived',
 }
 
 export enum InvoiceStatus {

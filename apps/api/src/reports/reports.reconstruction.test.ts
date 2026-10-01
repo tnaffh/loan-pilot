@@ -24,6 +24,7 @@ const loan = (over: Partial<ReportLoanRow> = {}): ReportLoanRow => ({
   instalmentsTotal: 1,
   disbursedAt: utc('2026-01-10'),
   closedAt: null,
+  waived: 0,
   ...over,
 });
 
@@ -148,6 +149,33 @@ describe('onBookAt', () => {
     });
     expect(bookValueAt(ledgers.values(), utc('2026-03-01'))).toBe(130_000);
     expect(bookValueAt(ledgers.values(), utc('2026-04-01'))).toBe(0);
+  });
+});
+
+describe('writeOffsInPeriod — waivers', () => {
+  it('counts a remainder waived on settlement as bad debt in the month the loan closed', () => {
+    const ledgers = buildLedgers({
+      loans: [
+        loan({
+          status: LoanStatus.Settled,
+          total: 130_000,
+          waived: 2_418,
+          closedAt: utc('2026-03-20'),
+        }),
+      ],
+      payments: [payment({ amount: 127_582, paidAt: utc('2026-02-10') })],
+      scheduleItems: [],
+    });
+
+    const march = writeOffsInPeriod(ledgers.values(), utc('2026-03-01'), utc('2026-04-01'));
+    expect(march.map((entry) => entry.amountCents)).toEqual([2_418]);
+    // Settled loans with nothing waived are not bad debt.
+    const clean = buildLedgers({
+      loans: [loan({ status: LoanStatus.Settled, closedAt: utc('2026-03-20') })],
+      payments: [payment()],
+      scheduleItems: [],
+    });
+    expect(writeOffsInPeriod(clean.values(), utc('2026-03-01'), utc('2026-04-01'))).toEqual([]);
   });
 });
 

@@ -51,6 +51,18 @@ describe('LoansService', () => {
 
   const scheduleItemDeleteMany = jest.fn();
 
+  const waiveActor: SessionUser = {
+    id: 'user_1',
+    email: 'admin@rfs.na',
+    phone: null,
+    name: 'Admin',
+    role: UserRole.LenderAdmin,
+    tenantId: 'tenant_1',
+    tenantSlug: 'rfs',
+    roleId: 'role_admin',
+    permissions: [],
+  };
+
   const txMock = {
     loan: { create: loanCreate, findFirst: loanFindFirst, update: loanUpdate },
     borrower: { upsert: borrowerUpsert },
@@ -284,6 +296,90 @@ describe('LoansService', () => {
     expect(data.status).toBe(LoanStatus.WrittenOff);
     expect(data.writeOffReason).toBe('Borrower unreachable');
     expect(data.closedAt).toBeInstanceOf(Date);
+  });
+
+  it('settles a loan by waiving the remainder, reporting it as bad debt', async () => {
+    loanFindFirst.mockResolvedValue({
+      id: 'loan_1',
+      tenantId: 'tenant_1',
+      status: LoanStatus.PartlyPaid,
+      balance: 2_418,
+      waived: 0,
+      instalmentsTotal: 1,
+      closedAt: null,
+      writeOffReason: null,
+    });
+    loanUpdate.mockResolvedValue({ id: 'loan_1' });
+
+    await service.waive('tenant_1', waiveActor, 'loan_1', {
+      reason: 'Debit order loaded for the wrong amount',
+    });
+
+    // Remaining instalments are waived, never marked paid — the reporting
+    // ledger would read a paid instalment as money received.
+    expect(scheduleItemUpdateMany).toHaveBeenCalledWith(
+      expect.objectContaining({ data: { status: RepaymentStatus.Waived } }),
+    );
+    const data = loanUpdate.mock.calls[0][0].data;
+    expect(data.status).toBe(LoanStatus.Settled);
+    expect(data.balance).toBe(0);
+    expect(data.waived).toBe(2_418);
+    expect(data.waiveReason).toBe('Debit order loaded for the wrong amount');
+    expect(data.closedAt).toBeInstanceOf(Date);
+    expect(auditMock.record).toHaveBeenCalledWith(
+      'tenant_1',
+      waiveActor,
+      expect.objectContaining({ action: 'waived', entityId: 'loan_1' }),
+      expect.anything(),
+    );
+  });
+
+  it('converts a written-off loan into settled-with-waiver, keeping the date it left the book', async () => {
+    const writtenOffAt = new Date('2026-09-25T00:00:00.000Z');
+    loanFindFirst.mockResolvedValue({
+      id: 'loan_1',
+      tenantId: 'tenant_1',
+      status: LoanStatus.WrittenOff,
+      balance: 2_418,
+      waived: 0,
+      instalmentsTotal: 1,
+      closedAt: writtenOffAt,
+      writeOffReason: 'Loss',
+    });
+    loanUpdate.mockResolvedValue({ id: 'loan_1' });
+
+    await service.waive('tenant_1', waiveActor, 'loan_1', { reason: 'Loading error' });
+
+    const data = loanUpdate.mock.calls[0][0].data;
+    expect(data.status).toBe(LoanStatus.Settled);
+    expect(data.waived).toBe(2_418);
+    expect(data.writeOffReason).toBeNull();
+    expect(data.closedAt).toBe(writtenOffAt);
+  });
+
+  it('refuses to waive on a settled loan or one with nothing owing', async () => {
+    loanFindFirst.mockResolvedValue({
+      id: 'loan_1',
+      tenantId: 'tenant_1',
+      status: LoanStatus.Settled,
+      balance: 0,
+      waived: 0,
+    });
+    await expect(
+      service.waive('tenant_1', waiveActor, 'loan_1', { reason: 'Nothing to do' }),
+    ).rejects.toThrow(BadRequestException);
+
+    loanFindFirst.mockResolvedValue({
+      id: 'loan_1',
+      tenantId: 'tenant_1',
+      status: LoanStatus.Active,
+      balance: 0,
+      waived: 0,
+    });
+    await expect(
+      service.waive('tenant_1', waiveActor, 'loan_1', { reason: 'Nothing to do' }),
+    ).rejects.toThrow(BadRequestException);
+    expect(loanUpdate).not.toHaveBeenCalled();
   });
 
   // ----- audit edit + cancel -------------------------------------------------

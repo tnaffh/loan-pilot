@@ -93,6 +93,7 @@ const REPORT_LOAN_SELECT = {
   collateralItem: true,
   disbursedAt: true,
   closedAt: true,
+  waived: true,
   // Only the borrower's profile, never their identity: the reports group by
   // gender and salary band and must not carry names or ID numbers.
   borrower: {
@@ -126,6 +127,7 @@ interface ReportLoan {
   collateralItem: string | null;
   disbursedAt: Date | null;
   closedAt: Date | null;
+  waived: number;
   borrower: {
     id: string;
     gender: string | null;
@@ -702,6 +704,10 @@ export class ReportsService {
     const closing = bookAt(ledgers, range.end);
     const credits = creditsInPeriod(ledgers, range.start, range.end);
     const methods = this.splitByMethod(credits);
+    const writtenOff = sumBy(
+      writeOffsInPeriod(ledgers, range.start, range.end),
+      (entry) => entry.amountCents,
+    );
 
     const collected = sumBy(credits, (credit) => credit.amountCents);
     const disbursedValue = sumBy(disbursed, ({ loan }) => loan.principal);
@@ -815,6 +821,7 @@ export class ReportsService {
         closingCash,
         arrearsLoans: arrears.length,
         arrearsValue: sumBy(arrears, (entry) => entry.outstandingCents),
+        writtenOff,
         netCashMovement: closingCash - openingCash,
       },
       loans,

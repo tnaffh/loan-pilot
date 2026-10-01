@@ -106,6 +106,7 @@ export const renderMonthlyReportPdf = (
       { label: 'Interest booked on new loans', value: formatNad(summary.interestBooked) },
       { label: 'Total repayable on new loans', value: formatNad(summary.expectedRepayable) },
       { label: 'Collected from borrowers', value: formatNad(summary.collected) },
+      { label: 'Written off or waived', value: formatNad(summary.writtenOff) },
       { label: 'Loan book at end of month', value: formatNad(summary.closingBookValue), strong: true },
       { label: 'In arrears at month end', value: `${formatNad(summary.arrearsValue)}  (${summary.arrearsLoans})` },
       { label: 'NAMFISA levies charged', value: formatNad(summary.namfisaLevies) },

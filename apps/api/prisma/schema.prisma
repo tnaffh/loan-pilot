@@ -99,6 +99,8 @@ enum RepaymentStatus {
   paid
   due
   overdue
+  // Let go when the loan was settled with a waiver — not money received.
+  waived
 }
 
 enum InvoiceStatus {
@@ -471,6 +473,11 @@ model Loan {
   note             String?
   // Reason captured when a loan is written off as bad debt.
   writeOffReason   String?
+  // Remainder (cents) the lender let go when settling the loan — a borrower who
+  // repaid all but a few dollars reads *settled*, while the waived amount is
+  // still reported as bad debt alongside write-offs. 0 when nothing was waived.
+  waived           Int        @default(0)
+  waiveReason      String?
   // Reason captured when a payment-free loan is cancelled (error / fell through).
   cancelReason     String?
   disbursedAt      DateTime?

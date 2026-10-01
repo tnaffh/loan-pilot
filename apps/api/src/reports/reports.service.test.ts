@@ -37,6 +37,7 @@ const loanRow = (over: Record<string, unknown> = {}) => ({
   collateralItem: null,
   disbursedAt: utc('2026-02-10'),
   closedAt: null,
+  waived: 0,
   borrower: {
     id: 'borrower_1',
     firstName: 'Aina',

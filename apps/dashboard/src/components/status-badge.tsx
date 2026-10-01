@@ -53,6 +53,7 @@ const STATUS: Record<string, StatusMeta> = {
   paid: { label: 'Paid', tone: 'green', icon: CheckCircle2 },
   due: { label: 'Due', tone: 'zinc', icon: Clock },
   overdue: { label: 'Overdue', tone: 'red', icon: AlertTriangle },
+  waived: { label: 'Waived', tone: 'zinc', icon: CircleDashed },
   // ExpenseKind
   expense: { label: 'Expense', tone: 'zinc', icon: HandCoins },
   drawing: { label: 'Drawing', tone: 'amber', icon: HandCoins },

@@ -1,7 +1,7 @@
 import type { Cents } from './money';
 import { splitInstalments } from './money';
 import { completeMonthsBetween, daysBetween } from './dates';
-import { LoanType } from './enums';
+import { LoanType, RepaymentStatus } from './enums';
 
 /**
  * NAMFISA / Namibian Microlending Act, 2018 constraints used in pricing:
@@ -190,6 +190,14 @@ export const penaltyInterest = (outstandingCents: Cents, monthsLate: number): Ce
 };
 
 /** A schedule instalment, reduced to what {@link assessArrears} needs. */
+/**
+ * An instalment that no longer needs paying: it was paid, or it was waived when
+ * the loan was settled. Screens that pick "the next instalment due" or mark
+ * instalments done must use this rather than checking for `Paid` alone.
+ */
+export const isInstalmentSettled = (status: `${RepaymentStatus}`): boolean =>
+  status === RepaymentStatus.Paid || status === RepaymentStatus.Waived;
+
 export interface ArrearsScheduleItem {
   readonly amountCents: Cents;
   readonly dueAt: Date;

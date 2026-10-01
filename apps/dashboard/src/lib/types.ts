@@ -216,6 +216,8 @@ export interface LoanRow {
   fundsReleasedAt: string | null;
   collexiaStatus: CollexiaStatus;
   collexiaMarkedAt: string | null;
+  /** Remainder waived when the loan was settled (0 when none). */
+  waived: number;
   borrower: { id: string; firstName: string; lastName: string };
 }
 
@@ -228,6 +230,7 @@ export interface LoanDetail extends LoanRow {
     collexiaClientNo: string | null;
   };
   writeOffReason: string | null;
+  waiveReason: string | null;
   cancelReason: string | null;
   closedAt: string | null;
   updatedAt: string;

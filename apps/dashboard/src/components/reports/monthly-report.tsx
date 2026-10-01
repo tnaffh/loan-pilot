@@ -145,6 +145,7 @@ const BOOK_LINES: readonly SummaryLine[] = [
   { label: 'Interest booked on new loans', pick: (s) => s.interestBooked },
   { label: 'Total repayable on new loans', pick: (s) => s.expectedRepayable },
   { label: 'Collected from borrowers', pick: (s) => s.collected },
+  { label: 'Written off or waived', pick: (s) => s.writtenOff },
   { label: 'Loan book at end of month', pick: (s) => s.closingBookValue, strong: true },
   { label: 'In arrears at month end', pick: (s) => s.arrearsValue },
   { label: 'NAMFISA levies charged', pick: (s) => s.namfisaLevies },

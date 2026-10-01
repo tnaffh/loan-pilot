@@ -37,6 +37,8 @@ export interface ReportLoanRow {
   readonly instalmentsTotal: number;
   readonly disbursedAt: Date | null;
   readonly closedAt: Date | null;
+  /** Remainder waived when the loan was settled (0 when none). */
+  readonly waived: Cents;
 }
 
 export interface ReportPaymentRow {
@@ -214,8 +216,11 @@ export const creditsInPeriod = (
 };
 
 /**
- * Loans written off within `[start, end)`, valued at what they still owed when
- * they left the book — which is the figure the return's bad-debt movement wants.
+ * Bad debt recognised within `[start, end)`: loans written off, valued at what
+ * they still owed when they left the book, plus remainders waived when a loan
+ * was settled (`Loan.waived`). Both are what the return's bad-debt movement
+ * wants; a settled-with-waiver loan is the lender's way of saying "nearly all
+ * repaid, the rest is bad debt" without branding the borrower a defaulter.
  */
 export const writeOffsInPeriod = <TLoan extends ReportLoanRow>(
   ledgers: Iterable<LoanLedger<TLoan>>,
@@ -225,11 +230,16 @@ export const writeOffsInPeriod = <TLoan extends ReportLoanRow>(
   const written: { ledger: LoanLedger<TLoan>; amountCents: Cents }[] = [];
   for (const ledger of ledgers) {
     const { loan, closedAt } = ledger;
-    if (loan.status !== LoanStatus.WrittenOff || closedAt === null) {
+    if (closedAt === null) {
       continue;
     }
-    if (closedAt.getTime() >= start.getTime() && closedAt.getTime() < end.getTime()) {
+    if (closedAt.getTime() < start.getTime() || closedAt.getTime() >= end.getTime()) {
+      continue;
+    }
+    if (loan.status === LoanStatus.WrittenOff) {
       written.push({ ledger, amountCents: outstandingAt(ledger, closedAt) });
+    } else if (loan.status === LoanStatus.Settled && loan.waived > 0) {
+      written.push({ ledger, amountCents: loan.waived });
     }
   }
   return written;

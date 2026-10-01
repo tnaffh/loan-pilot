@@ -15,7 +15,7 @@ import {
   ShieldCheck,
   Wallet,
 } from 'lucide-react';
-import { LoanStatus, RepaymentStatus, can, formatNad, isLender } from '@loan-pilot/domain';
+import { LoanStatus, can, formatNad, isInstalmentSettled, isLender } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -97,11 +97,17 @@ const LoanDetailPage = () => {
     data.status === LoanStatus.Closed;
   const canEditLoan = admin && !terminal;
   const canCancel = admin && !terminal && data.payments.length === 0;
+  // Let a small remainder go: on any loan still owing, or to put right a loan
+  // written off over a few dollars.
+  const canWaive =
+    admin &&
+    data.balance > 0 &&
+    (open || data.status === LoanStatus.PartlyPaid || data.status === LoanStatus.WrittenOff);
   const payable =
     lender &&
     (open || data.status === LoanStatus.PartlyPaid) &&
     data.balance > 0;
-  const nextInstalment = data.schedule.find((item) => item.status !== RepaymentStatus.Paid);
+  const nextInstalment = data.schedule.find((item) => !isInstalmentSettled(item.status));
   const canCapture = lender && open && Boolean(nextInstalment);
   const loanLabel = `${data.borrower.firstName} ${data.borrower.lastName}'s loan`;
 
@@ -180,6 +186,22 @@ const LoanDetailPage = () => {
                 onClick={() => command.openWriteOff({ loanId: data.id, loanLabel })}
               >
                 Write off
+              </Button>
+            ) : null}
+            {canWaive ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  command.openWaive({
+                    loanId: data.id,
+                    remainder: data.balance,
+                    loanLabel,
+                    writtenOff: data.status === LoanStatus.WrittenOff,
+                  })
+                }
+              >
+                Waive remainder
               </Button>
             ) : null}
             {canCancel ? (
@@ -266,6 +288,12 @@ const LoanDetailPage = () => {
               ) : null}
               {data.writeOffReason ? (
                 <p className="mt-2 text-xs text-destructive">Written off: {data.writeOffReason}</p>
+              ) : null}
+              {data.waived > 0 ? (
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Settled with {formatNad(data.waived)} waived
+                  {data.waiveReason ? `: ${data.waiveReason}` : ''}
+                </p>
               ) : null}
             </CardContent>
           </Card>
@@ -368,7 +396,7 @@ const LoanDetailPage = () => {
                       <TableCell className="text-right tabular-nums">{formatNad(item.amount)}</TableCell>
                       <TableCell>
                         <StatusBadge value={item.status} />
-                        {item.status !== RepaymentStatus.Paid &&
+                        {!isInstalmentSettled(item.status) &&
                         new Date(item.dueAt) < new Date() ? (
                           <span className="ml-2 text-xs font-medium text-destructive">Overdue</span>
                         ) : null}

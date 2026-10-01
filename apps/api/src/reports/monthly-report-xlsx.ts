@@ -51,6 +51,7 @@ export const renderMonthlyReportXlsx = (report: MonthlyReport): Buffer => {
     ['Interest booked on new loans', money(summary.interestBooked)],
     ['Total repayable on new loans', money(summary.expectedRepayable)],
     ['Collected from borrowers', money(summary.collected)],
+    ['Written off or waived', money(summary.writtenOff)],
     ['Loan book at end of month', money(summary.closingBookValue)],
     ['In arrears at month end', money(summary.arrearsValue)],
     ['Loans in arrears', summary.arrearsLoans],

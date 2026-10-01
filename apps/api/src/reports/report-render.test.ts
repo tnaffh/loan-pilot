@@ -160,6 +160,7 @@ const monthly = (over: Partial<MonthlyReport> = {}): MonthlyReport => ({
     closingCash: 470_000,
     arrearsLoans: 0,
     arrearsValue: 0,
+    writtenOff: 0,
     netCashMovement: -530_000,
   },
   loans: [

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowDownLeft, Check, Download, Wallet } from 'lucide-react';
-import { LoanStatus, RepaymentStatus, formatNad } from '@loan-pilot/domain';
+import { LoanStatus, RepaymentStatus, formatNad, isInstalmentSettled } from '@loan-pilot/domain';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -208,7 +208,7 @@ export const BorrowerHome = () => {
                 </p>
               ) : (
                 schedule.map((item) => {
-                  const paid = item.status === RepaymentStatus.Paid;
+                  const paid = isInstalmentSettled(item.status);
                   return (
                     <div
                       key={item.id}

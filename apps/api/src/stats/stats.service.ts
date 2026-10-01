@@ -194,6 +194,7 @@ export class StatsService {
           instalmentsTotal: true,
           disbursedAt: true,
           closedAt: true,
+          waived: true,
         },
       }),
       this.prisma.payment.findMany({
