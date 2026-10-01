@@ -343,6 +343,10 @@ export type OverviewStats =
       netProfit?: number;
       openingBalance?: number;
       availableBalance?: number;
+      unreleased?: { count: number; principal: number };
+      undated?: { count: number; capital: number; costs: number; income: number };
+      bankBalance?: number | null;
+      bankBalanceAt?: string | null;
     }
   | {
       kind: 'platform';

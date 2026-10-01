@@ -59,7 +59,7 @@ describe('StatsService', () => {
     loan: { findMany: loanFindMany, aggregate: loanAggregate, groupBy: loanGroupBy },
     payment: { findMany: paymentFindMany },
     repaymentScheduleItem: { findMany: scheduleFindMany },
-    expense: { findMany: expenseFindMany, groupBy: expenseGroupBy },
+    expense: { findMany: expenseFindMany, groupBy: expenseGroupBy, aggregate: jest.fn() },
     loanApplication: { count: jest.fn().mockResolvedValue(0) },
     borrower: { count: jest.fn().mockResolvedValue(0) },
     investment: { aggregate: jest.fn() },
@@ -78,12 +78,18 @@ describe('StatsService', () => {
     loanGroupBy.mockResolvedValue([]);
     prismaMock.loanApplication.count.mockResolvedValue(0);
     prismaMock.borrower.count.mockResolvedValue(0);
-    prismaMock.investment.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
-    prismaMock.income.aggregate.mockResolvedValue({ _sum: { amount: 0 } });
-    prismaMock.tenantSettings.findUnique.mockResolvedValue({ openingBalance: 0 });
+    prismaMock.investment.aggregate.mockResolvedValue({ _sum: { amount: 0 }, _count: 0 });
+    prismaMock.expense.aggregate.mockResolvedValue({ _sum: { amount: 0 }, _count: 0 });
+    prismaMock.income.aggregate.mockResolvedValue({ _sum: { amount: 0 }, _count: 0 });
+    prismaMock.tenantSettings.findUnique.mockResolvedValue({
+      openingBalance: 0,
+      bankBalance: null,
+      bankBalanceAt: null,
+    });
     loanAggregate
       .mockResolvedValueOnce({ _sum: { balance: 200_000 }, _count: 3 }) // book
-      .mockResolvedValueOnce({ _sum: { balance: 50_000 }, _count: 1 }); // arrears
+      .mockResolvedValueOnce({ _sum: { balance: 50_000 }, _count: 1 }) // arrears
+      .mockResolvedValueOnce({ _sum: { principal: 40_000 }, _count: 2 }); // not yet paid out
     const moduleRef = await Test.createTestingModule({
       providers: [StatsService, { provide: PrismaService, useValue: prismaMock }],
     }).compile();
@@ -224,9 +230,15 @@ describe('StatsService', () => {
         { kind: ExpenseKind.Expense, _sum: { amount: 50_000 } },
         { kind: ExpenseKind.Drawing, _sum: { amount: 30_000 } },
       ]);
-      prismaMock.investment.aggregate.mockResolvedValue({ _sum: { amount: 500_000 } });
-      prismaMock.income.aggregate.mockResolvedValue({ _sum: { amount: 20_000 } });
-      prismaMock.tenantSettings.findUnique.mockResolvedValue({ openingBalance: 100_000 });
+      // Lifetime totals and the undated subset share one mock; the undated
+      // aggregate is only used for the reconciliation note.
+      prismaMock.investment.aggregate.mockResolvedValue({ _sum: { amount: 500_000 }, _count: 1 });
+      prismaMock.income.aggregate.mockResolvedValue({ _sum: { amount: 20_000 }, _count: 0 });
+      prismaMock.tenantSettings.findUnique.mockResolvedValue({
+        openingBalance: 100_000,
+        bankBalance: 6_800_000,
+        bankBalanceAt: utc('2026-10-01'),
+      });
     };
 
     it('computes available balance from opening balance + flows for admins', async () => {
@@ -242,6 +254,10 @@ describe('StatsService', () => {
       expect(overview.netProfit).toBe(300_000 - 600_000 - 50_000);
       expect(overview.income).toBe(20_000);
       expect(overview.openingBalance).toBe(100_000);
+      // Reconciliation inputs ride along for admins.
+      expect(overview.unreleased).toEqual({ count: 2, principal: 40_000 });
+      expect(overview.bankBalance).toBe(6_800_000);
+      expect(overview.bankBalanceAt).toBe('2026-10-01T00:00:00.000Z');
     });
 
     it('counts a repayment recorded as a paid instalment as collected cash', async () => {
@@ -291,6 +307,8 @@ describe('StatsService', () => {
       expect(overview.invested).toBeUndefined();
       expect(overview.expenses).toBeUndefined();
       expect(overview.openingBalance).toBeUndefined();
+      expect(overview.bankBalance).toBeUndefined();
+      expect(overview.unreleased).toBeUndefined();
     });
   });
 });

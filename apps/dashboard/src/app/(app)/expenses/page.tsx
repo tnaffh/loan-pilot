@@ -21,6 +21,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/page-header';
 import { StatCard } from '@/components/stat-card';
 import { DataTable } from '@/components/data-table';
+import { ReconciliationCard } from '@/components/finance/reconciliation-card';
 import { FormField } from '@/components/form-field';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -354,6 +355,7 @@ const FinancePage = () => {
             <TabsTrigger value="expenses">Expenses</TabsTrigger>
             <TabsTrigger value="drawings">Drawings</TabsTrigger>
             <TabsTrigger value="capital">Capital</TabsTrigger>
+            <TabsTrigger value="reconcile">Reconcile</TabsTrigger>
           </TabsList>
           <TabsContent value="income" className="mt-4">
             <DataTable columns={expenseColumns('Category')} data={income ?? []} searchPlaceholder="Search income…" />
@@ -366,6 +368,13 @@ const FinancePage = () => {
           </TabsContent>
           <TabsContent value="capital" className="mt-4">
             <DataTable columns={capitalColumns} data={capital ?? []} searchPlaceholder="Search capital…" />
+          </TabsContent>
+          <TabsContent value="reconcile" className="mt-4">
+            {lender ? (
+              <ReconciliationCard lender={lender} />
+            ) : (
+              <Skeleton className="h-64 w-full rounded-xl" />
+            )}
           </TabsContent>
         </Tabs>
       )}

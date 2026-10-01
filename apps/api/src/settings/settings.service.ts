@@ -9,6 +9,7 @@ import {
   type LoanProductInput,
   type LoanType,
   type UpdateLoanProductInput,
+  type BankBalanceInput,
 } from '@loan-pilot/domain';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../documents/storage.service';
@@ -160,7 +161,12 @@ export class SettingsService {
       this.storage.tryRead(s.principalOfficerInitials, 'principal officer initials'),
       this.storage.tryRead(s.companyStamp, 'company stamp'),
     ]);
-    return { officerName: s.principalOfficerName, officerSignaturePng, officerInitialsPng, stampPng };
+    return {
+      officerName: s.principalOfficerName,
+      officerSignaturePng,
+      officerInitialsPng,
+      stampPng,
+    };
   }
 
   /** Store a drawn/photographed officer signature or initials (a PNG data-URL). */
@@ -274,6 +280,23 @@ export class SettingsService {
     });
   }
 
+  /**
+   * Record the bank balance the lender saw and the day it was true, so the
+   * Finance reconciliation can show how far the books are from the bank.
+   * `bankBalance` arrives in major N$.
+   */
+  updateBankBalance(tenantId: string, input: BankBalanceInput): Promise<TenantSettings> {
+    const data = {
+      bankBalance: toCents(input.bankBalance),
+      bankBalanceAt: new Date(input.bankBalanceAt),
+    };
+    return this.prisma.tenantSettings.upsert({
+      where: { tenantId },
+      update: data,
+      create: { tenantId, ...data },
+    });
+  }
+
   listProducts(tenantId: string): Promise<LoanProduct[]> {
     return this.prisma.loanProduct.findMany({
       where: { tenantId },
@@ -356,7 +379,9 @@ export class SettingsService {
     loanType?: LoanType,
   ): Promise<LoanProduct | null> {
     if (productId) {
-      const product = await this.prisma.loanProduct.findFirst({ where: { id: productId, tenantId } });
+      const product = await this.prisma.loanProduct.findFirst({
+        where: { id: productId, tenantId },
+      });
       if (!product) {
         throw new NotFoundException('Selected product not found');
       }

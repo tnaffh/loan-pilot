@@ -171,6 +171,11 @@ model TenantSettings {
   // Opening/bank balance (cents) so the computed available balance reconciles to
   // the lender's actual bank account.
   openingBalance  Int      @default(0)
+  // The bank balance the lender last saw (cents) and the day it was true, for the
+  // Finance reconciliation: the difference to the computed available balance is
+  // what is unrecorded or mis-dated, and it should be visible, not plugged away.
+  bankBalance     Int?
+  bankBalanceAt   DateTime?
   // Lender legal identity for the header of generated NAMFISA loan agreements.
   // Optional; the agreement falls back to the tenant name where blank.
   legalName        String?

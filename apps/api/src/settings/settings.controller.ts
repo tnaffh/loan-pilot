@@ -20,6 +20,7 @@ import {
   initialsImageSchema,
   lenderIdentitySchema,
   loanProductSchema,
+  bankBalanceSchema,
   openingBalanceSchema,
   signatureImageSchema,
   updateLoanProductSchema,
@@ -27,6 +28,7 @@ import {
   type HandwritingImageInput,
   type LenderIdentityInput,
   type LoanProductInput,
+  type BankBalanceInput,
   type OpeningBalanceInput,
   type SessionUser,
   type UpdateLoanProductInput,
@@ -69,6 +71,16 @@ export class SettingsController {
     return this.settings.updateOpeningBalance(requireTenantId(user), body.openingBalance);
   }
 
+  /** The bank balance the lender saw, for the Finance reconciliation. */
+  @Patch('bank-balance')
+  @RequirePermissions('finance:write')
+  updateBankBalance(
+    @CurrentUser() user: SessionUser,
+    @Body(new ZodValidationPipe(bankBalanceSchema)) body: BankBalanceInput,
+  ): Promise<TenantSettings> {
+    return this.settings.updateBankBalance(requireTenantId(user), body);
+  }
+
   @Get('products')
   @RequirePermissions('settings:read')
   listProducts(@CurrentUser() user: SessionUser): Promise<LoanProduct[]> {
@@ -97,10 +109,7 @@ export class SettingsController {
 
   @Delete('products/:id')
   @RequirePermissions('settings:write')
-  deleteProduct(
-    @CurrentUser() user: SessionUser,
-    @Param('id') id: string,
-  ): Promise<{ ok: true }> {
+  deleteProduct(@CurrentUser() user: SessionUser, @Param('id') id: string): Promise<{ ok: true }> {
     return this.settings.deleteProduct(requireTenantId(user), id);
   }
 

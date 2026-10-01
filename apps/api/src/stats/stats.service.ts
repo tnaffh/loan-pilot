@@ -40,6 +40,15 @@ export interface LenderOverview {
   // disbursed − expenses − drawings.
   openingBalance?: number;
   availableBalance?: number;
+  // For the Finance reconciliation: what commonly separates availableBalance
+  // from the bank. Loans approved but not yet marked as paid out are counted as
+  // cash out while the money may still be in the account; undated entries are
+  // counted from the start of the records.
+  unreleased?: { count: number; principal: number };
+  undated?: { count: number; capital: number; costs: number; income: number };
+  // The bank balance the lender last recorded, and the day it was true.
+  bankBalance?: number | null;
+  bankBalanceAt?: string | null;
 }
 
 export interface PlatformOverview {
@@ -75,8 +84,18 @@ export interface LenderSeries {
 }
 
 const MONTH_LABELS = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 /** Bucket a date into a "YYYY-MM" key, or null. */
 const monthKey = (date: Date | null): string | null => (date ? monthKeyOf(date) : null);
@@ -126,7 +145,13 @@ export class StatsService {
       if (existing) {
         return existing;
       }
-      const created: MonthlyPoint = { month: key, label: monthLabel(key), disbursed: 0, collected: 0, expenses: 0 };
+      const created: MonthlyPoint = {
+        month: key,
+        label: monthLabel(key),
+        disbursed: 0,
+        collected: 0,
+        expenses: 0,
+      };
       buckets.set(key, created);
       return created;
     };
@@ -158,7 +183,10 @@ export class StatsService {
     const categoryTotals = new Map<string, number>();
     for (const expense of expenses) {
       if (expense.kind === ExpenseKind.Expense) {
-        categoryTotals.set(expense.category, (categoryTotals.get(expense.category) ?? 0) + expense.amount);
+        categoryTotals.set(
+          expense.category,
+          (categoryTotals.get(expense.category) ?? 0) + expense.amount,
+        );
       }
     }
     const topExpenseCategories = [...categoryTotals.entries()]
@@ -216,6 +244,7 @@ export class StatsService {
     const [
       book,
       arrears,
+      unreleased,
       pendingApplications,
       borrowers,
       ledgers,
@@ -223,49 +252,77 @@ export class StatsService {
       invested,
       incomeAgg,
       settings,
+      undatedCapital,
+      undatedCosts,
+      undatedIncome,
     ] = await Promise.all([
-        // The book is every loan still open — including partly-paid ones.
-        this.prisma.loan.aggregate({
-          where: { tenantId, status: { in: OPEN_STATUSES } },
-          _sum: { balance: true },
-          _count: true,
-        }),
-        // Live arrears: any open loan with money owing whose next instalment is
-        // past due, even if no repayment has been recorded to flip its stored
-        // status yet (the same rule as `isLoanOverdue` in @loan-pilot/domain).
-        this.prisma.loan.aggregate({
-          where: {
-            tenantId,
-            status: { in: OPEN_STATUSES },
-            balance: { gt: 0 },
-            nextDueAt: { lt: new Date() },
-          },
-          _sum: { balance: true },
-          _count: true,
-        }),
-        this.prisma.loanApplication.count({
-          where: {
-            tenantId,
-            status: { in: [ApplicationStatus.Pending, ApplicationStatus.Review] },
-          },
-        }),
-        this.prisma.borrower.count({ where: { tenantId } }),
-        this.ledgers(tenantId),
-        this.prisma.expense.groupBy({
-          by: ['kind'],
-          where: { tenantId },
-          _sum: { amount: true },
-        }),
-        this.prisma.investment.aggregate({ where: { tenantId }, _sum: { amount: true } }),
-        this.prisma.income.aggregate({ where: { tenantId }, _sum: { amount: true } }),
-        this.prisma.tenantSettings.findUnique({
-          where: { tenantId },
-          select: { openingBalance: true },
-        }),
-      ]);
+      // The book is every loan still open — including partly-paid ones.
+      this.prisma.loan.aggregate({
+        where: { tenantId, status: { in: OPEN_STATUSES } },
+        _sum: { balance: true },
+        _count: true,
+      }),
+      // Live arrears: any open loan with money owing whose next instalment is
+      // past due, even if no repayment has been recorded to flip its stored
+      // status yet (the same rule as `isLoanOverdue` in @loan-pilot/domain).
+      this.prisma.loan.aggregate({
+        where: {
+          tenantId,
+          status: { in: OPEN_STATUSES },
+          balance: { gt: 0 },
+          nextDueAt: { lt: new Date() },
+        },
+        _sum: { balance: true },
+        _count: true,
+      }),
+      // Approved and counted as paid out, but the payout is not confirmed.
+      this.prisma.loan.aggregate({
+        where: {
+          tenantId,
+          status: { not: LoanStatus.Cancelled },
+          disbursedAt: { not: null },
+          fundsReleased: false,
+        },
+        _sum: { principal: true },
+        _count: true,
+      }),
+      this.prisma.loanApplication.count({
+        where: {
+          tenantId,
+          status: { in: [ApplicationStatus.Pending, ApplicationStatus.Review] },
+        },
+      }),
+      this.prisma.borrower.count({ where: { tenantId } }),
+      this.ledgers(tenantId),
+      this.prisma.expense.groupBy({
+        by: ['kind'],
+        where: { tenantId },
+        _sum: { amount: true },
+      }),
+      this.prisma.investment.aggregate({ where: { tenantId }, _sum: { amount: true } }),
+      this.prisma.income.aggregate({ where: { tenantId }, _sum: { amount: true } }),
+      this.prisma.tenantSettings.findUnique({
+        where: { tenantId },
+        select: { openingBalance: true, bankBalance: true, bankBalanceAt: true },
+      }),
+      this.prisma.investment.aggregate({
+        where: { tenantId, contributedAt: null },
+        _sum: { amount: true },
+        _count: true,
+      }),
+      this.prisma.expense.aggregate({
+        where: { tenantId, incurredAt: null },
+        _sum: { amount: true },
+        _count: true,
+      }),
+      this.prisma.income.aggregate({
+        where: { tenantId, incurredAt: null },
+        _sum: { amount: true },
+        _count: true,
+      }),
+    ]);
 
-    const expenses =
-      expenseSums.find((row) => row.kind === ExpenseKind.Expense)?._sum.amount ?? 0;
+    const expenses = expenseSums.find((row) => row.kind === ExpenseKind.Expense)?._sum.amount ?? 0;
     const drawings = expenseSums.find((row) => row.kind === ExpenseKind.Drawing)?._sum.amount ?? 0;
     // Cancelled loans never paid out, so their principal was never cash out.
     const disbursedTotal = ledgers.reduce(
@@ -307,7 +364,22 @@ export class StatsService {
       openingBalance,
       // Cash on hand available to lend.
       availableBalance:
-        openingBalance + investedTotal + collectedTotal + incomeTotal - disbursedTotal - expenses - drawings,
+        openingBalance +
+        investedTotal +
+        collectedTotal +
+        incomeTotal -
+        disbursedTotal -
+        expenses -
+        drawings,
+      unreleased: { count: unreleased._count, principal: unreleased._sum.principal ?? 0 },
+      undated: {
+        count: undatedCapital._count + undatedCosts._count + undatedIncome._count,
+        capital: undatedCapital._sum.amount ?? 0,
+        costs: undatedCosts._sum.amount ?? 0,
+        income: undatedIncome._sum.amount ?? 0,
+      },
+      bankBalance: settings?.bankBalance ?? null,
+      bankBalanceAt: settings?.bankBalanceAt?.toISOString() ?? null,
     };
   }
 

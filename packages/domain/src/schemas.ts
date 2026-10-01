@@ -590,6 +590,13 @@ export const openingBalanceSchema = z.object({
 });
 export type OpeningBalanceInput = z.infer<typeof openingBalanceSchema>;
 
+/** The bank balance the lender saw on a given day (N$ major), for the Finance reconciliation. */
+export const bankBalanceSchema = z.object({
+  bankBalance: z.coerce.number(),
+  bankBalanceAt: z.string().min(4, 'A date is required'),
+});
+export type BankBalanceInput = z.infer<typeof bankBalanceSchema>;
+
 /**
  * Move a loan application along its lifecycle: into Review (triage), Approved
  * (disburses the loan) or Declined. `reason` is captured on a decline and shown
