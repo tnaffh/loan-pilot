@@ -8,11 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import {
-  createPaymentSchema,
-  type CreatePaymentInput,
-  type SessionUser,
-} from '@loan-pilot/domain';
+import { createPaymentSchema, type CreatePaymentInput, type SessionUser } from '@loan-pilot/domain';
 import type { Payment } from '@prisma/client';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { requireTenantId } from '../common/tenant';

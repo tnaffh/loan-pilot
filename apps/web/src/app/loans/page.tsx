@@ -13,7 +13,11 @@ export const metadata: Metadata = {
   title: 'Loans',
   description,
   alternates: { canonical: '/loans' },
-  openGraph: pageOpenGraph({ title: 'Loans · Raccoons Financial Services', description, path: '/loans' }),
+  openGraph: pageOpenGraph({
+    title: 'Loans · Raccoons Financial Services',
+    description,
+    path: '/loans',
+  }),
 };
 
 const LoansPage = () => {
@@ -28,8 +32,7 @@ const LoansPage = () => {
             · Loans
           </p>
           <h1 className="mt-2 text-4xl sm:text-5xl">
-            Loans built around what you can{' '}
-            <em className="italic text-primary">afford</em>
+            Loans built around what you can <em className="italic text-primary">afford</em>
           </h1>
           <p className="mt-3 max-w-2xl text-muted-foreground">
             Every Raccoons loan is priced transparently and capped within NAMFISA limits — finance
@@ -83,7 +86,10 @@ const LoansPage = () => {
             <h2 className="text-xl">What you will need to apply</h2>
             <ul className="mt-4 grid gap-2 sm:grid-cols-3">
               {REQUIREMENTS.map((requirement) => (
-                <li key={requirement} className="flex items-start gap-2 text-sm text-muted-foreground">
+                <li
+                  key={requirement}
+                  className="flex items-start gap-2 text-sm text-muted-foreground"
+                >
                   <Check className="mt-0.5 size-4 shrink-0 text-primary" />
                   {requirement}
                 </li>

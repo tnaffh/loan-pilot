@@ -10,7 +10,13 @@ import { useAuth } from '@/lib/auth-context';
 import { useTenantBranding } from '@/lib/tenant-theme';
 
 /** Topbar-only chrome for the borrower portal (no sidebar). */
-export const PortalShell = ({ user, children }: { user: SessionUser; children: React.ReactNode }) => {
+export const PortalShell = ({
+  user,
+  children,
+}: {
+  user: SessionUser;
+  children: React.ReactNode;
+}) => {
   const { logout } = useAuth();
   const branding = useTenantBranding();
 

@@ -138,6 +138,7 @@ export const quote = ({
   if (!Number.isInteger(principalCents) || principalCents <= 0) {
     throw new RangeError('principalCents must be a positive integer');
   }
+
   if (!Number.isInteger(termMonths) || termMonths < 1 || termMonths > MAX_TERM_MONTHS) {
     throw new RangeError(`termMonths must be an integer between 1 and ${MAX_TERM_MONTHS}`);
   }
@@ -186,6 +187,7 @@ export const quote = ({
  */
 export const penaltyInterest = (outstandingCents: Cents, monthsLate: number): Cents => {
   const cappedMonths = Math.min(Math.max(monthsLate, 0), MAX_PENALTY_MONTHS);
+
   return Math.round(outstandingCents * MAX_PENALTY_RATE_PER_MONTH * cappedMonths);
 };
 
@@ -233,9 +235,11 @@ export const assessArrears = (
       if (item.paid || item.dueAt >= asOf) {
         return acc;
       }
+
       const monthsLate = completeMonthsBetween(item.dueAt, asOf);
       const defaultInterestCents =
         monthsLate >= 1 ? Math.round(item.amountCents * (Math.pow(1 + mRate, monthsLate) - 1)) : 0;
+
       return {
         overdueCents: acc.overdueCents + item.amountCents,
         defaultInterestCents: acc.defaultInterestCents + defaultInterestCents,

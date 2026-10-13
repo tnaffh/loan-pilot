@@ -86,12 +86,14 @@ const sampleData = (photos: Buffer[]): CollateralAgreementData => ({
 describe('renderCollateralAgreementPdf', () => {
   it('produces a valid PDF with embedded photos', async () => {
     const pdf = await renderCollateralAgreementPdf(sampleData([TINY_PNG, TINY_PNG]));
+
     expect(pdf.length).toBeGreaterThan(1000);
     expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
   });
 
   it('renders without any photos', async () => {
     const pdf = await renderCollateralAgreementPdf(sampleData([]));
+
     expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
   });
 });

@@ -28,10 +28,13 @@ describe('permissions catalog', () => {
 
   it('Administrator holds every permission; Staff is a strict subset without finance/admin', () => {
     expect(SYSTEM_ROLE_PERMISSIONS.administrator).toEqual([...PERMISSIONS]);
+
     for (const permission of SYSTEM_ROLE_PERMISSIONS.staff) {
       expect(SYSTEM_ROLE_PERMISSIONS.administrator).toContain(permission);
     }
+
     expect(SYSTEM_ROLE_PERMISSIONS.staff.length).toBeLessThan(PERMISSIONS.length);
+
     for (const denied of [
       'finance:read',
       'finance:write',
@@ -48,6 +51,7 @@ describe('permissions catalog', () => {
 describe('hasPermission', () => {
   it('grants platform operators every permission implicitly', () => {
     const platform = user({ role: UserRole.Platform, permissions: [] });
+
     for (const permission of PERMISSIONS) {
       expect(hasPermission(platform, permission)).toBe(true);
     }
@@ -55,11 +59,13 @@ describe('hasPermission', () => {
 
   it('grants borrowers nothing', () => {
     const borrower = user({ role: UserRole.Borrower, permissions: [] });
+
     expect(hasPermission(borrower, 'loans:read')).toBe(false);
   });
 
   it('checks lender users against their resolved set', () => {
     const staff = user({ permissions: [...SYSTEM_ROLE_PERMISSIONS.staff] });
+
     expect(hasPermission(staff, 'loans:write')).toBe(true);
     expect(hasPermission(staff, 'finance:read')).toBe(false);
     expect(hasPermission(staff, 'users:manage')).toBe(false);

@@ -146,7 +146,8 @@ export class BorrowersController {
   addBankAccount(
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
-    @Body(new ZodValidationPipe(createBorrowerBankAccountSchema)) body: CreateBorrowerBankAccountInput,
+    @Body(new ZodValidationPipe(createBorrowerBankAccountSchema))
+    body: CreateBorrowerBankAccountInput,
   ): Promise<BorrowerBankAccount> {
     return this.borrowers.addBankAccount(requireTenantId(user), id, body);
   }
@@ -185,6 +186,7 @@ export class BorrowersController {
     if (!file) {
       throw new BadRequestException('A file is required');
     }
+
     return this.documents.createForBorrower(requireTenantId(user), id, kind || 'other', file);
   }
 
@@ -207,6 +209,7 @@ export class BorrowersController {
     @Param('id') id: string,
   ): Promise<StreamableFile> {
     const { pdf, fileName } = await this.borrowers.statementLetterPdf(requireTenantId(user), id);
+
     return new StreamableFile(pdf, {
       type: 'application/pdf',
       disposition: attachmentDisposition(fileName),

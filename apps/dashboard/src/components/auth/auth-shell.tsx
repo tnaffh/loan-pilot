@@ -51,10 +51,7 @@ export const AuthShell = ({
           />
           <Wordmark className="relative text-xl font-bold" />
           <div className="relative">
-            <div
-              className="mb-5 h-1 w-12 rounded-full"
-              style={{ backgroundColor: LIME }}
-            />
+            <div className="mb-5 h-1 w-12 rounded-full" style={{ backgroundColor: LIME }} />
             <p className="font-heading text-2xl font-semibold leading-snug">
               Micro-lending management, built for Namibian lenders.
             </p>

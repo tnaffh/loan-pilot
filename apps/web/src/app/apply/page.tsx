@@ -8,7 +8,11 @@ export const metadata: Metadata = {
   title: 'Apply',
   description,
   alternates: { canonical: '/apply' },
-  openGraph: pageOpenGraph({ title: 'Apply · Raccoons Financial Services', description, path: '/apply' }),
+  openGraph: pageOpenGraph({
+    title: 'Apply · Raccoons Financial Services',
+    description,
+    path: '/apply',
+  }),
 };
 
 const ApplyPage = () => {

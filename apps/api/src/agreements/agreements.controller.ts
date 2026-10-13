@@ -36,9 +36,11 @@ export class AgreementsController {
   @RequirePermissions('agreements:read')
   async latest(@CurrentUser() user: SessionUser, @Param('id') id: string): Promise<DocumentView> {
     const document = await this.agreements.latestForLoan(requireTenantId(user), id);
+
     if (!document) {
       throw new NotFoundException('No agreement has been generated for this loan yet');
     }
+
     return document;
   }
 
@@ -71,6 +73,7 @@ export class AgreementsController {
     if (!file) {
       throw new BadRequestException('A file is required');
     }
+
     return this.agreements.uploadSigned(requireTenantId(user), id, file);
   }
 
@@ -83,9 +86,11 @@ export class AgreementsController {
     @Param('id') id: string,
   ): Promise<DocumentView> {
     const document = await this.agreements.latestCollateralForLoan(requireTenantId(user), id);
+
     if (!document) {
       throw new NotFoundException('No collateral agreement has been generated for this loan yet');
     }
+
     return document;
   }
 
@@ -121,6 +126,7 @@ export class AgreementsController {
     if (!file) {
       throw new BadRequestException('A file is required');
     }
+
     return this.agreements.uploadSignedCollateral(requireTenantId(user), id, file);
   }
 }

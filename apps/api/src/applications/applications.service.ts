@@ -106,8 +106,10 @@ export class ApplicationsService {
   async pricingConfig(tenantId: string): Promise<PricingConfig> {
     const resolveRate = async (type: LoanType): Promise<number | null> => {
       const product = await this.settings.resolveProduct(tenantId, undefined, type);
+
       return product?.interestRate ?? null;
     };
+
     const [feeSettings, payday, business, collateral] = await Promise.all([
       this.settings.resolveFeeSettings(tenantId),
       resolveRate(LoanType.Payday),
@@ -120,6 +122,7 @@ export class ApplicationsService {
       [LoanType.Business]: business,
       [LoanType.Collateral]: collateral,
     };
+
     return { rates, feeSettings };
   }
 
@@ -239,6 +242,7 @@ export class ApplicationsService {
         initials,
         'initials.png',
       );
+
       return tx.loanApplication.update({
         where: { id: application.id },
         data: {
@@ -257,6 +261,7 @@ export class ApplicationsService {
       contentType: 'image/png',
       originalName: fileName,
     });
+
     return { key, sizeBytes: buffer.length };
   }
 
@@ -271,11 +276,15 @@ export class ApplicationsService {
       select: { phone: true, borrower: { select: { idNumber: true } } },
     });
     const matchers: Prisma.LoanApplicationWhereInput[] = [];
+
     if (account?.phone) matchers.push({ phoneKey: account.phone });
+
     if (account?.borrower?.idNumber) matchers.push({ idNumber: account.borrower.idNumber });
+
     if (matchers.length === 0) {
       return [];
     }
+
     return this.prisma.loanApplication.findMany({
       where: { tenantId, OR: matchers },
       orderBy: { submittedAt: 'desc' },
@@ -309,9 +318,11 @@ export class ApplicationsService {
       where: { id, tenantId },
       include: { references: true, documents: { orderBy: { uploadedAt: 'desc' } } },
     });
+
     if (!application) {
       throw new NotFoundException('Application not found');
     }
+
     // Resolve each document's storage key to a browser-openable URL. URL signing
     // can fail (e.g. GCS perms) — degrade that document to a null URL rather than
     // failing the whole detail request.
@@ -321,6 +332,7 @@ export class ApplicationsService {
         url: await this.storage.safeAccessUrl(document.url),
       })),
     );
+
     return {
       ...application,
       documents,
@@ -341,6 +353,7 @@ export class ApplicationsService {
     if (!idNumber || isPlaceholderId(idNumber)) {
       return null;
     }
+
     const borrower = await this.prisma.borrower.findFirst({
       where: { tenantId, idNumber },
       select: {
@@ -351,9 +364,11 @@ export class ApplicationsService {
         _count: { select: { loans: true } },
       },
     });
+
     if (!borrower) {
       return null;
     }
+
     return {
       id: borrower.id,
       firstName: borrower.firstName,
@@ -375,9 +390,11 @@ export class ApplicationsService {
   ): Promise<ApplicationDecision> {
     const decision = await this.prisma.$transaction(async (tx) => {
       const application = await tx.loanApplication.findFirst({ where: { id, tenantId } });
+
       if (!application) {
         throw new NotFoundException('Application not found');
       }
+
       if (
         application.status === ApplicationStatus.Approved ||
         application.status === ApplicationStatus.Declined
@@ -407,6 +424,7 @@ export class ApplicationsService {
     // back the disbursement (staff can regenerate from the loan page).
     if (decision.loanId) {
       const loanId = decision.loanId;
+
       try {
         await this.agreements.generateForLoan(tenantId, loanId);
         await this.agreements.emailToBorrower(tenantId, loanId);
@@ -416,6 +434,7 @@ export class ApplicationsService {
           error instanceof Error ? error.stack : String(error),
         );
       }
+
       // Collateral loans additionally get a signed collateral (pledge) agreement.
       // Separate try/catch so a collateral-PDF failure can't affect the loan
       // agreement or the committed disbursement.

@@ -60,6 +60,7 @@ export const SelectField = <T extends string | number>({
         <View>
           {options.map((option) => {
             const active = option.value === value;
+
             return (
               <Pressable
                 key={String(option.value)}

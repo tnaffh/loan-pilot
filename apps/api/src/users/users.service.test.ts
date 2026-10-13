@@ -80,6 +80,7 @@ describe('UsersService', () => {
         { provide: ConfigService, useValue: configMock },
       ],
     }).compile();
+
     service = moduleRef.get(UsersService);
   });
 
@@ -92,6 +93,7 @@ describe('UsersService', () => {
       roleId: 'role_staff',
     });
     const created = userCreate.mock.calls[0][0].data;
+
     expect(created.status).toBe(UserStatus.Invited);
     expect(created.tenantId).toBe('tenant_1');
     expect(created.roleId).toBe('role_staff');

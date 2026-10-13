@@ -144,7 +144,9 @@ interface CashFlows {
 }
 
 /** A blank gender × band accumulator. */
-const blankRow = (bands: readonly AmountBand[]): { bands: Record<string, number>; total: number } => ({
+const blankRow = (
+  bands: readonly AmountBand[],
+): { bands: Record<string, number>; total: number } => ({
   bands: Object.fromEntries(bands.map((band) => [band.key, 0])),
   total: 0,
 });
@@ -161,7 +163,10 @@ interface MatrixEntry {
  * Build one gender × amount-band matrix. Rows whose banding amount is zero or
  * negative are dropped rather than forced into the first band.
  */
-const buildMatrix = (bands: readonly AmountBand[], entries: readonly MatrixEntry[]): BandedMatrix => {
+const buildMatrix = (
+  bands: readonly AmountBand[],
+  entries: readonly MatrixEntry[],
+): BandedMatrix => {
   const acc: Record<ReportGender, { bands: Record<string, number>; total: number }> = {
     male: blankRow(bands),
     female: blankRow(bands),
@@ -172,10 +177,13 @@ const buildMatrix = (bands: readonly AmountBand[], entries: readonly MatrixEntry
 
   for (const entry of entries) {
     const key = bandKeyFor(bands, entry.bandCents);
+
     if (key === null) {
       continue;
     }
+
     const row = acc[entry.gender];
+
     row.bands[key] = (row.bands[key] ?? 0) + entry.value;
     row.total += entry.value;
     total.bands[key] = (total.bands[key] ?? 0) + entry.value;
@@ -183,6 +191,7 @@ const buildMatrix = (bands: readonly AmountBand[], entries: readonly MatrixEntry
   }
 
   const freeze = (row: { bands: Record<string, number>; total: number }): BandedRow => row;
+
   return {
     bands,
     male: freeze(acc.male),
@@ -216,6 +225,7 @@ export class ReportsService {
       this.quarterly(tenantId, period),
       this.letterhead(tenantId),
     ]);
+
     return renderQuarterlyReturnPdf(report, letterhead.lender, letterhead.logoPng);
   }
 
@@ -224,6 +234,7 @@ export class ReportsService {
       this.monthly(tenantId, month),
       this.letterhead(tenantId),
     ]);
+
     return renderMonthlyReportPdf(report, letterhead.lender, letterhead.logoPng);
   }
 
@@ -242,6 +253,7 @@ export class ReportsService {
       this.settings.getLenderIdentity(tenantId),
       this.prisma.tenant.findUnique({ where: { id: tenantId }, select: { logoUrl: true } }),
     ]);
+
     return {
       lender: {
         name: identity.legalName ?? identity.name ?? 'Lender',
@@ -264,6 +276,7 @@ export class ReportsService {
     if (!key || /^https?:\/\//i.test(key)) {
       return null;
     }
+
     try {
       return await this.storage.read(key);
     } catch (error) {
@@ -271,6 +284,7 @@ export class ReportsService {
         'Failed to read the tenant logo for a report',
         error instanceof Error ? error.stack : String(error),
       );
+
       return null;
     }
   }
@@ -295,6 +309,7 @@ export class ReportsService {
     const now = new Date();
     const currentMonth = monthKeyOf(now);
     const months = new Set<string>([currentMonth]);
+
     for (const date of [
       ...disbursements.map((row) => row.disbursedAt),
       ...payments.map((row) => row.paidAt),
@@ -302,7 +317,9 @@ export class ReportsService {
       if (!date) {
         continue;
       }
+
       const key = monthKeyOf(date);
+
       // A period that has not happened yet cannot have a return to file.
       if (key <= currentMonth) {
         months.add(key);
@@ -314,9 +331,8 @@ export class ReportsService {
       ...new Set(
         monthKeys.map((key) => {
           const parsed = parseMonthKey(key);
-          return parsed
-            ? quarterKeyOf(new Date(Date.UTC(parsed.year, parsed.month - 1, 1)))
-            : key;
+
+          return parsed ? quarterKeyOf(new Date(Date.UTC(parsed.year, parsed.month - 1, 1))) : key;
         }),
       ),
     ].sort((a, b) => b.localeCompare(a));
@@ -395,6 +411,7 @@ export class ReportsService {
 
   private async lender(tenantId: string): Promise<ReportLender> {
     const identity = await this.settings.getLenderIdentity(tenantId);
+
     return {
       name: identity.legalName ?? identity.name ?? 'Lender',
       licenceNo: identity.namfisaLicenceNo,
@@ -412,12 +429,12 @@ export class ReportsService {
         if (loan.status === LoanStatus.Cancelled || !loan.disbursedAt) {
           return false;
         }
+
         const at = loan.disbursedAt.getTime();
+
         return at >= start.getTime() && at < end.getTime();
       })
-      .sort(
-        (a, b) => (b.loan.disbursedAt?.getTime() ?? 0) - (a.loan.disbursedAt?.getTime() ?? 0),
-      );
+      .sort((a, b) => (b.loan.disbursedAt?.getTime() ?? 0) - (a.loan.disbursedAt?.getTime() ?? 0));
   }
 
   /** Split credits into the return's four collection methods. */
@@ -428,11 +445,14 @@ export class ReportsService {
       cash: 0,
       other: 0,
     };
+
     for (const credit of credits) {
       // A schedule-derived credit has no recorded method, so it reports as other.
       const method = credit.method === null ? 'other' : namfisaCollectionMethod(credit.method);
+
       totals[method] += credit.amountCents;
     }
+
     return totals;
   }
 
@@ -442,6 +462,7 @@ export class ReportsService {
     const range = quarterRange(period);
     const endDate = quarterEndDate(period);
     const dueDate = quarterDueDate(period);
+
     if (!range || !endDate || !dueDate) {
       throw new BadRequestException('Expected a quarter like 2026-Q2');
     }
@@ -506,9 +527,11 @@ export class ReportsService {
       value: loan.principal,
     }));
     const borrowers = new Map<string, ReportLoan['borrower']>();
+
     for (const { loan } of disbursed) {
       borrowers.set(loan.borrowerId, loan.borrower);
     }
+
     const salaryEntries = [...borrowers.values()].map((borrower) => ({
       gender: normaliseGender(borrower.gender),
       bandCents: borrower.monthlyIncome,
@@ -520,7 +543,9 @@ export class ReportsService {
 
     // ── Parts 7.1 and 7.3 ────────────────────────────────────────────────
     const debtors = new Set(closing.map((entry) => entry.ledger.loan.borrowerId));
-    const inArrears = closing.filter((entry) => ageingBucketFor(entry.ageing.daysLate) !== 'current');
+    const inArrears = closing.filter(
+      (entry) => ageingBucketFor(entry.ageing.daysLate) !== 'current',
+    );
 
     const loansByPurpose: LabelledValue[] = Object.entries(LOAN_PURPOSE_LABELS).map(
       ([key, label]) => ({
@@ -549,7 +574,8 @@ export class ReportsService {
     ]);
     const interestOnLoans = sumBy(disbursed, ({ loan }) => loan.financeCharge);
     const badDebtsRecovered = figure(manual, 'badDebtsRecovered');
-    const otherIncome = (otherIncomeRows._sum.amount ?? 0) + figure(manual, 'otherIncomeAdjustment');
+    const otherIncome =
+      (otherIncomeRows._sum.amount ?? 0) + figure(manual, 'otherIncomeAdjustment');
 
     const liabilityOther: LabelledValue[] = NAMFISA_MANUAL_FIELDS.filter((field) =>
       field.key.startsWith('liability'),
@@ -590,8 +616,7 @@ export class ReportsService {
           debitOrder: repayments.debit_order,
           cash: repayments.cash,
           other: repayments.other,
-          total:
-            repayments.payroll + repayments.debit_order + repayments.cash + repayments.other,
+          total: repayments.payroll + repayments.debit_order + repayments.cash + repayments.other,
         },
         badDebts: {
           openingProvision,
@@ -627,7 +652,8 @@ export class ReportsService {
           key: band.key,
           label: band.countLabel,
           months: band.months,
-          value: disbursed.filter(({ loan }) => termBandKeyFor(loan.termMonths) === band.key).length,
+          value: disbursed.filter(({ loan }) => termBandKeyFor(loan.termMonths) === band.key)
+            .length,
         })),
         loansByPurpose,
         loansByCollectionMethod,
@@ -680,9 +706,11 @@ export class ReportsService {
 
   async monthly(tenantId: string, month: string): Promise<MonthlyReport> {
     const range = monthRange(month);
+
     if (!range) {
       throw new BadRequestException('Expected a month like 2026-02');
     }
+
     const lastDay = new Date(range.end.getTime() - 86_400_000);
 
     const [ledgerMap, lender, inMonth, beforeMonth, undated, settings, expenseBreakdown] =
@@ -751,12 +779,11 @@ export class ReportsService {
     const availableFunds = totalCapital - disbursedValue;
     const closingCash = availableFunds + collected + inMonth.income;
 
-    const arrears = closing.filter(
-      (entry) => ageingBucketFor(entry.ageing.daysLate) !== 'current',
-    );
+    const arrears = closing.filter((entry) => ageingBucketFor(entry.ageing.daysLate) !== 'current');
 
     const loans: MonthlyReportLoanRow[] = disbursed.map((ledger) => {
       const { loan } = ledger;
+
       return {
         loanId: loan.id,
         gender: normaliseGender(loan.borrower.gender),
@@ -868,6 +895,7 @@ export class ReportsService {
         _sum: { amount: true },
       }),
     ]);
+
     return {
       expenses: expenseRows.find((row) => row.kind === ExpenseKind.Expense)?._sum.amount ?? 0,
       drawings: expenseRows.find((row) => row.kind === ExpenseKind.Drawing)?._sum.amount ?? 0,
@@ -901,13 +929,13 @@ export class ReportsService {
         _count: true,
       }),
     ]);
+
     return {
       expenses: expenseRows.find((row) => row.kind === ExpenseKind.Expense)?._sum.amount ?? 0,
       drawings: expenseRows.find((row) => row.kind === ExpenseKind.Drawing)?._sum.amount ?? 0,
       invested: investmentAgg._sum.amount ?? 0,
       income: incomeAgg._sum.amount ?? 0,
-      rows:
-        sumBy(expenseRows, (row) => row._count) + investmentAgg._count + incomeAgg._count,
+      rows: sumBy(expenseRows, (row) => row._count) + investmentAgg._count + incomeAgg._count,
     };
   }
 
@@ -921,6 +949,7 @@ export class ReportsService {
       where: { tenantId, kind: ExpenseKind.Expense, incurredAt: { gte: start, lt: end } },
       _sum: { amount: true },
     });
+
     return rows
       .map((row) => ({ key: row.category, label: row.category, value: row._sum.amount ?? 0 }))
       .sort((a, b) => b.value - a.value);
@@ -948,6 +977,7 @@ export class ReportsService {
       .map((method) => ({ method, amount: totals[method] }))
       .sort((a, b) => b.amount - a.amount);
     const top = ranked[0];
+
     return top && top.amount > 0 ? top.method : 'other';
   }
 
@@ -979,6 +1009,7 @@ export class ReportsService {
           'the records; give them dates to place them in the right month.',
       });
     }
+
     if (cash && !cash.openingBalanceSet) {
       warnings.push({
         code: 'opening_balance_unset',
@@ -999,6 +1030,7 @@ export class ReportsService {
           'under-report until the borrowers are updated.',
       });
     }
+
     if (coverage.loansMissingPurpose > 0) {
       warnings.push({
         code: 'purpose_coverage',
@@ -1011,6 +1043,7 @@ export class ReportsService {
     }
 
     const unmethoded = credits.filter((credit) => credit.method === null);
+
     if (unmethoded.length > 0) {
       warnings.push({
         code: 'unreconciled_repayments',
@@ -1062,16 +1095,25 @@ export class ReportsService {
       where: { tenantId_period: { tenantId, period } },
       select: { figures: true },
     });
-    if (!row || row.figures === null || typeof row.figures !== 'object' || Array.isArray(row.figures)) {
+
+    if (
+      !row ||
+      row.figures === null ||
+      typeof row.figures !== 'object' ||
+      Array.isArray(row.figures)
+    ) {
       return {};
     }
+
     // The column is untyped JSON; keep only known keys with numeric values.
     const parsed: RegulatoryFigures = {};
+
     for (const [key, value] of Object.entries(row.figures)) {
       if (typeof value === 'number' && Number.isFinite(value)) {
         parsed[key] = value;
       }
     }
+
     return parsed;
   }
 
@@ -1084,8 +1126,10 @@ export class ReportsService {
     if (!quarterRange(period)) {
       throw new BadRequestException('Expected a quarter like 2026-Q2');
     }
+
     // Money arrives in major N$ like every other payload; counts pass through.
     const figures: RegulatoryFigures = {};
+
     for (const [key, value] of Object.entries(input.figures)) {
       figures[key] = isManualMoneyField(key) ? toCents(value) : Math.round(value);
     }
@@ -1102,6 +1146,7 @@ export class ReportsService {
       update: { figures, notes: input.notes || null, updatedByName: actorName },
       select: { period: true, notes: true },
     });
+
     return { period: row.period, figures, notes: row.notes };
   }
 }

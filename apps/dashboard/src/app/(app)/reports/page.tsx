@@ -100,7 +100,11 @@ const ReportsPage = () => {
         <TabsContent value="quarterly" className="mt-4 space-y-4">
           {periods ? (
             <>
-              <PeriodPicker value={quarter} options={periods.quarters} onChange={setQuarterChoice} />
+              <PeriodPicker
+                value={quarter}
+                options={periods.quarters}
+                onChange={setQuarterChoice}
+              />
               {quarter ? <QuarterlyReturn period={quarter} user={user} /> : null}
             </>
           ) : (

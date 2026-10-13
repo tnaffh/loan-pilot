@@ -8,11 +8,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import {
-  createIncomeSchema,
-  type CreateIncomeInput,
-  type SessionUser,
-} from '@loan-pilot/domain';
+import { createIncomeSchema, type CreateIncomeInput, type SessionUser } from '@loan-pilot/domain';
 import type { Income } from '@prisma/client';
 import { ZodValidationPipe } from '../common/zod-validation.pipe';
 import { requireTenantId } from '../common/tenant';

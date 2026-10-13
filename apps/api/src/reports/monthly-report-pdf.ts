@@ -1,5 +1,10 @@
 import PDFDocument from 'pdfkit';
-import { formatNad, fromCents, type MonthlyReport, type MonthlyReportLoanRow } from '@loan-pilot/domain';
+import {
+  formatNad,
+  fromCents,
+  type MonthlyReport,
+  type MonthlyReportLoanRow,
+} from '@loan-pilot/domain';
 import { COLORS, type LetterheadDetails } from '../common/pdf/document-layout';
 import { createReportLayout, type ReportColumn } from './report-layout';
 
@@ -45,6 +50,7 @@ export const renderMonthlyReportPdf = (
   new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 40, bufferPages: true });
     const chunks: Buffer[] = [];
+
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
@@ -80,6 +86,7 @@ export const renderMonthlyReportPdf = (
       rows: readonly { label: string; value: string; strong?: boolean }[],
     ): number => {
       const state = { y: doc.y };
+
       for (const row of rows) {
         doc
           .font(row.strong ? 'Helvetica-Bold' : 'Helvetica')
@@ -97,6 +104,7 @@ export const renderMonthlyReportPdf = (
           });
         state.y += 14;
       }
+
       return state.y;
     };
 
@@ -107,14 +115,24 @@ export const renderMonthlyReportPdf = (
       { label: 'Total repayable on new loans', value: formatNad(summary.expectedRepayable) },
       { label: 'Collected from borrowers', value: formatNad(summary.collected) },
       { label: 'Written off or waived', value: formatNad(summary.writtenOff) },
-      { label: 'Loan book at end of month', value: formatNad(summary.closingBookValue), strong: true },
-      { label: 'In arrears at month end', value: `${formatNad(summary.arrearsValue)}  (${summary.arrearsLoans})` },
+      {
+        label: 'Loan book at end of month',
+        value: formatNad(summary.closingBookValue),
+        strong: true,
+      },
+      {
+        label: 'In arrears at month end',
+        value: `${formatNad(summary.arrearsValue)}  (${summary.arrearsLoans})`,
+      },
       { label: 'NAMFISA levies charged', value: formatNad(summary.namfisaLevies) },
       { label: 'Stamp duties charged', value: formatNad(summary.stampDuties) },
     ]);
 
     doc.y = leftStart;
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(COLORS.accent)
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(9)
+      .fillColor(COLORS.accent)
       .text('CASH', layout.M + columnWidth + 24, top);
     doc.y = leftStart;
     const rightBottom = renderColumn(layout.M + columnWidth + 24, [
@@ -163,7 +181,12 @@ export const renderMonthlyReportPdf = (
       { header: 'Income', weight: 1.4, align: 'right', value: (row) => amount(row.monthlyIncome) },
       { header: 'Amount', weight: 1.4, align: 'right', value: (row) => amount(row.principal) },
       { header: 'Charge', weight: 1.3, align: 'right', value: (row) => amount(row.financeCharge) },
-      { header: 'Rate', weight: 0.9, align: 'right', value: (row) => `${Math.round(row.interestRate * 100)}%` },
+      {
+        header: 'Rate',
+        weight: 0.9,
+        align: 'right',
+        value: (row) => `${Math.round(row.interestRate * 100)}%`,
+      },
       { header: 'Levy', weight: 1.0, align: 'right', value: (row) => amount(row.namfisaLevy) },
       { header: 'Stamp', weight: 1.0, align: 'right', value: (row) => amount(row.stampDuty) },
       { header: 'Total', weight: 1.4, align: 'right', value: (row) => amount(row.total) },

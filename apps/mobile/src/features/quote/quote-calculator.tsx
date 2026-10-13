@@ -42,6 +42,7 @@ export const QuoteCalculator = () => {
   const pickType = (next: LoanType) => {
     setType(next);
     const nextRange = RANGE[next];
+
     setAmount((current) => Math.min(Math.max(current, nextRange.min), nextRange.max));
   };
 
@@ -50,6 +51,7 @@ export const QuoteCalculator = () => {
       <View className="flex-row gap-1 rounded-lg bg-muted p-1" accessibilityRole="tablist">
         {PRODUCTS.map((product) => {
           const on = product.type === type;
+
           return (
             <Pressable
               key={product.type}
@@ -120,6 +122,7 @@ export const QuoteCalculator = () => {
             {TERMS.map((months) => {
               const on = months === termMonths;
               const disabled = isPayday && months !== 1;
+
               return (
                 <Pressable
                   key={months}

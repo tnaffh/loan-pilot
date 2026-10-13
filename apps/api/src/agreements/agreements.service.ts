@@ -14,7 +14,10 @@ import {
   type AgreementImages,
 } from './agreement-data';
 import { renderAgreementPdf } from './agreement-pdf';
-import { toCollateralAgreementData, type CollateralAgreementData } from './collateral-agreement-data';
+import {
+  toCollateralAgreementData,
+  type CollateralAgreementData,
+} from './collateral-agreement-data';
 import { renderCollateralAgreementPdf } from './collateral-agreement-pdf';
 
 const AGREEMENT_INCLUDE = {
@@ -48,12 +51,14 @@ export class AgreementsService {
   /** Generate a fresh loan-agreement PDF, store it, and link it to the loan. */
   async generateForLoan(tenantId: string, loanId: string): Promise<DocumentView> {
     const { document } = await this.generate(tenantId, loanId);
+
     return this.toView(document);
   }
 
   /** The latest generated/uploaded loan agreement for a loan, or null. */
   async latestForLoan(tenantId: string, loanId: string): Promise<DocumentView | null> {
     const document = await this.latestDocument(tenantId, loanId, DocumentKind.LoanAgreement);
+
     return document ? this.toView(document) : null;
   }
 
@@ -63,17 +68,21 @@ export class AgreementsService {
    */
   async emailToBorrower(tenantId: string, loanId: string): Promise<{ sent: boolean }> {
     const { loan, data } = await this.build(tenantId, loanId);
+
     if (!loan.borrower.email) {
       throw new BadRequestException('The borrower has no email address on file');
     }
+
     const latest = await this.latestDocument(tenantId, loanId, DocumentKind.LoanAgreement);
     const fileName =
       latest?.fileName ??
       documentFileName('Loan Agreement', data.borrower.fullName, data.generatedAt);
     const pdf = latest ? await this.storage.read(latest.url) : await renderAgreementPdf(data);
+
     if (!latest) {
       await this.store(loan.id, loan.borrowerId, pdf, DocumentKind.LoanAgreement, fileName);
     }
+
     await this.mail.sendAgreement(
       loan.borrower.email,
       data.borrower.fullName,
@@ -81,6 +90,7 @@ export class AgreementsService {
       pdf,
       fileName,
     );
+
     return { sent: true };
   }
 
@@ -103,8 +113,10 @@ export class AgreementsService {
         this.latestDocument(tenantId, loanId, DocumentKind.LoanAgreement),
         this.latestDocument(tenantId, loanId, DocumentKind.CollateralAgreement),
       ]);
+
       if (hasAgreement) {
         const { loan, data, pdf, fileName } = await this.generate(tenantId, loanId);
+
         if (loan.borrower.email) {
           await this.mail.sendAgreement(
             loan.borrower.email,
@@ -116,8 +128,10 @@ export class AgreementsService {
           );
         }
       }
+
       if (hasCollateral) {
         const { loan, data, pdf, fileName } = await this.generateCollateral(tenantId, loanId);
+
         if (loan.borrower.email) {
           await this.mail.sendCollateralAgreement(
             loan.borrower.email,
@@ -141,27 +155,35 @@ export class AgreementsService {
 
   async generateCollateralForLoan(tenantId: string, loanId: string): Promise<DocumentView> {
     const { document } = await this.generateCollateral(tenantId, loanId);
+
     return this.toView(document);
   }
 
   async latestCollateralForLoan(tenantId: string, loanId: string): Promise<DocumentView | null> {
     const document = await this.latestDocument(tenantId, loanId, DocumentKind.CollateralAgreement);
+
     return document ? this.toView(document) : null;
   }
 
   async emailCollateralToBorrower(tenantId: string, loanId: string): Promise<{ sent: boolean }> {
     const { loan, data } = await this.buildCollateral(tenantId, loanId);
+
     if (!loan.borrower.email) {
       throw new BadRequestException('The borrower has no email address on file');
     }
+
     const latest = await this.latestDocument(tenantId, loanId, DocumentKind.CollateralAgreement);
     const fileName =
       latest?.fileName ??
       documentFileName('Collateral Agreement', data.base.borrower.fullName, data.base.generatedAt);
-    const pdf = latest ? await this.storage.read(latest.url) : await renderCollateralAgreementPdf(data);
+    const pdf = latest
+      ? await this.storage.read(latest.url)
+      : await renderCollateralAgreementPdf(data);
+
     if (!latest) {
       await this.store(loan.id, loan.borrowerId, pdf, DocumentKind.CollateralAgreement, fileName);
     }
+
     await this.mail.sendCollateralAgreement(
       loan.borrower.email,
       data.base.borrower.fullName,
@@ -169,6 +191,7 @@ export class AgreementsService {
       pdf,
       fileName,
     );
+
     return { sent: true };
   }
 
@@ -194,6 +217,7 @@ export class AgreementsService {
       DocumentKind.LoanAgreement,
       fileName,
     );
+
     return { loan, data, pdf, fileName, document };
   }
 
@@ -213,6 +237,7 @@ export class AgreementsService {
       DocumentKind.CollateralAgreement,
       fileName,
     );
+
     return { loan, data, pdf, fileName, document };
   }
 
@@ -224,6 +249,7 @@ export class AgreementsService {
     const loan = await this.loadLoan(tenantId, loanId);
     const { lender, monthlyRate, images } = await this.loadContext(tenantId, loan);
     const data = toAgreementData(loan, lender, monthlyRate, images, new Date());
+
     return { loan, data };
   }
 
@@ -238,6 +264,7 @@ export class AgreementsService {
       this.readCollateralPhotos(tenantId, loanId),
     ]);
     const data = toCollateralAgreementData(loan, lender, monthlyRate, images, photos, new Date());
+
     return { loan, data };
   }
 
@@ -246,9 +273,11 @@ export class AgreementsService {
       where: { id: loanId, tenantId },
       include: AGREEMENT_INCLUDE,
     })) as AgreementLoan | null;
+
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
+
     return loan;
   }
 
@@ -260,7 +289,11 @@ export class AgreementsService {
   private async loadContext(
     tenantId: string,
     loan: AgreementLoan,
-  ): Promise<{ lender: Awaited<ReturnType<SettingsService['getLenderIdentity']>>; monthlyRate: number; images: AgreementImages }> {
+  ): Promise<{
+    lender: Awaited<ReturnType<SettingsService['getLenderIdentity']>>;
+    monthlyRate: number;
+    images: AgreementImages;
+  }> {
     const [lender, fees, signing, signaturePng, initialsPng, logoPng] = await Promise.all([
       this.settings.getLenderIdentity(tenantId),
       this.settings.resolveFeeSettings(tenantId),
@@ -277,6 +310,7 @@ export class AgreementsService {
       officerInitialsPng: signing.officerInitialsPng,
       stampPng: signing.stampPng,
     };
+
     return { lender, monthlyRate: fees.monthlyRate, images };
   }
 
@@ -294,18 +328,25 @@ export class AgreementsService {
       take: MAX_EMBEDDED_PHOTOS,
     });
     const buffers = await Promise.all(
-      documents.map((document) => this.storage.tryRead(document.url, `collateral photo ${document.id}`)),
+      documents.map((document) =>
+        this.storage.tryRead(document.url, `collateral photo ${document.id}`),
+      ),
     );
+
     return buffers.filter((buffer): buffer is Buffer => buffer !== null);
   }
 
   /** Read a captured handwriting image (signature / initials) by its Document id. */
-  private async readDocumentImage(documentId: string | null, label: string): Promise<Buffer | null> {
+  private async readDocumentImage(
+    documentId: string | null,
+    label: string,
+  ): Promise<Buffer | null> {
     if (!documentId) return null;
     const document = await this.prisma.document.findUnique({
       where: { id: documentId },
       select: { url: true },
     });
+
     return document ? this.storage.tryRead(document.url, label) : null;
   }
 
@@ -322,6 +363,7 @@ export class AgreementsService {
       contentType: 'application/pdf',
       originalName: fileName,
     });
+
     return this.prisma.document.create({
       data: {
         loanId,
@@ -346,9 +388,11 @@ export class AgreementsService {
       where: { id: loanId, tenantId },
       select: { id: true, borrowerId: true },
     });
+
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
+
     const { key } = await this.storage.save({
       buffer: file.buffer,
       contentType: file.mimetype,
@@ -365,6 +409,7 @@ export class AgreementsService {
         sizeBytes: file.size,
       },
     });
+
     return this.toView(document);
   }
 

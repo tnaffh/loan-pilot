@@ -17,7 +17,9 @@ export interface StatementLetterData {
 }
 
 const shortDate = (date: Date | null): string =>
-  date ? date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : DASH;
+  date
+    ? date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+    : DASH;
 
 const titleCase = (value: string): string =>
   value.charAt(0).toUpperCase() + value.slice(1).replace(/_/g, ' ');
@@ -56,6 +58,7 @@ export const renderStatementLetterPdf = (data: StatementLetterData): Promise<Buf
   new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: 'A4', margin: 48, bufferPages: true });
     const chunks: Buffer[] = [];
+
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
@@ -152,6 +155,7 @@ export const renderStatementLetterPdf = (data: StatementLetterData): Promise<Buf
       date: issued,
       caption: 'Issued for the Lender',
     });
+
     doc.y = bottom;
 
     doc.moveDown(1.2);

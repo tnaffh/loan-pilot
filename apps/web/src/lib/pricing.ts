@@ -9,10 +9,13 @@ export type { PricingConfig };
 export const fetchPricingConfig = async (): Promise<PricingConfig | null> => {
   try {
     const response = await fetch(`${API_URL}/applications/pricing`);
+
     if (!response.ok) {
       return null;
     }
+
     const config: PricingConfig = await response.json();
+
     return config;
   } catch {
     return null;

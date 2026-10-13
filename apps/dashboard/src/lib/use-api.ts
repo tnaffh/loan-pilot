@@ -34,7 +34,9 @@ export const useApi = <T>(path: string | null): UseApiResult<T> => {
     if (!path || !token) {
       return;
     }
+
     const controller = { cancelled: false };
+
     apiFetch<T>(path, { token })
       .then((data) => {
         if (!controller.cancelled) {
@@ -50,6 +52,7 @@ export const useApi = <T>(path: string | null): UseApiResult<T> => {
           });
         }
       });
+
     return () => {
       controller.cancelled = true;
     };

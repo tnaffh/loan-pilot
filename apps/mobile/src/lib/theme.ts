@@ -18,6 +18,7 @@ const isThemeMode = (value: string | null): value is ThemeMode =>
 /** Re-apply the saved appearance once, at startup. */
 export const restoreThemeMode = async (): Promise<void> => {
   const stored = await SecureStore.getItemAsync(STORAGE_KEY).catch(() => null);
+
   if (isThemeMode(stored)) Uniwind.setTheme(stored);
 };
 
@@ -117,6 +118,7 @@ export const useColors = (): ThemeColors => {
     '--color-success',
     '--color-warning',
   ]);
+
   return {
     background: color(background),
     foreground: color(foreground),

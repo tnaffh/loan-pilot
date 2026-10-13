@@ -21,7 +21,10 @@ interface Props {
   caption?: string;
 }
 
-const ROWS: { key: keyof Pick<BandedMatrix, 'male' | 'female' | 'other' | 'unknown' | 'total'>; label: string }[] = [
+const ROWS: {
+  key: keyof Pick<BandedMatrix, 'male' | 'female' | 'other' | 'unknown' | 'total'>;
+  label: string;
+}[] = [
   { key: 'male', label: 'Male' },
   { key: 'female', label: 'Female' },
   { key: 'other', label: 'Other' },
@@ -40,8 +43,7 @@ export const ReportMatrix = ({ matrix, kind, caption }: Props) => {
   const [copied, setCopied] = useState(false);
 
   const cell = (row: BandedRow, bandKey: string): number => row.bands[bandKey] ?? 0;
-  const format = (value: number): string =>
-    kind === 'money' ? formatNad(value) : String(value);
+  const format = (value: number): string => (kind === 'money' ? formatNad(value) : String(value));
   const raw = (value: number): string =>
     kind === 'money' ? String(Number(fromCents(value).toFixed(2))) : String(value);
 
@@ -49,8 +51,12 @@ export const ReportMatrix = ({ matrix, kind, caption }: Props) => {
     const header = ['', 'Total', ...matrix.bands.map((band) => band.label)].join('\t');
     const body = ROWS.map(({ key, label }) => {
       const row = matrix[key];
-      return [label, raw(row.total), ...matrix.bands.map((band) => raw(cell(row, band.key)))].join('\t');
+
+      return [label, raw(row.total), ...matrix.bands.map((band) => raw(cell(row, band.key)))].join(
+        '\t',
+      );
     });
+
     void navigator.clipboard?.writeText([header, ...body].join('\n')).then(
       () => {
         setCopied(true);
@@ -65,7 +71,11 @@ export const ReportMatrix = ({ matrix, kind, caption }: Props) => {
       <div className="flex items-start justify-between gap-3">
         {caption ? <p className="text-xs text-muted-foreground">{caption}</p> : <span />}
         <Button type="button" size="sm" variant="ghost" className="h-7 shrink-0" onClick={copyTsv}>
-          {copied ? <Check className="size-3.5 text-emerald-600" /> : <ClipboardCopy className="size-3.5" />}
+          {copied ? (
+            <Check className="size-3.5 text-emerald-600" />
+          ) : (
+            <ClipboardCopy className="size-3.5" />
+          )}
           Copy table
         </Button>
       </div>
@@ -87,6 +97,7 @@ export const ReportMatrix = ({ matrix, kind, caption }: Props) => {
               const row = matrix[key];
               const isTotal = key === 'total';
               const isUnknown = key === 'unknown';
+
               return (
                 <TableRow key={key} className={cn(isTotal && 'font-semibold')}>
                   <TableCell

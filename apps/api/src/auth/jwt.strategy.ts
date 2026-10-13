@@ -33,9 +33,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       where: { id: payload.sub },
       include: USER_SESSION_INCLUDE,
     });
+
     if (!user || user.status === UserStatus.Disabled) {
       throw new UnauthorizedException();
     }
+
     return buildSessionUser(user);
   }
 }

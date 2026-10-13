@@ -73,6 +73,7 @@ export const ReconciliationCard = ({ lender }: { lender: LenderStats }) => {
 
   const saveBank = async () => {
     setSavingBank(true);
+
     try {
       await apiFetch('/settings/bank-balance', {
         method: 'PATCH',
@@ -91,6 +92,7 @@ export const ReconciliationCard = ({ lender }: { lender: LenderStats }) => {
   const applyOpening = async () => {
     if (suggestedOpening == null) return;
     setSavingOpening(true);
+
     try {
       await apiFetch('/settings/opening-balance', {
         method: 'PATCH',
@@ -221,10 +223,9 @@ export const ReconciliationCard = ({ lender }: { lender: LenderStats }) => {
               {unreleased && unreleased.count > 0 ? (
                 <li>
                   {unreleased.count} loan{unreleased.count === 1 ? '' : 's'} totalling{' '}
-                  {formatNad(unreleased.principal)} {unreleased.count === 1 ? 'is' : 'are'}{' '}
-                  approved but not marked as paid out. If that money is still in the account,
-                  LoanPilot understates cash by up to that amount. Mark them released on the loan
-                  pages.
+                  {formatNad(unreleased.principal)} {unreleased.count === 1 ? 'is' : 'are'} approved
+                  but not marked as paid out. If that money is still in the account, LoanPilot
+                  understates cash by up to that amount. Mark them released on the loan pages.
                 </li>
               ) : null}
               {undated && undated.count > 0 ? (

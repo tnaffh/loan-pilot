@@ -81,15 +81,18 @@ const CommandContext = createContext<CommandContextValue | null>(null);
 
 export const useCommand = (): CommandContextValue => {
   const value = useContext(CommandContext);
+
   if (!value) {
     throw new Error('useCommand must be used within a CommandProvider');
   }
+
   return value;
 };
 
 const isTypingTarget = (target: EventTarget | null): boolean => {
   if (!(target instanceof HTMLElement)) return false;
   const tag = target.tagName;
+
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable;
 };
 
@@ -113,7 +116,10 @@ export const CommandProvider = ({ children }: { children: React.ReactNode }) => 
   const [borrowerQuickView, setBorrowerQuickView] = useState<string | null>(null);
 
   const openNewLoan = useCallback((borrowerId?: string) => setNewLoan({ borrowerId }), []);
-  const openRecordPayment = useCallback((target?: PaymentTarget) => setRecordPayment(target ?? {}), []);
+  const openRecordPayment = useCallback(
+    (target?: PaymentTarget) => setRecordPayment(target ?? {}),
+    [],
+  );
 
   const value: CommandContextValue = {
     openPalette: () => setPalette(true),
@@ -138,6 +144,7 @@ export const CommandProvider = ({ children }: { children: React.ReactNode }) => 
     const go = (path: string) => {
       router.push(path);
     };
+
     const handler = (event: KeyboardEvent) => {
       const meta = event.metaKey || event.ctrlKey;
 
@@ -145,12 +152,16 @@ export const CommandProvider = ({ children }: { children: React.ReactNode }) => 
       if (meta && event.key.toLowerCase() === 'k') {
         event.preventDefault();
         setPalette((open) => !open);
+
         return;
       }
+
       if (event.key === 'Escape') {
         awaitingGoto.current = false;
+
         return;
       }
+
       // Bare-key shortcuts are suppressed while typing or using a modifier.
       if (meta || event.altKey || isTypingTarget(event.target)) {
         return;
@@ -167,16 +178,19 @@ export const CommandProvider = ({ children }: { children: React.ReactNode }) => 
           e: '/expenses',
         };
         const route = routes[event.key.toLowerCase()];
+
         if (route) {
           event.preventDefault();
           go(route);
         }
+
         return;
       }
 
       switch (event.key) {
         case 'g':
           awaitingGoto.current = true;
+
           if (gotoTimer.current) clearTimeout(gotoTimer.current);
           gotoTimer.current = setTimeout(() => (awaitingGoto.current = false), 1500);
           break;
@@ -204,7 +218,9 @@ export const CommandProvider = ({ children }: { children: React.ReactNode }) => 
           break;
       }
     };
+
     window.addEventListener('keydown', handler);
+
     return () => window.removeEventListener('keydown', handler);
   }, [router]);
 

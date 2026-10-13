@@ -67,6 +67,7 @@ export const deriveScheduleProgress = (
     // A waived instalment was let go when the loan was settled; it stays waived
     // and counts as done, whatever later payments cover.
     const waived = item.status === RepaymentStatus.Waived && !paid;
+
     return {
       id: item.id,
       paid: paid || waived,

@@ -101,6 +101,7 @@ const MONTH_LABELS = [
 const monthKey = (date: Date | null): string | null => (date ? monthKeyOf(date) : null);
 const monthLabel = (key: string): string => {
   const [year, month] = key.split('-');
+
   return `${MONTH_LABELS[Number(month) - 1] ?? month} ${year}`;
 };
 
@@ -115,9 +116,11 @@ export class StatsService {
     if (isPlatform(user.role)) {
       return this.platformOverview();
     }
+
     if (isBorrower(user.role)) {
       return this.borrowerOverview(user.id);
     }
+
     // Sensitive financials require the finance permission; others get the operational subset.
     return this.lenderOverview(requireTenantId(user), hasPermission(user, 'finance:read'));
   }
@@ -142,9 +145,11 @@ export class StatsService {
     const buckets = new Map<string, MonthlyPoint>();
     const bucket = (key: string): MonthlyPoint => {
       const existing = buckets.get(key);
+
       if (existing) {
         return existing;
       }
+
       const created: MonthlyPoint = {
         month: key,
         label: monthLabel(key),
@@ -152,22 +157,28 @@ export class StatsService {
         collected: 0,
         expenses: 0,
       };
+
       buckets.set(key, created);
+
       return created;
     };
 
     for (const { loan, credits } of ledgers) {
       // Cancelled loans never paid out, so they are not a disbursement.
       const key = loan.status === LoanStatus.Cancelled ? null : monthKey(loan.disbursedAt);
+
       if (key) {
         bucket(key).disbursed += loan.principal;
       }
+
       for (const credit of credits) {
         bucket(monthKeyOf(credit.at)).collected += credit.amountCents;
       }
     }
+
     for (const expense of expenses) {
       const key = monthKey(expense.incurredAt);
+
       if (key && expense.kind === ExpenseKind.Expense) {
         bucket(key).expenses += expense.amount;
       }
@@ -181,6 +192,7 @@ export class StatsService {
       .sort((a, b) => a.month.localeCompare(b.month));
 
     const categoryTotals = new Map<string, number>();
+
     for (const expense of expenses) {
       if (expense.kind === ExpenseKind.Expense) {
         categoryTotals.set(
@@ -189,6 +201,7 @@ export class StatsService {
         );
       }
     }
+
     const topExpenseCategories = [...categoryTotals.entries()]
       .map(([category, amount]) => ({ category, amount }))
       .sort((a, b) => b.amount - a.amount)
@@ -199,6 +212,7 @@ export class StatsService {
     if (!includeSensitive) {
       return { monthly: [], statusMix, topExpenseCategories: [] };
     }
+
     return { monthly, statusMix, topExpenseCategories };
   }
 
@@ -234,6 +248,7 @@ export class StatsService {
         select: { loanId: true, amount: true, paidAt: true, status: true },
       }),
     ]);
+
     return [...buildLedgers({ loans, payments, scheduleItems }).values()];
   }
 
@@ -346,6 +361,7 @@ export class StatsService {
       pendingApplications,
       borrowers,
     };
+
     if (!includeSensitive) {
       return operational;
     }
@@ -405,6 +421,7 @@ export class StatsService {
 
   private async borrowerOverview(userId: string): Promise<BorrowerOverview> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
     if (!user?.borrowerId) {
       return {
         kind: 'borrower',

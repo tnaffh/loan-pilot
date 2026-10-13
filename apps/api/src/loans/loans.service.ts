@@ -197,6 +197,7 @@ export class LoansService {
     ]);
     const interestRate = params.interestRateOverride ?? product?.interestRate;
     const fees = computeFees(params.principalCents, feeSettings, params.bankChargesCents ?? 0);
+
     return {
       interestRate,
       monthlyRate: feeSettings.monthlyRate,
@@ -218,6 +219,7 @@ export class LoansService {
       principalCents: params.principalCents,
       type: params.type,
     });
+
     return quote({
       principalCents: params.principalCents,
       termMonths: params.termMonths,
@@ -238,6 +240,7 @@ export class LoansService {
       interestRateOverride: input.interestRate,
       bankChargesCents: input.bankCharges !== undefined ? toCents(input.bankCharges) : 0,
     });
+
     return quote({
       principalCents,
       termMonths: input.termMonths,
@@ -264,9 +267,11 @@ export class LoansService {
     });
     // An applicant signed in before approval has no borrower yet: no loans.
     const borrowerId = user?.borrowerId;
+
     if (!borrowerId) {
       return [];
     }
+
     return this.prisma.loan.findMany({
       where: { borrowerId },
       include: { borrower: { select: { id: true, firstName: true, lastName: true } } },
@@ -288,10 +293,13 @@ export class LoansService {
       status === LoanStatus.Active ||
       status === LoanStatus.Arrears ||
       status === LoanStatus.PartlyPaid;
+
     if (!open) {
       return { overdueCents: 0, defaultInterestCents: 0, daysLate: 0, monthsLateMax: 0 };
     }
+
     const { monthlyRate } = await this.settings.resolveFeeSettings(tenantId);
+
     return assessArrears(
       schedule.map((item) => ({
         amountCents: item.amount,
@@ -320,10 +328,13 @@ export class LoansService {
         payments: { orderBy: { paidAt: 'desc' } },
       },
     });
+
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
+
     const arrears = await this.deriveArrears(tenantId, loan.status, loan.schedule);
+
     return {
       ...loan,
       daysLate: arrears.daysLate,
@@ -359,10 +370,13 @@ export class LoansService {
         payments: { orderBy: { paidAt: 'desc' } },
       },
     });
+
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
+
     const arrears = await this.deriveArrears(loan.tenantId, loan.status, loan.schedule);
+
     // Borrowers don't see the staff audit trail; documents are only surfaced on
     // the staff loan page.
     return {
@@ -383,6 +397,7 @@ export class LoansService {
     const borrower = await this.prisma.borrower.findFirst({
       where: { id: input.borrowerId, tenantId },
     });
+
     if (!borrower) {
       throw new NotFoundException('Borrower not found');
     }
@@ -473,11 +488,13 @@ export class LoansService {
     // borrower login with no Borrower yet; link it now so their loans appear
     // without signing in again. Skipped if another login already holds it.
     const applicantPhone = phoneKey(application.phone);
+
     if (applicantPhone) {
       const alreadyLinked = await tx.user.findFirst({
         where: { borrowerId: borrower.id },
         select: { id: true },
       });
+
       if (!alreadyLinked) {
         const login = await tx.user.findFirst({
           where: {
@@ -488,6 +505,7 @@ export class LoansService {
           },
           select: { id: true },
         });
+
         if (login) {
           await tx.user.update({ where: { id: login.id }, data: { borrowerId: borrower.id } });
         }
@@ -551,7 +569,9 @@ export class LoansService {
       where: { applicationId: application.id },
       select: { name: true, phone: true },
     });
+
     await tx.borrowerReference.deleteMany({ where: { borrowerId: borrower.id } });
+
     if (references.length > 0) {
       await tx.borrowerReference.createMany({
         data: references.map((reference) => ({
@@ -638,19 +658,23 @@ export class LoansService {
         where: { id: loanId, tenantId },
         include: { schedule: { orderBy: { number: 'asc' } } },
       });
+
       if (!loan) {
         throw new NotFoundException('Loan not found');
       }
+
       if (loan.status !== LoanStatus.Active && loan.status !== LoanStatus.Arrears) {
         throw new BadRequestException('This loan is already settled');
       }
 
       const nextItem = loan.schedule.find((item) => item.status !== RepaymentStatus.Paid);
+
       if (!nextItem) {
         throw new BadRequestException('No outstanding instalments on this loan');
       }
 
       const paidAt = input.paidAt ? new Date(input.paidAt) : new Date();
+
       await tx.repaymentScheduleItem.update({
         where: { id: nextItem.id },
         data: { status: RepaymentStatus.Paid, paidAt },
@@ -693,15 +717,19 @@ export class LoansService {
         where: { id: loanId, tenantId },
         include: { schedule: true },
       });
+
       if (!loan) {
         throw new NotFoundException('Loan not found');
       }
+
       if (loan.status === LoanStatus.Settled || loan.status === LoanStatus.Closed) {
         throw new BadRequestException('This loan is already settled');
       }
+
       if (loan.status === LoanStatus.WrittenOff) {
         throw new BadRequestException('This loan has been written off');
       }
+
       if (loan.balance <= 0) {
         throw new BadRequestException('This loan has no outstanding balance');
       }
@@ -712,6 +740,7 @@ export class LoansService {
       // through the payment amount; stored totals are not rewritten.
       const arrears = await this.deriveArrears(tenantId, loan.status, loan.schedule, paidAt);
       const payoff = loan.balance + arrears.defaultInterestCents;
+
       await tx.payment.create({
         data: {
           tenant: { connect: { id: tenantId } },
@@ -748,15 +777,19 @@ export class LoansService {
   /** Write off an unrecoverable loan as bad debt; it leaves the active book. */
   async writeOff(tenantId: string, loanId: string, input: WriteOffLoanInput): Promise<Loan> {
     const loan = await this.prisma.loan.findFirst({ where: { id: loanId, tenantId } });
+
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
+
     if (loan.status === LoanStatus.WrittenOff) {
       throw new BadRequestException('This loan is already written off');
     }
+
     if (loan.status === LoanStatus.Settled || loan.status === LoanStatus.Closed) {
       throw new BadRequestException('A settled loan cannot be written off');
     }
+
     return this.prisma.loan.update({
       where: { id: loan.id },
       data: { status: LoanStatus.WrittenOff, writeOffReason: input.reason, closedAt: new Date() },
@@ -785,20 +818,25 @@ export class LoansService {
   ): Promise<Loan> {
     return this.prisma.$transaction(async (tx) => {
       const loan = await tx.loan.findFirst({ where: { id: loanId, tenantId } });
+
       if (!loan) {
         throw new NotFoundException('Loan not found');
       }
+
       if (loan.status === LoanStatus.Settled || loan.status === LoanStatus.Closed) {
         throw new BadRequestException('This loan is already settled');
       }
+
       if (loan.status === LoanStatus.Cancelled) {
         throw new BadRequestException('A cancelled loan has nothing to waive');
       }
+
       if (loan.balance <= 0) {
         throw new BadRequestException('This loan has no outstanding balance to waive');
       }
 
       const waived = loan.waived + loan.balance;
+
       await tx.repaymentScheduleItem.updateMany({
         where: { loanId: loan.id, status: { not: RepaymentStatus.Paid } },
         data: { status: RepaymentStatus.Waived },
@@ -818,6 +856,7 @@ export class LoansService {
           closedAt: loan.closedAt ?? new Date(),
         },
       });
+
       await this.audit.record(
         tenantId,
         actor,
@@ -837,6 +876,7 @@ export class LoansService {
         },
         tx,
       );
+
       return updated;
     });
   }
@@ -859,9 +899,11 @@ export class LoansService {
         where: { id, tenantId },
         include: { _count: { select: { payments: true } } },
       });
+
       if (!loan) {
         throw new NotFoundException('Loan not found');
       }
+
       if (
         loan.status === LoanStatus.Settled ||
         loan.status === LoanStatus.WrittenOff ||
@@ -872,15 +914,25 @@ export class LoansService {
       }
 
       const data: Prisma.LoanUpdateInput = {};
+
       if (input.disbursedAt) data.disbursedAt = new Date(input.disbursedAt);
+
       if (input.nextDueAt) data.nextDueAt = new Date(input.nextDueAt);
+
       if (input.status) data.status = input.status;
+
       if (input.collateral !== undefined) data.collateral = input.collateral || null;
+
       if (input.originMonth !== undefined) data.originMonth = input.originMonth || null;
+
       if (input.note !== undefined) data.note = input.note || null;
+
       if (input.bankCharges !== undefined) data.bankCharges = toCents(input.bankCharges);
+
       if (input.namfisaLevy !== undefined) data.namfisaLevy = toCents(input.namfisaLevy);
+
       if (input.stampDuty !== undefined) data.stampDuty = toCents(input.stampDuty);
+
       if (input.insurance !== undefined) data.insurance = toCents(input.insurance);
 
       // Financial core — re-price only when it actually changes, and only when
@@ -894,12 +946,14 @@ export class LoansService {
         newPrincipal !== loan.principal ||
         newTerm !== loan.termMonths ||
         newRate !== loan.interestRate;
+
       if (coreChanged) {
         if (loan._count.payments > 0) {
           throw new BadRequestException(
             'The amount, term or rate of a loan with payments cannot be changed',
           );
         }
+
         const feeSettings = await this.settings.resolveFeeSettings(tenantId);
         // The NAMFISA levy and insurance are a fraction of the loan amount, so
         // recompute them from the new principal unless the edit explicitly
@@ -927,6 +981,7 @@ export class LoansService {
         const disbursedAt = input.disbursedAt
           ? new Date(input.disbursedAt)
           : (loan.disbursedAt ?? loan.createdAt);
+
         data.principal = q.principalCents;
         data.financeCharge = q.financeChargeCents;
         data.total = q.totalCents;
@@ -955,6 +1010,7 @@ export class LoansService {
       const before = loanAuditMap(loan);
       const updated = await tx.loan.update({ where: { id }, data });
       const after = loanAuditMap(updated);
+
       await this.audit.record(
         tenantId,
         actor,
@@ -966,13 +1022,16 @@ export class LoansService {
         },
         tx,
       );
+
       return { updated, agreementStale: agreementFieldsChanged(before, after) };
     });
+
     // After the commit, so a PDF/storage failure can never roll the edit back
     // (refreshForLoan logs rather than throws).
     if (agreementStale) {
       await this.agreements.refreshForLoan(tenantId, id);
     }
+
     return updated;
   }
 
@@ -988,9 +1047,11 @@ export class LoansService {
         where: { id, tenantId },
         include: { _count: { select: { payments: true } } },
       });
+
       if (!loan) {
         throw new NotFoundException('Loan not found');
       }
+
       if (
         loan.status === LoanStatus.Cancelled ||
         loan.status === LoanStatus.Settled ||
@@ -998,11 +1059,13 @@ export class LoansService {
       ) {
         throw new BadRequestException('This loan is already closed');
       }
+
       if (loan._count.payments > 0) {
         throw new BadRequestException(
           "A loan with payments can't be cancelled — write it off instead",
         );
       }
+
       const updated = await tx.loan.update({
         where: { id },
         data: {
@@ -1014,6 +1077,7 @@ export class LoansService {
           cancelReason: input.reason,
         },
       });
+
       await this.audit.record(
         tenantId,
         actor,
@@ -1028,6 +1092,7 @@ export class LoansService {
         },
         tx,
       );
+
       return updated;
     });
   }
@@ -1040,12 +1105,15 @@ export class LoansService {
     input: MarkDisbursementInput,
   ): Promise<Loan> {
     const loan = await this.prisma.loan.findFirst({ where: { id, tenantId } });
+
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
+
     if (loan.fundsReleased === input.released) {
       return loan;
     }
+
     const updated = await this.prisma.loan.update({
       where: { id },
       data: {
@@ -1053,6 +1121,7 @@ export class LoansService {
         fundsReleasedAt: input.released ? (loan.fundsReleasedAt ?? new Date()) : null,
       },
     });
+
     await this.audit.record(tenantId, actor, {
       entity: 'loan',
       entityId: id,
@@ -1065,6 +1134,7 @@ export class LoansService {
         },
       ],
     });
+
     return updated;
   }
 
@@ -1076,12 +1146,15 @@ export class LoansService {
     input: MarkCollexiaInput,
   ): Promise<Loan> {
     const loan = await this.prisma.loan.findFirst({ where: { id, tenantId } });
+
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
+
     if (loan.collexiaStatus === input.status) {
       return loan;
     }
+
     const updated = await this.prisma.loan.update({
       where: { id },
       data: {
@@ -1089,12 +1162,14 @@ export class LoansService {
         collexiaMarkedAt: input.status === CollexiaStatus.Pending ? null : new Date(),
       },
     });
+
     await this.audit.record(tenantId, actor, {
       entity: 'loan',
       entityId: id,
       action: 'collexia_updated',
       changes: [{ field: 'collexiaStatus', from: loan.collexiaStatus, to: input.status }],
     });
+
     return updated;
   }
 
@@ -1108,10 +1183,13 @@ export class LoansService {
         schedule: { orderBy: { number: 'asc' } },
       },
     });
+
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
+
     const { monthlyRate } = await this.settings.resolveFeeSettings(tenantId);
+
     return this.buildStatement(loan, monthlyRate);
   }
 
@@ -1125,10 +1203,13 @@ export class LoansService {
         schedule: { orderBy: { number: 'asc' } },
       },
     });
+
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
+
     const { monthlyRate } = await this.settings.resolveFeeSettings(loan.tenantId);
+
     return this.buildStatement(loan, monthlyRate);
   }
 
@@ -1162,6 +1243,7 @@ export class LoansService {
 
     charges.reduce((balance, charge) => {
       const next = balance + charge.amount;
+
       lines.push({
         date: openedAt.toISOString(),
         description: charge.description,
@@ -1169,6 +1251,7 @@ export class LoansService {
         credit: 0,
         balance: next,
       });
+
       return next;
     }, 0);
 
@@ -1177,6 +1260,7 @@ export class LoansService {
     );
     const runningBalance = paidItems.reduce((balance, item) => {
       const next = balance - item.amount;
+
       lines.push({
         date: (item.paidAt ?? openedAt).toISOString(),
         description: `Instalment ${item.number} received`,
@@ -1184,6 +1268,7 @@ export class LoansService {
         credit: item.amount,
         balance: next,
       });
+
       return next;
     }, loan.total);
 
@@ -1199,6 +1284,7 @@ export class LoansService {
       now,
       monthlyRate,
     );
+
     if (arrears.defaultInterestCents > 0) {
       lines.push({
         date: now.toISOString(),
@@ -1317,9 +1403,11 @@ export class LoansService {
 
   private async resolveBorrowerId(userId: string): Promise<string> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
     if (!user?.borrowerId) {
       throw new NotFoundException('No borrower record is linked to this account');
     }
+
     return user.borrowerId;
   }
 }

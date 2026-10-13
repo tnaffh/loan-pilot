@@ -23,8 +23,8 @@ const HomePage = () => {
               , repay with confidence.
             </h1>
             <p className="max-w-md text-lg text-muted-foreground">
-              Fair, transparent loans for Namibians — from quick short-term cash to business
-              finance and asset-backed lending. Every cost shown before you sign.
+              Fair, transparent loans for Namibians — from quick short-term cash to business finance
+              and asset-backed lending. Every cost shown before you sign.
             </p>
             <div className="flex flex-wrap gap-3">
               <Button size="lg" render={<Link href="/apply" />}>
@@ -143,7 +143,10 @@ const HomePage = () => {
             <h3 className="text-lg">What you will need</h3>
             <ul className="mt-4 grid gap-2 sm:grid-cols-3">
               {REQUIREMENTS.map((requirement) => (
-                <li key={requirement} className="flex items-start gap-2 text-sm text-muted-foreground">
+                <li
+                  key={requirement}
+                  className="flex items-start gap-2 text-sm text-muted-foreground"
+                >
                   <FileCheck className="mt-0.5 size-4 shrink-0 text-primary" />
                   {requirement}
                 </li>

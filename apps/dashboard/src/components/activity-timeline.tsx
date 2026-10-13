@@ -41,14 +41,21 @@ export const ActivityTimeline = ({ events }: { events: ActivityEvent[] }) => {
   if (events.length === 0) {
     return <p className="text-sm text-muted-foreground">No activity yet.</p>;
   }
+
   return (
     <ol className="space-y-4">
       {events.map((event, index) => {
         const Icon = ICONS[event.kind];
+
         return (
           <li key={`${event.kind}-${event.at}-${index}`} className="flex gap-3">
             <div className="flex flex-col items-center">
-              <span className={cn('flex size-7 items-center justify-center rounded-full bg-muted', TONES[event.kind])}>
+              <span
+                className={cn(
+                  'flex size-7 items-center justify-center rounded-full bg-muted',
+                  TONES[event.kind],
+                )}
+              >
                 <Icon className="size-4" />
               </span>
               {index < events.length - 1 ? <span className="mt-1 w-px flex-1 bg-border" /> : null}

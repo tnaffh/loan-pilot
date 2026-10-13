@@ -35,8 +35,18 @@ export interface DateRange {
 }
 
 const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 /** The `YYYY-MM` bucket key a date falls in (UTC). */
@@ -46,15 +56,18 @@ export const monthKeyOf = (date: Date): string =>
 /** Parse a `YYYY-MM` key, or null when malformed. */
 export const parseMonthKey = (key: string): { year: number; month: number } | null => {
   const match = /^(\d{4})-(0[1-9]|1[0-2])$/.exec(key.trim());
+
   return match ? { year: Number(match[1]), month: Number(match[2]) } : null;
 };
 
 /** The UTC `[start, end)` range of a `YYYY-MM` key, or null when malformed. */
 export const monthRange = (key: string): DateRange | null => {
   const parsed = parseMonthKey(key);
+
   if (!parsed) {
     return null;
   }
+
   return {
     start: new Date(Date.UTC(parsed.year, parsed.month - 1, 1)),
     end: new Date(Date.UTC(parsed.year, parsed.month, 1)),
@@ -64,6 +77,7 @@ export const monthRange = (key: string): DateRange | null => {
 /** Format a `YYYY-MM` key for display, e.g. "February 2026". */
 export const formatMonthLabel = (key: string): string => {
   const parsed = parseMonthKey(key);
+
   return parsed ? `${MONTH_NAMES[parsed.month - 1] ?? key} ${parsed.year}` : key;
 };
 
@@ -74,15 +88,18 @@ export const quarterKeyOf = (date: Date): string =>
 /** Parse a `YYYY-Qn` key, or null when malformed. */
 export const parseQuarterKey = (key: string): { year: number; quarter: number } | null => {
   const match = /^(\d{4})-Q([1-4])$/.exec(key.trim().toUpperCase());
+
   return match ? { year: Number(match[1]), quarter: Number(match[2]) } : null;
 };
 
 /** The UTC `[start, end)` range of a `YYYY-Qn` key, or null when malformed. */
 export const quarterRange = (key: string): DateRange | null => {
   const parsed = parseQuarterKey(key);
+
   if (!parsed) {
     return null;
   }
+
   return {
     start: new Date(Date.UTC(parsed.year, (parsed.quarter - 1) * 3, 1)),
     end: new Date(Date.UTC(parsed.year, parsed.quarter * 3, 1)),
@@ -97,6 +114,7 @@ const DAY_MS = 86_400_000;
  */
 export const quarterEndDate = (key: string): Date | null => {
   const range = quarterRange(key);
+
   return range ? new Date(range.end.getTime() - DAY_MS) : null;
 };
 
@@ -106,9 +124,11 @@ export const quarterEndDate = (key: string): Date | null => {
  */
 export const quarterDueDate = (key: string): Date | null => {
   const parsed = parseQuarterKey(key);
+
   if (!parsed) {
     return null;
   }
+
   // First of the month two months after the quarter's last month, less a day.
   return new Date(Date.UTC(parsed.year, parsed.quarter * 3 + 1, 1) - DAY_MS);
 };
@@ -116,6 +136,7 @@ export const quarterDueDate = (key: string): Date | null => {
 /** Format a `YYYY-Qn` key for display, e.g. "Q2 2026". */
 export const formatQuarterLabel = (key: string): string => {
   const parsed = parseQuarterKey(key);
+
   return parsed ? `Q${parsed.quarter} ${parsed.year}` : key;
 };
 
@@ -129,7 +150,9 @@ export const recentMonthKeys = (count: number, from: Date = new Date()): string[
 export const recentQuarterKeys = (count: number, from: Date = new Date()): string[] =>
   Array.from({ length: Math.max(0, count) }, (_unused, index) =>
     quarterKeyOf(
-      new Date(Date.UTC(from.getUTCFullYear(), Math.floor(from.getUTCMonth() / 3) * 3 - index * 3, 1)),
+      new Date(
+        Date.UTC(from.getUTCFullYear(), Math.floor(from.getUTCMonth() / 3) * 3 - index * 3, 1),
+      ),
     ),
   );
 
@@ -150,11 +173,41 @@ export interface AmountBand {
   readonly maxCents: Cents | null;
 }
 
-const BAND_TO_10K: AmountBand = { key: 'to10k', label: 'N$1 – 10,000', shortLabel: 'N$1–10k', minCents: 1, maxCents: 1_000_000 };
-const BAND_TO_20K: AmountBand = { key: 'to20k', label: 'N$10,001 – 20,000', shortLabel: 'N$10–20k', minCents: 1_000_001, maxCents: 2_000_000 };
-const BAND_TO_30K: AmountBand = { key: 'to30k', label: 'N$20,001 – 30,000', shortLabel: 'N$20–30k', minCents: 2_000_001, maxCents: 3_000_000 };
-const BAND_TO_40K: AmountBand = { key: 'to40k', label: 'N$30,001 – 40,000', shortLabel: 'N$30–40k', minCents: 3_000_001, maxCents: 4_000_000 };
-const BAND_TO_50K: AmountBand = { key: 'to50k', label: 'N$40,001 – 50,000', shortLabel: 'N$40–50k', minCents: 4_000_001, maxCents: 5_000_000 };
+const BAND_TO_10K: AmountBand = {
+  key: 'to10k',
+  label: 'N$1 – 10,000',
+  shortLabel: 'N$1–10k',
+  minCents: 1,
+  maxCents: 1_000_000,
+};
+const BAND_TO_20K: AmountBand = {
+  key: 'to20k',
+  label: 'N$10,001 – 20,000',
+  shortLabel: 'N$10–20k',
+  minCents: 1_000_001,
+  maxCents: 2_000_000,
+};
+const BAND_TO_30K: AmountBand = {
+  key: 'to30k',
+  label: 'N$20,001 – 30,000',
+  shortLabel: 'N$20–30k',
+  minCents: 2_000_001,
+  maxCents: 3_000_000,
+};
+const BAND_TO_40K: AmountBand = {
+  key: 'to40k',
+  label: 'N$30,001 – 40,000',
+  shortLabel: 'N$30–40k',
+  minCents: 3_000_001,
+  maxCents: 4_000_000,
+};
+const BAND_TO_50K: AmountBand = {
+  key: 'to50k',
+  label: 'N$40,001 – 50,000',
+  shortLabel: 'N$40–50k',
+  minCents: 4_000_001,
+  maxCents: 5_000_000,
+};
 
 /** Part 15 (3.4.7) — value matrices. Six bands; everything over N$50,000 in one. */
 export const LOAN_VALUE_BANDS: readonly AmountBand[] = [
@@ -163,7 +216,13 @@ export const LOAN_VALUE_BANDS: readonly AmountBand[] = [
   BAND_TO_30K,
   BAND_TO_40K,
   BAND_TO_50K,
-  { key: 'above50k', label: 'More than N$50,000', shortLabel: '> N$50k', minCents: 5_000_001, maxCents: null },
+  {
+    key: 'above50k',
+    label: 'More than N$50,000',
+    shortLabel: '> N$50k',
+    minCents: 5_000_001,
+    maxCents: null,
+  },
 ];
 
 /** Part 7.2 — count matrices. Seven bands; the top of the value set is split at N$100,000. */
@@ -173,8 +232,20 @@ export const LOAN_COUNT_BANDS: readonly AmountBand[] = [
   BAND_TO_30K,
   BAND_TO_40K,
   BAND_TO_50K,
-  { key: 'to100k', label: 'N$50,001 – 100,000', shortLabel: 'N$50–100k', minCents: 5_000_001, maxCents: 10_000_000 },
-  { key: 'above100k', label: 'More than N$100,000', shortLabel: '> N$100k', minCents: 10_000_001, maxCents: null },
+  {
+    key: 'to100k',
+    label: 'N$50,001 – 100,000',
+    shortLabel: 'N$50–100k',
+    minCents: 5_000_001,
+    maxCents: 10_000_000,
+  },
+  {
+    key: 'above100k',
+    label: 'More than N$100,000',
+    shortLabel: '> N$100k',
+    minCents: 10_000_001,
+    maxCents: null,
+  },
 ];
 
 /** The band a cent amount falls in, or null when it is zero/negative. */
@@ -219,6 +290,7 @@ export const TERM_BANDS: readonly TermBand[] = [
  */
 export const termBandKeyFor = (months: number): string => {
   const match = [...TERM_BANDS].reverse().find((band) => months >= band.months);
+
   return match?.key ?? 'm1';
 };
 
@@ -244,6 +316,7 @@ export const AGEING_BUCKETS: readonly AgeingBucket[] = [
 /** The ageing bucket for a number of days past due. */
 export const ageingBucketFor = (daysLate: number): string => {
   const days = Math.max(0, daysLate);
+
   return (
     AGEING_BUCKETS.find(
       (bucket) => days >= bucket.minDays && (bucket.maxDays === null || days <= bucket.maxDays),
@@ -265,12 +338,15 @@ export const REPORT_GENDERS: readonly ReportGender[] = ['male', 'female', 'other
  */
 export const normaliseGender = (raw: string | null | undefined): ReportGender => {
   const value = (raw ?? '').trim().toLowerCase();
+
   if (value === 'male' || value === 'm') {
     return 'male';
   }
+
   if (value === 'female' || value === 'f') {
     return 'female';
   }
+
   return value.length === 0 ? 'unknown' : 'other';
 };
 
@@ -289,9 +365,11 @@ export const namfisaCollectionMethod = (method: PaymentMethodValue): CollectionM
   if (method === PaymentMethod.Payroll) {
     return 'payroll';
   }
+
   if (method === PaymentMethod.DebitOrder) {
     return 'debit_order';
   }
+
   return method === PaymentMethod.Cash ? 'cash' : 'other';
 };
 
@@ -342,7 +420,9 @@ export const isLoanOverdue = (
   if (!isOpenLoanStatus(loan.status) || loan.balance <= 0 || loan.nextDueAt === null) {
     return false;
   }
+
   const due = loan.nextDueAt instanceof Date ? loan.nextDueAt : new Date(loan.nextDueAt);
+
   return due.getTime() < now.getTime();
 };
 
@@ -379,7 +459,10 @@ export const reconcileCredits = ({
     readonly amountCents: Cents;
     readonly method: PaymentMethodValue;
   }[];
-  readonly paidScheduleItems: readonly { readonly paidAt: Date | null; readonly amountCents: Cents }[];
+  readonly paidScheduleItems: readonly {
+    readonly paidAt: Date | null;
+    readonly amountCents: Cents;
+  }[];
 }): LoanCredit[] => {
   const paymentInstants: ReadonlySet<number> = new Set(
     payments.map((payment) => payment.paidAt.getTime()),
@@ -425,17 +508,22 @@ export const effectiveClosedAt = (
   if (loan.closedAt) {
     return loan.closedAt;
   }
+
   const terminal =
     loan.status === LoanStatus.Settled ||
     loan.status === LoanStatus.Closed ||
     loan.status === LoanStatus.WrittenOff;
+
   if (!terminal) {
     return null;
   }
+
   const last = credits.reduce<Date | null>(
-    (latest, credit) => (latest === null || credit.at.getTime() > latest.getTime() ? credit.at : latest),
+    (latest, credit) =>
+      latest === null || credit.at.getTime() > latest.getTime() ? credit.at : latest,
     null,
   );
+
   return last ?? loan.disbursedAt;
 };
 
@@ -464,6 +552,7 @@ export const impliedSchedule = ({
   readonly totalCents: Cents;
 }): ScheduledInstalment[] => {
   const count = Math.max(1, Math.round(instalmentsTotal));
+
   return splitInstalments(totalCents, count).map((amountCents, index) => ({
     number: index + 1,
     dueAt: addMonths(disbursedAt, index + 1),
@@ -501,8 +590,10 @@ export const ageAt = ({
 
   for (const item of schedule) {
     const covered = Math.min(state.unallocated, item.amountCents);
+
     state.unallocated -= covered;
     const shortfall = item.amountCents - covered;
+
     if (shortfall > 0 && item.dueAt.getTime() < asOf.getTime()) {
       state.overdue += shortfall;
       state.daysLate = Math.max(state.daysLate, daysBetween(item.dueAt, asOf));
@@ -540,10 +631,30 @@ export interface ManualField {
  */
 export const NAMFISA_MANUAL_FIELDS: readonly ManualField[] = [
   // Part 7.1 — complaints statistics
-  { key: 'complaintsLodged', label: 'Complaints lodged', part: 'Part 7.1 — Complaints', kind: 'count' },
-  { key: 'complaintsForEntity', label: 'Resolved in favour of the regulated entity', part: 'Part 7.1 — Complaints', kind: 'count' },
-  { key: 'complaintsForComplainant', label: 'Resolved in favour of the complainant', part: 'Part 7.1 — Complaints', kind: 'count' },
-  { key: 'complaintsUnresolved', label: 'Unresolved complaints', part: 'Part 7.1 — Complaints', kind: 'count' },
+  {
+    key: 'complaintsLodged',
+    label: 'Complaints lodged',
+    part: 'Part 7.1 — Complaints',
+    kind: 'count',
+  },
+  {
+    key: 'complaintsForEntity',
+    label: 'Resolved in favour of the regulated entity',
+    part: 'Part 7.1 — Complaints',
+    kind: 'count',
+  },
+  {
+    key: 'complaintsForComplainant',
+    label: 'Resolved in favour of the complainant',
+    part: 'Part 7.1 — Complaints',
+    kind: 'count',
+  },
+  {
+    key: 'complaintsUnresolved',
+    label: 'Unresolved complaints',
+    part: 'Part 7.1 — Complaints',
+    kind: 'count',
+  },
 
   // Part 14 — bad-debt provisioning and rescheduling
   {
@@ -574,25 +685,100 @@ export const NAMFISA_MANUAL_FIELDS: readonly ManualField[] = [
   },
 
   // Part 7.3 — outlets and other business
-  { key: 'outlets', label: 'Number of outlets (branches)', part: 'Part 7.3 — Operations', kind: 'count' },
-  { key: 'businessSaleOfFurniture', label: 'Involvement: sale of furniture', part: 'Part 7.3 — Operations', kind: 'count' },
-  { key: 'businessCashConverting', label: 'Involvement: cash converting', part: 'Part 7.3 — Operations', kind: 'count' },
-  { key: 'businessInsurance', label: 'Involvement: insurance', part: 'Part 7.3 — Operations', kind: 'count' },
-  { key: 'businessDebtCollection', label: 'Involvement: debt collection', part: 'Part 7.3 — Operations', kind: 'count' },
+  {
+    key: 'outlets',
+    label: 'Number of outlets (branches)',
+    part: 'Part 7.3 — Operations',
+    kind: 'count',
+  },
+  {
+    key: 'businessSaleOfFurniture',
+    label: 'Involvement: sale of furniture',
+    part: 'Part 7.3 — Operations',
+    kind: 'count',
+  },
+  {
+    key: 'businessCashConverting',
+    label: 'Involvement: cash converting',
+    part: 'Part 7.3 — Operations',
+    kind: 'count',
+  },
+  {
+    key: 'businessInsurance',
+    label: 'Involvement: insurance',
+    part: 'Part 7.3 — Operations',
+    kind: 'count',
+  },
+  {
+    key: 'businessDebtCollection',
+    label: 'Involvement: debt collection',
+    part: 'Part 7.3 — Operations',
+    kind: 'count',
+  },
 
   // Part D3 — other income
-  { key: 'badDebtsRecovered', label: 'Bad debts recovered', part: 'Part D3 — Other income', kind: 'money' },
-  { key: 'otherIncomeAdjustment', label: 'Other income not recorded in LoanPilot', part: 'Part D3 — Other income', kind: 'money' },
+  {
+    key: 'badDebtsRecovered',
+    label: 'Bad debts recovered',
+    part: 'Part D3 — Other income',
+    kind: 'money',
+  },
+  {
+    key: 'otherIncomeAdjustment',
+    label: 'Other income not recorded in LoanPilot',
+    part: 'Part D3 — Other income',
+    kind: 'money',
+  },
 
   // Part 1.1 — current liabilities from the general ledger
-  { key: 'liabilityStaffCosts', label: 'Staff costs payable', part: 'Part 1.1 — Current liabilities', kind: 'money' },
-  { key: 'liabilityExternalAudit', label: 'External audit fees payable', part: 'Part 1.1 — Current liabilities', kind: 'money' },
-  { key: 'liabilityNamfisaPenalties', label: 'NAMFISA penalties payable', part: 'Part 1.1 — Current liabilities', kind: 'money' },
-  { key: 'liabilityTransactionLevy', label: 'Transaction levy payable', part: 'Part 1.1 — Current liabilities', kind: 'money' },
-  { key: 'liabilityVat', label: 'VAT payable', part: 'Part 1.1 — Current liabilities', kind: 'money' },
-  { key: 'liabilityAccruedExpenses', label: 'Accrued expenses', part: 'Part 1.1 — Current liabilities', kind: 'money' },
-  { key: 'liabilitySundryCreditors', label: 'Sundry creditors / suppliers', part: 'Part 1.1 — Current liabilities', kind: 'money' },
-  { key: 'liabilityIncomeTax', label: 'Income tax liability', part: 'Part 1.1 — Current liabilities', kind: 'money' },
+  {
+    key: 'liabilityStaffCosts',
+    label: 'Staff costs payable',
+    part: 'Part 1.1 — Current liabilities',
+    kind: 'money',
+  },
+  {
+    key: 'liabilityExternalAudit',
+    label: 'External audit fees payable',
+    part: 'Part 1.1 — Current liabilities',
+    kind: 'money',
+  },
+  {
+    key: 'liabilityNamfisaPenalties',
+    label: 'NAMFISA penalties payable',
+    part: 'Part 1.1 — Current liabilities',
+    kind: 'money',
+  },
+  {
+    key: 'liabilityTransactionLevy',
+    label: 'Transaction levy payable',
+    part: 'Part 1.1 — Current liabilities',
+    kind: 'money',
+  },
+  {
+    key: 'liabilityVat',
+    label: 'VAT payable',
+    part: 'Part 1.1 — Current liabilities',
+    kind: 'money',
+  },
+  {
+    key: 'liabilityAccruedExpenses',
+    label: 'Accrued expenses',
+    part: 'Part 1.1 — Current liabilities',
+    kind: 'money',
+  },
+  {
+    key: 'liabilitySundryCreditors',
+    label: 'Sundry creditors / suppliers',
+    part: 'Part 1.1 — Current liabilities',
+    kind: 'money',
+  },
+  {
+    key: 'liabilityIncomeTax',
+    label: 'Income tax liability',
+    part: 'Part 1.1 — Current liabilities',
+    kind: 'money',
+  },
 ];
 
 const MANUAL_FIELD_KEYS: ReadonlySet<string> = new Set(
@@ -701,7 +887,11 @@ export interface QuarterlyNonFinancialPart {
   readonly debtorsOutstanding: number;
   readonly loansDisbursed: number;
   readonly activeClients: number;
-  readonly loansOutstanding: { readonly current: number; readonly arrears: number; readonly total: number };
+  readonly loansOutstanding: {
+    readonly current: number;
+    readonly arrears: number;
+    readonly total: number;
+  };
   readonly disbursementsByTerm: readonly TermBucket[];
   readonly loansByPurpose: readonly LabelledValue[];
   readonly loansByCollectionMethod: readonly LabelledValue[];

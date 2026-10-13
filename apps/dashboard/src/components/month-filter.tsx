@@ -21,7 +21,9 @@ const MONTH_LABEL = new Intl.DateTimeFormat('en-NA', { month: 'short', year: 'nu
 /** Format a `YYYY-MM` key as e.g. "Oct 2023". */
 export const formatMonth = (key: string): string => {
   const [year, month] = key.split('-').map(Number);
+
   if (!year || !month) return key;
+
   return MONTH_LABEL.format(new Date(year, month - 1, 1));
 };
 
@@ -34,6 +36,7 @@ export const useMonthOptions = (dates: (string | null | undefined)[]) =>
     const keys = Array.from(
       new Set(dates.map(toMonthKey).filter((key): key is string => key !== null)),
     ).sort((a, b) => b.localeCompare(a));
+
     return { months: keys, latest: keys[0] ?? ALL_MONTHS };
   }, [dates]);
 

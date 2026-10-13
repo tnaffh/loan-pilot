@@ -25,6 +25,7 @@ export const StatStrip = ({ items }: { items: StatItem[] }) => (
   <Card className="grid grid-cols-2 divide-y p-0 sm:grid-cols-4 sm:divide-x sm:divide-y-0 [&>*:nth-child(2)]:border-l sm:[&>*:nth-child(2)]:border-l-0">
     {items.map((item) => {
       const Icon = item.icon;
+
       return (
         <div key={item.label} className="flex flex-col gap-1 p-4">
           <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">

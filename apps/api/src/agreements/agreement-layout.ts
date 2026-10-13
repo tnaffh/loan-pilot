@@ -85,9 +85,11 @@ export const createAgreementLayout = (doc: PDFKit.PDFDocument): AgreementLayout 
   const renderClause = (text: string): void => {
     ensureSpace(26);
     const numbered = /^(\d+(?:\.\d+)*\.)\s+([\s\S]*)$/.exec(text);
+
     if (numbered) {
       const depth = numbered[1]?.match(/\./g)?.length ?? 1;
       const indent = (depth - 1) * 14;
+
       doc
         .font('Helvetica')
         .fontSize(8.5)
@@ -95,9 +97,12 @@ export const createAgreementLayout = (doc: PDFKit.PDFDocument): AgreementLayout 
         .text(numbered[1] ?? '', M + indent, doc.y, { continued: true })
         .text(`  ${numbered[2] ?? ''}`, { width: W - indent });
       doc.moveDown(0.35);
+
       return;
     }
+
     const step = /^(Step\s+[IVX]+)\s*[:.]?\s*([\s\S]*)$/.exec(text);
+
     if (step) {
       doc
         .font('Helvetica-Bold')
@@ -107,8 +112,10 @@ export const createAgreementLayout = (doc: PDFKit.PDFDocument): AgreementLayout 
         .font('Helvetica')
         .text(step[2] ?? '', { width: W });
       doc.moveDown(0.35);
+
       return;
     }
+
     if (text === text.toUpperCase() && /[A-Z]/.test(text) && text.length < 90) {
       doc
         .font('Helvetica-Bold')
@@ -116,8 +123,10 @@ export const createAgreementLayout = (doc: PDFKit.PDFDocument): AgreementLayout 
         .fillColor(COLORS.muted)
         .text(text, M, doc.y, { width: W, characterSpacing: 0.3 });
       doc.moveDown(0.35);
+
       return;
     }
+
     doc.font('Helvetica').fontSize(8.5).fillColor(COLORS.ink).text(text, M, doc.y, { width: W });
     doc.moveDown(0.35);
   };
@@ -145,6 +154,7 @@ export const createAgreementLayout = (doc: PDFKit.PDFDocument): AgreementLayout 
   const signatureBlock = (opts: SignatureBlockOptions): void => {
     ensureSpace(220);
     const range = doc.bufferedPageRange();
+
     state.signaturePage = range.start + range.count - 1;
 
     doc.moveDown(0.9);
@@ -153,6 +163,7 @@ export const createAgreementLayout = (doc: PDFKit.PDFDocument): AgreementLayout 
       .fontSize(9)
       .fillColor(COLORS.ink)
       .text(opts.acknowledgement ?? DEFAULT_ACK, M, doc.y, { width: W });
+
     if (opts.tcAcceptedAt) {
       doc.moveDown(0.3);
       doc
@@ -177,8 +188,15 @@ export const createAgreementLayout = (doc: PDFKit.PDFDocument): AgreementLayout 
     if (opts.signaturePng) {
       placeImage(doc, opts.signaturePng, M, imgTop, [sigW, SIGNATURE_IMAGE_H]);
     }
+
     const lineY = imgTop + SIGNATURE_IMAGE_H + 4;
-    doc.moveTo(M, lineY).lineTo(M + sigW, lineY).lineWidth(0.75).strokeColor(COLORS.ink).stroke();
+
+    doc
+      .moveTo(M, lineY)
+      .lineTo(M + sigW, lineY)
+      .lineWidth(0.75)
+      .strokeColor(COLORS.ink)
+      .stroke();
     doc
       .font('Helvetica-Bold')
       .fontSize(8.5)
@@ -199,6 +217,7 @@ export const createAgreementLayout = (doc: PDFKit.PDFDocument): AgreementLayout 
       stampPng: opts.stampPng,
       date,
     });
+
     doc.y = bottom;
     doc.fillColor(COLORS.ink);
   };

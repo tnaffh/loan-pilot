@@ -12,7 +12,11 @@ export const metadata: Metadata = {
   title: 'Contact',
   description,
   alternates: { canonical: '/contact' },
-  openGraph: pageOpenGraph({ title: 'Contact · Raccoons Financial Services', description, path: '/contact' }),
+  openGraph: pageOpenGraph({
+    title: 'Contact · Raccoons Financial Services',
+    description,
+    path: '/contact',
+  }),
 };
 
 const ContactPage = () => {

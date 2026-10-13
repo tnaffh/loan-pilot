@@ -30,6 +30,7 @@ export const OtpInput = ({
       <View className="flex-row justify-between gap-2">
         {Array.from({ length: LENGTH }, (_unused, index) => {
           const active = focused && index === Math.min(value.length, LENGTH - 1);
+
           return (
             <View
               key={index}
@@ -53,7 +54,9 @@ export const OtpInput = ({
         onBlur={() => setFocused(false)}
         onChangeText={(text) => {
           const digits = text.replace(/\D/g, '').slice(0, LENGTH);
+
           onChange(digits);
+
           if (digits.length === LENGTH) onComplete?.(digits);
         }}
         keyboardType="number-pad"

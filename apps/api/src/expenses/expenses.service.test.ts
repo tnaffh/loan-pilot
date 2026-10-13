@@ -17,6 +17,7 @@ describe('ExpensesService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [ExpensesService, { provide: PrismaService, useValue: prismaMock }],
     }).compile();
+
     service = moduleRef.get(ExpensesService);
   });
 
@@ -32,6 +33,7 @@ describe('ExpensesService', () => {
     await service.create('tenant_1', input);
 
     const data = create.mock.calls[0][0].data;
+
     expect(data.amount).toBe(410000); // N$ 4,100
     expect(data.tenant.connect.id).toBe('tenant_1');
     expect(data.category).toBe('Office Rent');

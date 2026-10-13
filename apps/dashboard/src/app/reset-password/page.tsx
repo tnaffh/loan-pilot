@@ -27,6 +27,7 @@ const Reset = () => {
   const onSubmit = async (password: string) => {
     try {
       const { accessToken, user } = await resetPassword(token, password);
+
       setSession(accessToken, user);
       toast.success('Password updated');
       router.replace('/');
@@ -60,7 +61,10 @@ const Reset = () => {
   }
 
   return (
-    <AuthShell title="Choose a new password" subtitle="Pick a strong password you don’t use elsewhere.">
+    <AuthShell
+      title="Choose a new password"
+      subtitle="Pick a strong password you don’t use elsewhere."
+    >
       <SetPasswordForm submitLabel="Update password" onSubmit={onSubmit} />
     </AuthShell>
   );

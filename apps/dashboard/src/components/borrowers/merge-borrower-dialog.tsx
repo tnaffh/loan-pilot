@@ -26,13 +26,7 @@ interface Props {
 
 const loansLabel = (n: number) => `${n} ${n === 1 ? 'loan' : 'loans'}`;
 
-const BorrowerOption = ({
-  borrower,
-  onClick,
-}: {
-  borrower: BorrowerRow;
-  onClick: () => void;
-}) => (
+const BorrowerOption = ({ borrower, onClick }: { borrower: BorrowerRow; onClick: () => void }) => (
   <button
     type="button"
     onClick={onClick}
@@ -46,7 +40,9 @@ const BorrowerOption = ({
         {borrower.idNumber} · {borrower.phone}
       </div>
     </div>
-    <span className="shrink-0 text-xs text-muted-foreground">{loansLabel(borrower._count.loans)}</span>
+    <span className="shrink-0 text-xs text-muted-foreground">
+      {loansLabel(borrower._count.loans)}
+    </span>
   </button>
 );
 
@@ -64,12 +60,14 @@ export const MergeBorrowerDialog = ({ survivor, open, onOpenChange, onMerged }: 
       setQuery('');
       setSelected(null);
     }
+
     onOpenChange(next);
   };
 
   useEffect(() => {
     if (!open) return;
     let active = true;
+
     Promise.all([
       apiFetch<BorrowerRow[]>(`/borrowers/${survivor.id}/duplicate-suggestions`, { token }),
       apiFetch<BorrowerRow[]>('/borrowers', { token }),
@@ -82,6 +80,7 @@ export const MergeBorrowerDialog = ({ survivor, open, onOpenChange, onMerged }: 
       .catch(() => {
         if (active) toast.error('Could not load borrowers');
       });
+
     return () => {
       active = false;
     };
@@ -89,7 +88,9 @@ export const MergeBorrowerDialog = ({ survivor, open, onOpenChange, onMerged }: 
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
+
     if (!q) return [];
+
     return all
       .filter((b) => b.id !== survivor.id)
       .filter((b) =>
@@ -103,6 +104,7 @@ export const MergeBorrowerDialog = ({ survivor, open, onOpenChange, onMerged }: 
   const merge = async () => {
     if (!selected) return;
     setSubmitting(true);
+
     try {
       await apiFetch(`/borrowers/${survivor.id}/merge`, {
         method: 'POST',
@@ -141,7 +143,8 @@ export const MergeBorrowerDialog = ({ survivor, open, onOpenChange, onMerged }: 
               <span className="font-medium">
                 {survivor.firstName} {survivor.lastName}
               </span>
-              . <span className="font-medium">{selected.firstName}</span> will be permanently deleted.
+              . <span className="font-medium">{selected.firstName}</span> will be permanently
+              deleted.
             </div>
             <DialogFooter>
               <Button variant="outline" onClick={() => setSelected(null)} disabled={submitting}>

@@ -32,6 +32,7 @@ const emptyMatrix = (bands: readonly AmountBand[]): BandedMatrix => {
     bands: Object.fromEntries(bands.map((band) => [band.key, 0])),
     total: 0,
   });
+
   return {
     bands,
     male: row(),
@@ -192,6 +193,7 @@ const monthly = (over: Partial<MonthlyReport> = {}): MonthlyReport => ({
 describe('renderQuarterlyReturnPdf', () => {
   it('renders a PDF for a populated quarter', async () => {
     const pdf = await renderQuarterlyReturnPdf(quarterly(), lender, null);
+
     expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
     expect(pdf.length).toBeGreaterThan(1000);
   });
@@ -208,6 +210,7 @@ describe('renderQuarterlyReturnPdf', () => {
       warnings: [],
     });
     const pdf = await renderQuarterlyReturnPdf(empty, lender, null);
+
     expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
   });
 
@@ -224,6 +227,7 @@ describe('renderQuarterlyReturnPdf', () => {
       town: null,
     };
     const pdf = await renderQuarterlyReturnPdf(quarterly(), bare, null);
+
     expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
   });
 });
@@ -231,6 +235,7 @@ describe('renderQuarterlyReturnPdf', () => {
 describe('renderMonthlyReportPdf', () => {
   it('renders a PDF with the loan register', async () => {
     const pdf = await renderMonthlyReportPdf(monthly(), lender, null);
+
     expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
     expect(pdf.length).toBeGreaterThan(1000);
   });
@@ -241,6 +246,7 @@ describe('renderMonthlyReportPdf', () => {
       lender,
       null,
     );
+
     expect(pdf.subarray(0, 5).toString()).toBe('%PDF-');
   });
 });
@@ -248,17 +254,21 @@ describe('renderMonthlyReportPdf', () => {
 describe('renderMonthlyReportXlsx', () => {
   it('writes a Summary and a Loans sheet', () => {
     const book = XLSX.read(renderMonthlyReportXlsx(monthly()), { type: 'buffer' });
+
     expect(book.SheetNames).toEqual(['Summary', 'Loans']);
   });
 
   it('writes money as numbers so Excel can total a column', () => {
     const book = XLSX.read(renderMonthlyReportXlsx(monthly()), { type: 'buffer' });
     const loans = book.Sheets.Loans;
+
     expect(loans).toBeDefined();
+
     if (!loans) return;
     const rows: unknown[][] = XLSX.utils.sheet_to_json(loans, { header: 1 });
     const header = rows[0];
     const first = rows[1];
+
     // No borrower identifiers leave in the export.
     expect(header).not.toEqual(
       expect.arrayContaining(['Borrower', 'ID number', 'Client no', 'Phone']),
@@ -267,12 +277,14 @@ describe('renderMonthlyReportXlsx', () => {
     expect(first?.[0]).toBe('Female');
     // "Loan amount (N$)" — a number in major N$, not a formatted string.
     const amountIndex = (header ?? []).indexOf('Loan amount (N$)');
+
     expect(typeof first?.[amountIndex]).toBe('number');
     expect(first?.[amountIndex]).toBe(5000);
   });
 
   it('writes an empty register without failing', () => {
     const book = XLSX.read(renderMonthlyReportXlsx(monthly({ loans: [] })), { type: 'buffer' });
+
     expect(book.SheetNames).toContain('Loans');
   });
 });

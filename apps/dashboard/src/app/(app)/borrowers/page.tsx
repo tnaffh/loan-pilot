@@ -80,6 +80,7 @@ const baseColumns: ColumnDef<BorrowerRow>[] = [
     accessorKey: 'idNumber',
     cell: ({ row }) => {
       const value = row.original.idNumber;
+
       return (
         <div className="flex items-center gap-2">
           <span className="tabular-nums">{value}</span>
@@ -221,7 +222,11 @@ const NewBorrowerSheet = ({ onCreated }: { onCreated: () => void }) => {
               >
                 <Input id="addr-street" {...register('address.street')} />
               </FormField>
-              <FormField label="City / town" htmlFor="addr-city" error={errors.address?.city?.message}>
+              <FormField
+                label="City / town"
+                htmlFor="addr-city"
+                error={errors.address?.city?.message}
+              >
                 <Input id="addr-city" {...register('address.city')} />
               </FormField>
               <FormField label="Suburb" htmlFor="addr-suburb" optional>
@@ -230,7 +235,11 @@ const NewBorrowerSheet = ({ onCreated }: { onCreated: () => void }) => {
               <FormField label="Region" htmlFor="addr-region" optional>
                 <Input id="addr-region" {...register('address.region')} />
               </FormField>
-              <FormField label="Country" htmlFor="addr-country" error={errors.address?.country?.message}>
+              <FormField
+                label="Country"
+                htmlFor="addr-country"
+                error={errors.address?.country?.message}
+              >
                 <Input id="addr-country" {...register('address.country')} />
               </FormField>
               <FormField label="Employer" htmlFor="employer" error={errors.employer?.message}>
@@ -244,7 +253,12 @@ const NewBorrowerSheet = ({ onCreated }: { onCreated: () => void }) => {
                 htmlFor="monthlyIncome"
                 error={errors.monthlyIncome?.message}
               >
-                <Input id="monthlyIncome" type="number" inputMode="numeric" {...register('monthlyIncome')} />
+                <Input
+                  id="monthlyIncome"
+                  type="number"
+                  inputMode="numeric"
+                  {...register('monthlyIncome')}
+                />
               </FormField>
               <FormField label="Employment type" htmlFor="employmentType">
                 <Controller
@@ -266,7 +280,11 @@ const NewBorrowerSheet = ({ onCreated }: { onCreated: () => void }) => {
                   )}
                 />
               </FormField>
-              <FormField label="Bank name" htmlFor="bankName" error={errors.bankAccount?.bankName?.message}>
+              <FormField
+                label="Bank name"
+                htmlFor="bankName"
+                error={errors.bankAccount?.bankName?.message}
+              >
                 <Input id="bankName" {...register('bankAccount.bankName')} />
               </FormField>
               <FormField
@@ -281,7 +299,11 @@ const NewBorrowerSheet = ({ onCreated }: { onCreated: () => void }) => {
                 htmlFor="bankNumber"
                 error={errors.bankAccount?.accountNumber?.message}
               >
-                <Input id="bankNumber" inputMode="numeric" {...register('bankAccount.accountNumber')} />
+                <Input
+                  id="bankNumber"
+                  inputMode="numeric"
+                  {...register('bankAccount.accountNumber')}
+                />
               </FormField>
               <FormField
                 label="Account type"
@@ -319,7 +341,12 @@ const NewBorrowerSheet = ({ onCreated }: { onCreated: () => void }) => {
                 {isSubmitting ? <Loader2 className="animate-spin" /> : null}
                 Create borrower
               </Button>
-              <Button type="button" variant="outline" onClick={() => setOpen(false)} disabled={isSubmitting}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+                disabled={isSubmitting}
+              >
                 Cancel
               </Button>
             </SheetFooter>
@@ -343,6 +370,7 @@ const BorrowersPage = () => {
       ? Math.round(withIncome.reduce((s, b) => s + b.monthlyIncome, 0) / withIncome.length)
       : 0;
     const withLoans = rows.filter((b) => b._count.loans > 0).length;
+
     return { borrowers: rows.length, loans, avgIncome, withLoans };
   }, [data]);
 

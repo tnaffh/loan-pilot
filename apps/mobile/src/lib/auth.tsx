@@ -51,24 +51,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUnauthorizedHandler(() => {
       void signOut();
     });
+
     return () => setUnauthorizedHandler(null);
   }, [signOut]);
 
   useEffect(() => {
     const restore = async () => {
       const token = await SecureStore.getItemAsync(TOKEN_KEY).catch(() => null);
+
       if (!token) {
         setState({ status: 'signedOut', user: null });
+
         return;
       }
+
       setSessionToken(token);
+
       try {
         const user = await api<SessionUser>('/auth/me');
+
         setState({ status: 'signedIn', user });
       } catch {
         await signOut();
       }
     };
+
     void restore();
   }, [signOut]);
 
@@ -81,6 +88,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       method: 'POST',
       body: { phone, code },
     });
+
     setSessionToken(response.accessToken);
     await SecureStore.setItemAsync(TOKEN_KEY, response.accessToken);
     setState({ status: 'signedIn', user: response.user });
@@ -96,8 +104,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
 export const useAuth = (): AuthContextValue => {
   const context = useContext(AuthContext);
+
   if (!context) {
     throw new Error('useAuth must be used inside AuthProvider');
   }
+
   return context;
 };

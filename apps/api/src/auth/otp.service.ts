@@ -39,6 +39,7 @@ export class OtpService {
 
   async request(tenant: Pick<Tenant, 'id' | 'name'>, rawPhone: string): Promise<void> {
     const phone = phoneKey(rawPhone);
+
     if (!phone || !(await this.isKnownNumber(tenant.id, phone))) {
       return;
     }
@@ -50,14 +51,17 @@ export class OtpService {
       select: { createdAt: true },
     });
     const latest = recent[0];
+
     if (recent.length >= OTP_HOURLY_CAP) {
       return;
     }
+
     if (latest && now - latest.createdAt.getTime() < OTP_RESEND_COOLDOWN_MS) {
       return;
     }
 
     const code = randomInt(0, 1_000_000).toString().padStart(6, '0');
+
     await this.prisma.phoneOtp.create({
       data: {
         tenant: { connect: { id: tenant.id } },
@@ -74,16 +78,20 @@ export class OtpService {
 
   async verify(tenantId: string, rawPhone: string, code: string): Promise<LoginResponse> {
     const phone = phoneKey(rawPhone);
+
     if (!phone) {
       throw new UnauthorizedException(INVALID_CODE);
     }
+
     const otp = await this.prisma.phoneOtp.findFirst({
       where: { tenantId, phone, consumedAt: null, expiresAt: { gt: new Date() } },
       orderBy: { createdAt: 'desc' },
     });
+
     if (!otp || otp.attempts >= OTP_MAX_ATTEMPTS) {
       throw new UnauthorizedException(INVALID_CODE);
     }
+
     if (!this.matches(otp.codeHash, this.hash(phone, code))) {
       await this.prisma.phoneOtp.update({
         where: { id: otp.id },
@@ -91,19 +99,23 @@ export class OtpService {
       });
       throw new UnauthorizedException(INVALID_CODE);
     }
+
     // Consume atomically so two concurrent verifies can't both succeed.
     const consumed = await this.prisma.phoneOtp.updateMany({
       where: { id: otp.id, consumedAt: null },
       data: { consumedAt: new Date() },
     });
+
     if (consumed.count === 0) {
       throw new UnauthorizedException(INVALID_CODE);
     }
 
     const user = await this.provisionBorrowerUser(tenantId, phone);
+
     if (user.status === UserStatus.Disabled) {
       throw new UnauthorizedException('This account has been disabled');
     }
+
     return this.auth.issue(user);
   }
 
@@ -118,6 +130,7 @@ export class OtpService {
         select: { id: true },
       }),
     ]);
+
     return Boolean(borrower || application);
   }
 
@@ -138,6 +151,7 @@ export class OtpService {
     });
     const recency = (candidate: (typeof candidates)[number]): number =>
       (candidate.loans[0]?.createdAt ?? candidate.createdAt).getTime();
+
     return [...candidates].sort((a, b) => recency(b) - recency(a))[0] ?? null;
   }
 
@@ -159,8 +173,10 @@ export class OtpService {
       if (existing.role !== UserRole.Borrower) {
         throw new UnauthorizedException(INVALID_CODE);
       }
+
       const phoneHolder = matches.find((user) => user.phone === phone);
       const borrowerHolder = matches.find((user) => borrower && user.borrowerId === borrower.id);
+
       return this.prisma.user.update({
         where: { id: existing.id },
         data: {
@@ -196,6 +212,7 @@ export class OtpService {
       orderBy: { submittedAt: 'desc' },
       select: { firstName: true, lastName: true },
     });
+
     return application ? `${application.firstName} ${application.lastName}` : 'Borrower';
   }
 
@@ -206,6 +223,7 @@ export class OtpService {
   private matches(storedHex: string, candidateHex: string): boolean {
     const stored = Buffer.from(storedHex, 'hex');
     const candidate = Buffer.from(candidateHex, 'hex');
+
     return stored.length === candidate.length && timingSafeEqual(stored, candidate);
   }
 }

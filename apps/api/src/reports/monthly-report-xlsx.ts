@@ -68,6 +68,7 @@ export const renderMonthlyReportXlsx = (report: MonthlyReport): Buffer => {
 
   if (report.expenseBreakdown.length > 0) {
     summaryRows.push([], ['Expenses by category', 'Amount (N$)']);
+
     for (const row of report.expenseBreakdown) {
       summaryRows.push([row.label, money(row.value)]);
     }
@@ -75,12 +76,14 @@ export const renderMonthlyReportXlsx = (report: MonthlyReport): Buffer => {
 
   if (report.warnings.length > 0) {
     summaryRows.push([], ['Notes']);
+
     for (const warning of report.warnings) {
       summaryRows.push([warning.message]);
     }
   }
 
   const summarySheet = XLSX.utils.aoa_to_sheet(summaryRows);
+
   summarySheet['!cols'] = [{ wch: 40 }, { wch: 16 }];
 
   const loanHeader = [
@@ -120,14 +123,17 @@ export const renderMonthlyReportXlsx = (report: MonthlyReport): Buffer => {
   ]);
 
   const loanSheet = XLSX.utils.aoa_to_sheet([loanHeader, ...loanRows]);
+
   loanSheet['!cols'] = loanHeader.map((header) => ({ wch: Math.max(12, header.length + 2) }));
   // Freeze the header row so the register stays readable while scrolling.
   loanSheet['!freeze'] = { xSplit: '0', ySplit: '1' };
 
   const book = XLSX.utils.book_new();
+
   XLSX.utils.book_append_sheet(book, summarySheet, 'Summary');
   XLSX.utils.book_append_sheet(book, loanSheet, 'Loans');
 
   const written: unknown = XLSX.write(book, { type: 'buffer', bookType: 'xlsx' });
+
   return Buffer.isBuffer(written) ? written : Buffer.from([]);
 };

@@ -37,11 +37,13 @@ interface Props {
 /** Group the catalogue by the form part each figure belongs to. */
 const GROUPS = NAMFISA_MANUAL_FIELDS.reduce<{ part: string; keys: string[] }[]>((groups, field) => {
   const existing = groups.find((group) => group.part === field.part);
+
   if (existing) {
     existing.keys.push(field.key);
   } else {
     groups.push({ part: field.part, keys: [field.key] });
   }
+
   return groups;
 }, []);
 
@@ -71,15 +73,18 @@ export const ManualFiguresSheet = ({
 
   // Reload the form whenever a different quarter is opened.
   const formKey = `${period}|${open}`;
+
   if (open && formKey !== syncKey) {
     setSyncKey(formKey);
     setValues(
       Object.fromEntries(
         NAMFISA_MANUAL_FIELDS.map((field) => {
           const stored = figures[field.key];
+
           if (stored === undefined) {
             return [field.key, ''];
           }
+
           return [field.key, String(isManualMoneyField(field.key) ? fromCents(stored) : stored)];
         }),
       ),
@@ -89,14 +94,18 @@ export const ManualFiguresSheet = ({
 
   const save = async () => {
     setBusy(true);
+
     try {
       const payload: Record<string, number> = {};
+
       for (const [key, raw] of Object.entries(values)) {
         const trimmed = raw.trim();
+
         if (trimmed.length > 0 && Number.isFinite(Number(trimmed))) {
           payload[key] = Number(trimmed);
         }
       }
+
       await apiFetch(`/reports/quarterly/${period}/figures`, {
         method: 'PUT',
         body: { figures: payload, notes: note },
@@ -131,9 +140,11 @@ export const ManualFiguresSheet = ({
               <div className="grid gap-3 sm:grid-cols-2">
                 {group.keys.map((key) => {
                   const field = NAMFISA_MANUAL_FIELDS.find((entry) => entry.key === key);
+
                   if (!field) {
                     return null;
                   }
+
                   return (
                     <FormField
                       key={key}

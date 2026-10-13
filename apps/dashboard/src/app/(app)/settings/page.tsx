@@ -6,13 +6,7 @@ import { ImageUp, Loader2, Plus, Power, Trash2 } from 'lucide-react';
 import { LoanType, formatNad, fromCents } from '@loan-pilot/domain';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Sheet,
   SheetContent,
@@ -101,6 +95,7 @@ const FeeSettingsCard = () => {
 
   const save = async () => {
     setBusy(true);
+
     try {
       await apiFetch('/settings/fees', {
         method: 'PATCH',
@@ -259,8 +254,10 @@ const ProductSheet = ({
 
   // Seed when a different product (or a fresh "add") is opened.
   const seedKey = open ? (target?.id ?? 'new') : null;
+
   if (seedKey !== syncKey) {
     setSyncKey(seedKey);
+
     if (open) {
       setName(target?.name ?? '');
       setLoanType(target?.loanType ?? '');
@@ -271,6 +268,7 @@ const ProductSheet = ({
 
   const save = async () => {
     setBusy(true);
+
     try {
       const body = {
         name,
@@ -278,6 +276,7 @@ const ProductSheet = ({
         interestRate: Number(rate) / 100,
         isDefault,
       };
+
       if (target) {
         await apiFetch(`/settings/products/${target.id}`, { method: 'PATCH', token, body });
         toast.success('Product updated');
@@ -285,6 +284,7 @@ const ProductSheet = ({
         await apiFetch('/settings/products', { method: 'POST', token, body });
         toast.success('Product created');
       }
+
       onOpenChange(false);
       onSaved();
     } catch (error) {
@@ -383,6 +383,7 @@ const ProductsCard = () => {
     setEditing(null);
     setSheetOpen(true);
   };
+
   const openEdit = (product: LoanProduct) => {
     setEditing(product);
     setSheetOpen(true);
@@ -405,6 +406,7 @@ const ProductsCard = () => {
   const confirmRemove = async () => {
     if (!removing) return;
     setDeleting(true);
+
     try {
       await apiFetch(`/settings/products/${removing.id}`, { method: 'DELETE', token });
       toast.success('Product deleted');
@@ -423,8 +425,8 @@ const ProductsCard = () => {
         <div>
           <CardTitle>Rate plans</CardTitle>
           <CardDescription>
-            Interest-rate products staff can pick when disbursing a loan. Deactivate a plan to retire
-            it without losing the loans priced from it.
+            Interest-rate products staff can pick when disbursing a loan. Deactivate a plan to
+            retire it without losing the loans priced from it.
           </CardDescription>
         </div>
         <Button size="sm" onClick={openAdd}>
@@ -437,8 +439,8 @@ const ProductsCard = () => {
           <Skeleton className="h-40 w-full rounded-xl" />
         ) : (data?.length ?? 0) === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No rate plans yet. Add one — loans fall back to the standard rate for their type until you
-            do.
+            No rate plans yet. Add one — loans fall back to the standard rate for their type until
+            you do.
           </p>
         ) : (
           <Table>
@@ -625,6 +627,7 @@ const LenderIdentityCard = () => {
 
   const save = async () => {
     setBusy(true);
+
     try {
       await apiFetch('/settings/lender-identity', { method: 'PATCH', token, body: form });
       toast.success('Business details saved');
@@ -638,16 +641,20 @@ const LenderIdentityCard = () => {
 
   const uploadLogo = async (file: File) => {
     setUploadingLogo(true);
+
     try {
       const body = new FormData();
+
       body.append('file', file);
       const response = await fetch(`${API_URL}/settings/logo`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body,
       });
+
       if (!response.ok) throw new Error('Upload failed');
       const result: { logoUrl: string | null } = await response.json();
+
       setLogoUrl(result.logoUrl);
       toast.success('Logo uploaded');
     } catch {
@@ -694,6 +701,7 @@ const LenderIdentityCard = () => {
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
+
                   if (file) uploadLogo(file);
                   e.target.value = '';
                 }}
@@ -715,7 +723,9 @@ const LenderIdentityCard = () => {
               <Input
                 id={field.key}
                 value={form[field.key]}
-                onChange={(e) => setForm((current) => ({ ...current, [field.key]: e.target.value }))}
+                onChange={(e) =>
+                  setForm((current) => ({ ...current, [field.key]: e.target.value }))
+                }
               />
             </FormField>
           ))}
@@ -754,6 +764,7 @@ const HandwritingSetting = ({
 
   const run = async (action: () => Promise<void>, done: string) => {
     setBusy(true);
+
     try {
       await action();
       toast.success(done);
@@ -828,14 +839,17 @@ const SigningCard = () => {
 
   const uploadStamp = async (file: File) => {
     setStampBusy(true);
+
     try {
       const body = new FormData();
+
       body.append('file', file);
       const response = await fetch(`${API_URL}/settings/stamp`, {
         method: 'POST',
         headers: token ? { Authorization: `Bearer ${token}` } : {},
         body,
       });
+
       if (!response.ok) throw new Error('Upload failed');
       setIdentity(await response.json());
       toast.success('Custom stamp uploaded');
@@ -848,6 +862,7 @@ const SigningCard = () => {
 
   const removeStamp = async () => {
     setStampBusy(true);
+
     try {
       await request('/settings/stamp', 'DELETE');
       toast.success('Custom stamp removed — the drawn stamp will be used');
@@ -861,6 +876,7 @@ const SigningCard = () => {
   if (loading && !current) {
     return <Skeleton className="h-72 w-full rounded-xl" />;
   }
+
   if (!current) return null;
 
   return (
@@ -895,10 +911,10 @@ const SigningCard = () => {
           <div>
             <p className="text-sm font-medium">Company stamp</p>
             <p className="text-xs text-muted-foreground">
-              By default a dated stamp is drawn on each document from your business details
-              (name, NAMFISA licence, phone, email and website). Upload your own stamp image
-              (PNG or JPG, ideally with a transparent background) to use it instead — it is placed
-              as-is, so it should not carry a date.
+              By default a dated stamp is drawn on each document from your business details (name,
+              NAMFISA licence, phone, email and website). Upload your own stamp image (PNG or JPG,
+              ideally with a transparent background) to use it instead — it is placed as-is, so it
+              should not carry a date.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -931,6 +947,7 @@ const SigningCard = () => {
                 className="hidden"
                 onChange={(e) => {
                   const file = e.target.files?.[0];
+
                   if (file) uploadStamp(file);
                   e.target.value = '';
                 }}

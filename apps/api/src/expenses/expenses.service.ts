@@ -35,6 +35,7 @@ export class ExpensesService {
     ]);
     const totalExpenses = expenses._sum.amount ?? 0;
     const totalDrawings = drawings._sum.amount ?? 0;
+
     return { totalExpenses, totalDrawings, net: totalExpenses + totalDrawings };
   }
 

@@ -85,6 +85,7 @@ export class LoansController {
     if (isBorrower(user.role)) {
       return this.loans.findAllForBorrowerUser(user.id);
     }
+
     return this.loans.findAllForTenant(requireTenantId(user));
   }
 
@@ -94,6 +95,7 @@ export class LoansController {
     if (isBorrower(user.role)) {
       return this.loans.findOneForBorrowerUser(user.id, id);
     }
+
     return this.loans.findOne(requireTenantId(user), id);
   }
 
@@ -189,6 +191,7 @@ export class LoansController {
     if (isBorrower(user.role)) {
       return this.loans.statementForBorrowerUser(user.id, id);
     }
+
     return this.loans.statement(requireTenantId(user), id);
   }
 }

@@ -63,8 +63,7 @@ interface LoanProductOption {
   isDefault: boolean;
 }
 
-const isLoanField = (path: string): path is keyof CreateLoanInput =>
-  path in createLoanSchema.shape;
+const isLoanField = (path: string): path is keyof CreateLoanInput => path in createLoanSchema.shape;
 
 interface Props {
   open: boolean;
@@ -111,7 +110,7 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
         termMonths: 1,
         borrowerId: borrowerId ?? '',
         collateral: '',
-      purpose: undefined,
+        purpose: undefined,
       });
       setProductId('');
       setCustomRate('');
@@ -127,10 +126,13 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
     if (!open || !token) return;
     const numAmount = Number(amount);
     const numTerm = Number(termMonths);
+
     if (!numAmount || numAmount < 500 || !numTerm) {
       setQuote(null);
+
       return;
     }
+
     setQuoting(true);
     const handle = setTimeout(() => {
       apiFetch<LoanQuote>('/loans/quote', {
@@ -148,6 +150,7 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
         .catch(() => setQuote(null))
         .finally(() => setQuoting(false));
     }, 300);
+
     return () => clearTimeout(handle);
   }, [open, token, amount, termMonths, loanType, productId, customRate]);
 
@@ -197,6 +200,7 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
               name="borrowerId"
               render={({ field }) => {
                 const selected = (borrowers ?? []).find((borrower) => borrower.id === field.value);
+
                 return (
                   <Popover open={borrowerOpen} onOpenChange={setBorrowerOpen}>
                     <PopoverTrigger
@@ -271,8 +275,17 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
                 )}
               />
             </FormField>
-            <FormField label="Term (months)" htmlFor="termMonths" error={errors.termMonths?.message}>
-              <Input id="termMonths" type="number" inputMode="numeric" {...register('termMonths')} />
+            <FormField
+              label="Term (months)"
+              htmlFor="termMonths"
+              error={errors.termMonths?.message}
+            >
+              <Input
+                id="termMonths"
+                type="number"
+                inputMode="numeric"
+                {...register('termMonths')}
+              />
             </FormField>
             <FormField label="Amount (N$)" htmlFor="amount" error={errors.amount?.message}>
               <Input id="amount" type="number" inputMode="numeric" {...register('amount')} />
@@ -395,7 +408,9 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
                 <dt className="text-muted-foreground">Instalment</dt>
                 <dd className="text-right tabular-nums">{formatNad(quote.instalmentCents)}</dd>
                 <dt className="font-medium">Total repayable</dt>
-                <dd className="text-right font-medium tabular-nums">{formatNad(quote.totalCents)}</dd>
+                <dd className="text-right font-medium tabular-nums">
+                  {formatNad(quote.totalCents)}
+                </dd>
                 {quote.termMonths > 1 ? (
                   <dd className="col-span-2 mt-1 text-xs text-muted-foreground">
                     Interest is {(quote.interestRate * 100).toFixed(0)}% for month 1, then compounds
@@ -414,7 +429,12 @@ export const NewLoanSheet = ({ open, onOpenChange, borrowerId }: Props) => {
               {isSubmitting ? <Loader2 className="animate-spin" /> : null}
               Disburse loan
             </Button>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
           </SheetFooter>

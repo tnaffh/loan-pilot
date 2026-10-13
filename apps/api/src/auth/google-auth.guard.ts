@@ -20,9 +20,12 @@ export class GoogleAuthGuard extends AuthGuard('google') implements CanActivate 
         this.config.get<string>('DASHBOARD_URL') ?? 'http://localhost:3001'
       ).replace(/\/+$/, '');
       const res = context.switchToHttp().getResponse<Response>();
+
       res.redirect(`${dashboard}/login?error=google_disabled`);
+
       return false;
     }
+
     return super.canActivate(context);
   }
 }

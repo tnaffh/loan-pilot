@@ -24,7 +24,9 @@ export const TenantThemeProvider = ({ children }: { children: React.ReactNode })
     if (status !== 'authenticated' || !token) {
       return;
     }
+
     const controller = { cancelled: false };
+
     fetchTenantBranding(token)
       .then((result) => {
         if (!controller.cancelled) {
@@ -36,14 +38,13 @@ export const TenantThemeProvider = ({ children }: { children: React.ReactNode })
           setBranding(null);
         }
       });
+
     return () => {
       controller.cancelled = true;
     };
   }, [status, token]);
 
-  return (
-    <TenantThemeContext.Provider value={{ branding }}>{children}</TenantThemeContext.Provider>
-  );
+  return <TenantThemeContext.Provider value={{ branding }}>{children}</TenantThemeContext.Provider>;
 };
 
 export const useTenantBranding = (): TenantBranding | null =>

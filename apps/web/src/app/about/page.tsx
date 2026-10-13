@@ -10,7 +10,11 @@ export const metadata: Metadata = {
   title: 'About',
   description,
   alternates: { canonical: '/about' },
-  openGraph: pageOpenGraph({ title: 'About · Raccoons Financial Services', description, path: '/about' }),
+  openGraph: pageOpenGraph({
+    title: 'About · Raccoons Financial Services',
+    description,
+    path: '/about',
+  }),
 };
 
 const VALUES = [

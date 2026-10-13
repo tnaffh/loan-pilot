@@ -103,25 +103,21 @@ const LoanDetailPage = () => {
     admin &&
     data.balance > 0 &&
     (open || data.status === LoanStatus.PartlyPaid || data.status === LoanStatus.WrittenOff);
-  const payable =
-    lender &&
-    (open || data.status === LoanStatus.PartlyPaid) &&
-    data.balance > 0;
+  const payable = lender && (open || data.status === LoanStatus.PartlyPaid) && data.balance > 0;
   const nextInstalment = data.schedule.find((item) => !isInstalmentSettled(item.status));
   const canCapture = lender && open && Boolean(nextInstalment);
   const loanLabel = `${data.borrower.firstName} ${data.borrower.lastName}'s loan`;
 
   const captureRepayment = async () => {
     setSubmitting(true);
+
     try {
       await apiFetch(`/loans/${data.id}/repayments`, { method: 'POST', body: {}, token });
       toast.success('Repayment recorded');
       setConfirming(false);
       refresh();
     } catch (captureError) {
-      toast.error(
-        captureError instanceof ApiError ? captureError.message : 'Something went wrong',
-      );
+      toast.error(captureError instanceof ApiError ? captureError.message : 'Something went wrong');
     } finally {
       setSubmitting(false);
     }
@@ -150,9 +146,7 @@ const LoanDetailPage = () => {
             {payable ? (
               <Button
                 size="sm"
-                onClick={() =>
-                  command.openRecordPayment({ loanId: data.id, loanLabel })
-                }
+                onClick={() => command.openRecordPayment({ loanId: data.id, loanLabel })}
               >
                 Record payment
               </Button>
@@ -307,7 +301,10 @@ const LoanDetailPage = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <dl className="grid grid-cols-2 gap-x-6 gap-y-4 text-sm sm:grid-cols-3">
-                  <Detail label="Item / asset" value={data.collateralItem ?? data.collateral ?? '—'} />
+                  <Detail
+                    label="Item / asset"
+                    value={data.collateralItem ?? data.collateral ?? '—'}
+                  />
                   <Detail label="Identification" value={data.collateralIdentifier ?? '—'} />
                   <Detail label="Condition" value={data.collateralCondition ?? '—'} />
                   <Detail
@@ -330,7 +327,11 @@ const LoanDetailPage = () => {
                           className="aspect-square overflow-hidden rounded-lg border"
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img src={photo.url} alt={photo.fileName} className="h-full w-full object-cover" />
+                          <img
+                            src={photo.url}
+                            alt={photo.fileName}
+                            className="h-full w-full object-cover"
+                          />
                         </a>
                       ) : null,
                     )}
@@ -393,11 +394,12 @@ const LoanDetailPage = () => {
                     <TableRow key={item.id}>
                       <TableCell>{item.number}</TableCell>
                       <TableCell>{formatDate(item.dueAt)}</TableCell>
-                      <TableCell className="text-right tabular-nums">{formatNad(item.amount)}</TableCell>
+                      <TableCell className="text-right tabular-nums">
+                        {formatNad(item.amount)}
+                      </TableCell>
                       <TableCell>
                         <StatusBadge value={item.status} />
-                        {!isInstalmentSettled(item.status) &&
-                        new Date(item.dueAt) < new Date() ? (
+                        {!isInstalmentSettled(item.status) && new Date(item.dueAt) < new Date() ? (
                           <span className="ml-2 text-xs font-medium text-destructive">Overdue</span>
                         ) : null}
                       </TableCell>
@@ -430,14 +432,20 @@ const LoanDetailPage = () => {
                   <TableBody>
                     {data.payments.map((payment) => (
                       <TableRow key={payment.id}>
-                        <TableCell className="whitespace-nowrap">{formatDate(payment.paidAt)}</TableCell>
+                        <TableCell className="whitespace-nowrap">
+                          {formatDate(payment.paidAt)}
+                        </TableCell>
                         <TableCell className="text-right tabular-nums">
                           {formatNad(payment.amount)}
                           {payment.badDebt ? (
-                            <span className="ml-1 text-xs font-medium text-destructive">(bad debt)</span>
+                            <span className="ml-1 text-xs font-medium text-destructive">
+                              (bad debt)
+                            </span>
                           ) : null}
                         </TableCell>
-                        <TableCell className="capitalize">{payment.method.replace('_', ' ')}</TableCell>
+                        <TableCell className="capitalize">
+                          {payment.method.replace('_', ' ')}
+                        </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>

@@ -38,6 +38,7 @@ describe('SettingsService', () => {
         },
       ],
     }).compile();
+
     service = moduleRef.get(SettingsService);
   });
 
@@ -45,6 +46,7 @@ describe('SettingsService', () => {
     it('returns the chosen active product', async () => {
       productFindFirst.mockResolvedValue({ id: 'p1', active: true, interestRate: 0.25 });
       const product = await service.resolveProduct('t1', 'p1', LoanType.Payday);
+
       expect(product?.id).toBe('p1');
     });
 
@@ -56,6 +58,7 @@ describe('SettingsService', () => {
     it('falls back to the default product when none is chosen', async () => {
       productFindFirst.mockResolvedValue({ id: 'default', active: true, isDefault: true });
       const product = await service.resolveProduct('t1');
+
       expect(product?.id).toBe('default');
       expect(productFindFirst).toHaveBeenCalledWith(
         expect.objectContaining({ where: expect.objectContaining({ isDefault: true }) }),
@@ -104,6 +107,7 @@ describe('SettingsService', () => {
         monthlyRate: 0.05,
       });
       const settings = await service.resolveFeeSettings('t1');
+
       expect(settings.monthlyRate).toBe(0.05);
       expect(settings.stampDutyCents).toBe(500);
     });
@@ -112,11 +116,27 @@ describe('SettingsService', () => {
   describe('leviesReport', () => {
     it('groups levies and stamp duty by the year a loan was advanced', async () => {
       loanFindMany.mockResolvedValue([
-        { namfisaLevy: 1030, stampDuty: 500, disbursedAt: new Date('2024-03-01'), createdAt: new Date() },
-        { namfisaLevy: 2060, stampDuty: 500, disbursedAt: new Date('2024-09-01'), createdAt: new Date() },
-        { namfisaLevy: 5000, stampDuty: 500, disbursedAt: new Date('2025-01-01'), createdAt: new Date() },
+        {
+          namfisaLevy: 1030,
+          stampDuty: 500,
+          disbursedAt: new Date('2024-03-01'),
+          createdAt: new Date(),
+        },
+        {
+          namfisaLevy: 2060,
+          stampDuty: 500,
+          disbursedAt: new Date('2024-09-01'),
+          createdAt: new Date(),
+        },
+        {
+          namfisaLevy: 5000,
+          stampDuty: 500,
+          disbursedAt: new Date('2025-01-01'),
+          createdAt: new Date(),
+        },
       ]);
       const report = await service.leviesReport('t1');
+
       expect(report.totalLevyCents).toBe(8090);
       expect(report.totalStampDutyCents).toBe(1500);
       // Most recent year first.

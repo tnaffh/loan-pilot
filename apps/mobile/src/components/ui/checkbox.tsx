@@ -21,6 +21,7 @@ export const Checkbox = ({
   bare?: boolean;
 }) => {
   const colors = useColors();
+
   return (
     <View className="gap-1.5">
       <Pressable

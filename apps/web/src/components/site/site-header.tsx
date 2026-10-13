@@ -57,6 +57,7 @@ export const SiteHeader = () => {
           <nav className="hidden items-center gap-7 md:flex">
             {NAV_LINKS.map((link) => {
               const active = pathname === link.href;
+
               return (
                 <Link
                   key={link.href}
@@ -75,7 +76,12 @@ export const SiteHeader = () => {
           </nav>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" render={<Link href="/contact" />} className="hidden sm:inline-flex">
+            <Button
+              variant="ghost"
+              size="sm"
+              render={<Link href="/contact" />}
+              className="hidden sm:inline-flex"
+            >
               Talk to us
             </Button>
             <Button size="sm" render={<Link href="/apply" />}>

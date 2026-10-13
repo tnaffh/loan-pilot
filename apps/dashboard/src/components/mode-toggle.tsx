@@ -13,6 +13,7 @@ import {
 /** Light / dark / system theme switcher (shadcn canonical pattern). */
 export const ModeToggle = () => {
   const { setTheme } = useTheme();
+
   return (
     <DropdownMenu>
       <DropdownMenuTrigger

@@ -36,8 +36,10 @@ export const ChangePasswordDialog = ({
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+
     if (!valid) return;
     setBusy(true);
+
     try {
       await apiFetch('/auth/change-password', {
         method: 'POST',
@@ -100,7 +102,12 @@ export const ChangePasswordDialog = ({
             />
           </FormField>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={busy}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={busy}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={busy || !valid}>

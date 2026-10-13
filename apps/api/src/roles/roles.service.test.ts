@@ -52,6 +52,7 @@ describe('RolesService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [RolesService, { provide: PrismaService, useValue: prismaMock }],
     }).compile();
+
     service = moduleRef.get(RolesService);
   });
 
@@ -84,6 +85,7 @@ describe('RolesService', () => {
       systemRole({ id: 'role_clone', isSystem: false, key: null, name: 'Administrator (copy)' }),
     );
     const row = await service.clone(admin, 'role_sys');
+
     expect(roleCreate).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({

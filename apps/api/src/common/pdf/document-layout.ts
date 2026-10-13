@@ -110,12 +110,14 @@ export const createDocumentLayout = (doc: PDFKit.PDFDocument): DocumentLayout =>
   const fieldGrid = (pairs: (readonly [string, string] | null)[]): void => {
     const colGap = 22;
     const colW = (W - colGap) / 2;
+
     rowsOf(pairs, 2).forEach((rowPairs) => {
       ensureSpace(38);
       const y0 = doc.y;
       const bottoms = rowPairs.map((pair, idx) => {
         if (!pair) return y0;
         const x = M + idx * (colW + colGap);
+
         doc
           .fillColor(COLORS.faint)
           .font('Helvetica-Bold')
@@ -127,9 +129,12 @@ export const createDocumentLayout = (doc: PDFKit.PDFDocument): DocumentLayout =>
           .fontSize(9.5)
           .text(pair[1] && pair[1].length ? pair[1] : DASH, x, doc.y + 1, { width: colW });
         const bottom = doc.y;
+
         doc.y = y0;
+
         return bottom;
       });
+
       doc.y = Math.max(...bottoms) + 9;
     });
   };
@@ -137,12 +142,15 @@ export const createDocumentLayout = (doc: PDFKit.PDFDocument): DocumentLayout =>
   /** A row of headline figures in a bordered, divided box. */
   const summaryRow = (cells: { label: string; value: string }[]): void => {
     const h = 50;
+
     ensureSpace(h + 14);
     const y0 = doc.y;
     const cw = W / cells.length;
+
     doc.roundedRect(M, y0, W, h, 5).fillAndStroke(COLORS.cellBg, COLORS.rule);
     cells.forEach((cell, i) => {
       const x = M + i * cw;
+
       if (i > 0) {
         doc
           .moveTo(x, y0 + 9)
@@ -151,6 +159,7 @@ export const createDocumentLayout = (doc: PDFKit.PDFDocument): DocumentLayout =>
           .strokeColor(COLORS.rule)
           .stroke();
       }
+
       doc
         .fillColor(COLORS.muted)
         .font('Helvetica-Bold')
@@ -178,10 +187,12 @@ export const createDocumentLayout = (doc: PDFKit.PDFDocument): DocumentLayout =>
     preamble: string;
   }): void => {
     doc.y = M;
+
     if (logoPng) {
       try {
         const logoH = 52;
         const boxW = 180;
+
         doc.image(logoPng, M + (W - boxW) / 2, doc.y, {
           fit: [boxW, logoH],
           align: 'center',
@@ -192,6 +203,7 @@ export const createDocumentLayout = (doc: PDFKit.PDFDocument): DocumentLayout =>
         // A corrupt logo must not fail the whole document.
       }
     }
+
     doc
       .fillColor(COLORS.accent)
       .font('Helvetica-Bold')
@@ -208,6 +220,7 @@ export const createDocumentLayout = (doc: PDFKit.PDFDocument): DocumentLayout =>
         .filter(Boolean)
         .join('   ·   '),
     ].filter((line) => line.length > 0);
+
     doc.font('Helvetica').fontSize(9).fillColor(COLORS.muted);
     headerLines.forEach((line) => doc.text(line, M, doc.y, { width: W, align: 'center' }));
     doc.moveDown(0.6);
@@ -235,12 +248,15 @@ export const createDocumentLayout = (doc: PDFKit.PDFDocument): DocumentLayout =>
     const footerContact =
       [lender.contactPhone, lender.contactEmail].filter(Boolean).join('   ·   ') ||
       [lender.name, lender.town].filter(Boolean).join(', ');
+
     Array.from({ length: range.count }, (_, i) => range.start + i).forEach((pageIndex, i) => {
       doc.switchToPage(pageIndex);
       const savedBottom = doc.page.margins.bottom;
+
       doc.page.margins.bottom = 0;
       perPage?.(pageIndex);
       const fy = doc.page.height - 34;
+
       doc
         .moveTo(M, fy - 6)
         .lineTo(right, fy - 6)

@@ -22,7 +22,8 @@ import { useAuth } from '@/lib/auth-context';
 import { formatDate } from '@/lib/format';
 import type { LoanDetail } from '@/lib/types';
 
-const EMERALD = 'border-emerald-300 text-emerald-700 dark:border-emerald-500/40 dark:text-emerald-400';
+const EMERALD =
+  'border-emerald-300 text-emerald-700 dark:border-emerald-500/40 dark:text-emerald-400';
 const AMBER = 'border-amber-300 text-amber-700 dark:border-amber-500/40 dark:text-amber-400';
 
 export const COLLEXIA_LABELS: Record<CollexiaStatus, string> = {
@@ -50,9 +51,11 @@ export const CollexiaBadge = ({ status }: { status: CollexiaStatus }) => {
       </Badge>
     );
   }
+
   if (status === CollexiaStatus.Manual) {
     return <Badge variant="outline">Manual pay</Badge>;
   }
+
   return (
     <Badge variant="outline" className={`gap-1 ${AMBER}`}>
       <HandCoins className="size-3" /> Load on Collexia
@@ -79,6 +82,7 @@ export const LoanOpsCard = ({
 
   // Resync the client-number field whenever a different borrower is shown.
   const [syncId, setSyncId] = useState<string>(loan.borrower.id);
+
   if (loan.borrower.id !== syncId) {
     setSyncId(loan.borrower.id);
     setClientNo(loan.borrower.collexiaClientNo ?? '');
@@ -86,8 +90,13 @@ export const LoanOpsCard = ({
 
   const setDisbursed = async (released: boolean) => {
     setSavingDisb(true);
+
     try {
-      await apiFetch(`/loans/${loan.id}/disbursement`, { method: 'PATCH', body: { released }, token });
+      await apiFetch(`/loans/${loan.id}/disbursement`, {
+        method: 'PATCH',
+        body: { released },
+        token,
+      });
       toast.success(released ? 'Marked disbursed' : 'Marked not disbursed');
       onChanged();
     } catch (error) {
@@ -99,6 +108,7 @@ export const LoanOpsCard = ({
 
   const setCollexia = async (status: string) => {
     setSavingCollexia(true);
+
     try {
       await apiFetch(`/loans/${loan.id}/collexia`, { method: 'PATCH', body: { status }, token });
       toast.success('Collexia status updated');
@@ -112,6 +122,7 @@ export const LoanOpsCard = ({
 
   const saveClientNo = async () => {
     setSavingClientNo(true);
+
     try {
       await apiFetch(`/borrowers/${loan.borrower.id}`, {
         method: 'PATCH',
@@ -144,7 +155,9 @@ export const LoanOpsCard = ({
           </div>
           {canEdit ? (
             <label className="flex items-center gap-2 text-sm" htmlFor="loan-disbursed">
-              {savingDisb ? <Loader2 className="size-4 animate-spin text-muted-foreground" /> : null}
+              {savingDisb ? (
+                <Loader2 className="size-4 animate-spin text-muted-foreground" />
+              ) : null}
               <Checkbox
                 id="loan-disbursed"
                 checked={loan.fundsReleased}
@@ -200,7 +213,9 @@ export const LoanOpsCard = ({
                 <Button
                   variant="outline"
                   onClick={saveClientNo}
-                  disabled={savingClientNo || clientNo.trim() === (loan.borrower.collexiaClientNo ?? '')}
+                  disabled={
+                    savingClientNo || clientNo.trim() === (loan.borrower.collexiaClientNo ?? '')
+                  }
                 >
                   {savingClientNo ? <Loader2 className="size-4 animate-spin" /> : null}
                   Save

@@ -133,7 +133,8 @@ export const RecordPaymentDialog = ({ open, onOpenChange, loanId, loanLabel }: P
                     <SelectContent>
                       {openLoans.map((loan) => (
                         <SelectItem key={loan.id} value={loan.id}>
-                          {loan.borrower.firstName} {loan.borrower.lastName} — {formatNad(loan.balance)} due
+                          {loan.borrower.firstName} {loan.borrower.lastName} —{' '}
+                          {formatNad(loan.balance)} due
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -144,14 +145,25 @@ export const RecordPaymentDialog = ({ open, onOpenChange, loanId, loanLabel }: P
           )}
           <div className="grid gap-4 sm:grid-cols-2">
             <FormField label="Amount (N$)" htmlFor="amount" error={errors.amount?.message}>
-              <Input id="amount" type="number" step="0.01" inputMode="decimal" {...register('amount')} />
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                inputMode="decimal"
+                {...register('amount')}
+              />
             </FormField>
             <FormField label="Date" htmlFor="paidAt" error={errors.paidAt?.message}>
               <Controller
                 control={control}
                 name="paidAt"
                 render={({ field }) => (
-                  <DatePicker id="paidAt" value={field.value} onChange={field.onChange} disableFuture />
+                  <DatePicker
+                    id="paidAt"
+                    value={field.value}
+                    onChange={field.onChange}
+                    disableFuture
+                  />
                 )}
               />
             </FormField>
@@ -196,7 +208,12 @@ export const RecordPaymentDialog = ({ open, onOpenChange, loanId, loanLabel }: P
             <Input id="note" {...register('note')} />
           </FormField>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>

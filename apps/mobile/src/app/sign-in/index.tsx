@@ -20,12 +20,16 @@ const PhoneScreen = () => {
 
   const submit = async () => {
     const parsed = otpRequestSchema.safeParse({ phone });
+
     if (!parsed.success) {
       setError(parsed.error.issues[0]?.message);
+
       return;
     }
+
     setError(undefined);
     setSending(true);
+
     try {
       await requestCode(parsed.data.phone);
       router.push({ pathname: '/sign-in/code', params: { phone: parsed.data.phone } });

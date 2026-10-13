@@ -53,6 +53,7 @@ const StatementScreen = () => {
         </View>
         {statement.lines.map((line, index) => {
           const credit = line.credit > 0;
+
           return (
             <View
               key={`${line.date}-${index}`}

@@ -43,6 +43,7 @@ export const submitApplication = async (
     const message =
       data && typeof data.message === 'string' ? data.message : 'Something went wrong';
     const issues = data && Array.isArray(data.issues) ? data.issues : [];
+
     throw new ApiError(message, issues);
   }
 
@@ -59,6 +60,7 @@ export const uploadApplicationDocument = async (
   file: File,
 ): Promise<{ id: string; kind: string; url: string; fileName: string }> => {
   const form = new FormData();
+
   form.append('kind', kind);
   form.append('file', file);
 
@@ -68,10 +70,13 @@ export const uploadApplicationDocument = async (
   });
 
   const data = await response.json().catch(() => null);
+
   if (!response.ok) {
     const message =
       data && typeof data.message === 'string' ? data.message : 'Could not upload document';
+
     throw new ApiError(message);
   }
+
   return data;
 };

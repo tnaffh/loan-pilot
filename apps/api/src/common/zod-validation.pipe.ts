@@ -22,6 +22,7 @@ export class ZodValidationPipe<T> implements PipeTransform<unknown, T> {
           })),
         });
       }
+
       throw error;
     }
   }

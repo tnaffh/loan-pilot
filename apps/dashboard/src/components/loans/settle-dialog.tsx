@@ -114,7 +114,12 @@ export const SettleDialog = ({
                 control={control}
                 name="paidAt"
                 render={({ field }) => (
-                  <DatePicker id="paidAt" value={field.value} onChange={field.onChange} disableFuture />
+                  <DatePicker
+                    id="paidAt"
+                    value={field.value}
+                    onChange={field.onChange}
+                    disableFuture
+                  />
                 )}
               />
             </FormField>
@@ -143,7 +148,12 @@ export const SettleDialog = ({
             <Input id="note" {...register('note')} />
           </FormField>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>

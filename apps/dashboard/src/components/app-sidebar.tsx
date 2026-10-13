@@ -21,11 +21,7 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
 } from '@/components/ui/sidebar';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { NavUser } from '@/components/nav-user';
 import { navForUser, type NavItem } from '@/lib/nav';
 import { useTenantBranding } from '@/lib/tenant-theme';

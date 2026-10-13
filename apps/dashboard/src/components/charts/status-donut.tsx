@@ -17,7 +17,13 @@ const LABELS: Record<string, string> = {
   written_off: 'Written off',
   closed: 'Closed',
 };
-const COLORS = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-3)', 'var(--chart-4)', 'var(--chart-5)'];
+const COLORS = [
+  'var(--chart-1)',
+  'var(--chart-2)',
+  'var(--chart-3)',
+  'var(--chart-4)',
+  'var(--chart-5)',
+];
 
 /** Donut of loan counts by status. */
 export const StatusDonut = ({ data }: { data: { status: string; count: number }[] }) => {
@@ -36,7 +42,14 @@ export const StatusDonut = ({ data }: { data: { status: string; count: number }[
     <ChartContainer config={config} className="mx-auto aspect-square h-[240px]">
       <PieChart>
         <ChartTooltip cursor={false} content={<ChartTooltipContent hideLabel />} />
-        <Pie data={rows} dataKey="value" nameKey="name" innerRadius={60} strokeWidth={4} isAnimationActive={false}>
+        <Pie
+          data={rows}
+          dataKey="value"
+          nameKey="name"
+          innerRadius={60}
+          strokeWidth={4}
+          isAnimationActive={false}
+        >
           {rows.map((row) => (
             <Cell key={row.name} fill={row.fill} />
           ))}
@@ -45,15 +58,24 @@ export const StatusDonut = ({ data }: { data: { status: string; count: number }[
               if (viewBox && 'cx' in viewBox && 'cy' in viewBox) {
                 return (
                   <text x={viewBox.cx} y={viewBox.cy} textAnchor="middle" dominantBaseline="middle">
-                    <tspan x={viewBox.cx} y={viewBox.cy} className="fill-foreground text-2xl font-semibold">
+                    <tspan
+                      x={viewBox.cx}
+                      y={viewBox.cy}
+                      className="fill-foreground text-2xl font-semibold"
+                    >
                       {total}
                     </tspan>
-                    <tspan x={viewBox.cx} y={(viewBox.cy ?? 0) + 20} className="fill-muted-foreground text-xs">
+                    <tspan
+                      x={viewBox.cx}
+                      y={(viewBox.cy ?? 0) + 20}
+                      className="fill-muted-foreground text-xs"
+                    >
                       loans
                     </tspan>
                   </text>
                 );
               }
+
               return null;
             }}
           />

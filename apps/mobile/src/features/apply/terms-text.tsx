@@ -11,8 +11,10 @@ import { cn } from '@/lib/cn';
  */
 const Clause = ({ text }: { text: string }) => {
   const numbered = /^(\d+(?:\.\d+)*\.)\s+([\s\S]*)$/.exec(text);
+
   if (numbered) {
     const depth = numbered[1]?.match(/\./g)?.length ?? 1;
+
     return (
       <View className={cn('flex-row gap-2', depth === 2 && 'pl-3', depth >= 3 && 'pl-6')}>
         <Text variant="small" className="font-sans-medium text-foreground">
@@ -26,6 +28,7 @@ const Clause = ({ text }: { text: string }) => {
   }
 
   const step = /^(Step\s+[IVX]+)\s*[:.]?\s*([\s\S]*)$/.exec(text);
+
   if (step) {
     return (
       <Text variant="small" tone="muted">

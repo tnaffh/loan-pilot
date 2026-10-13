@@ -85,6 +85,7 @@ export class ApplicationsController {
     @Body(new ZodValidationPipe(createApplicationSchema)) body: CreateApplicationInput,
   ): Promise<ApplicationResultDto> {
     const application = await this.applications.create(requireTenantId(user), body);
+
     return {
       id: application.id,
       status: application.status,
@@ -100,6 +101,7 @@ export class ApplicationsController {
   @Get('pricing')
   async pricing(@Headers('x-tenant') tenantSlug?: string): Promise<PricingConfig> {
     const tenant = await this.tenants.resolveForPublicRequest(tenantSlug);
+
     return this.applications.pricingConfig(tenant.id);
   }
 

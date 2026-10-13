@@ -31,12 +31,20 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
     });
   }
 
-  validate(_accessToken: string, _refreshToken: string, profile: Profile, done: VerifyCallback): void {
+  validate(
+    _accessToken: string,
+    _refreshToken: string,
+    profile: Profile,
+    done: VerifyCallback,
+  ): void {
     const email = profile.emails?.[0]?.value;
+
     if (!email) {
       done(new Error('Google account has no email'), undefined);
+
       return;
     }
+
     const oauthProfile: OAuthProfile = {
       provider: 'google',
       providerAccountId: profile.id,
@@ -44,6 +52,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
       name: profile.displayName || email,
       picture: profile.photos?.[0]?.value,
     };
+
     done(null, oauthProfile);
   }
 }

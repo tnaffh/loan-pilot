@@ -9,5 +9,6 @@ export const requireTenantId = (user: SessionUser): string => {
   if (!user.tenantId) {
     throw new ForbiddenException('This route requires a tenant-bound account');
   }
+
   return user.tenantId;
 };

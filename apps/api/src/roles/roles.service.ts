@@ -28,6 +28,7 @@ export class RolesService {
 
   findAllForTenant(actor: SessionUser): Promise<RoleRow[]> {
     const tenantId = requireTenantId(actor);
+
     return this.prisma.role
       .findMany({
         where: { tenantId },
@@ -40,11 +41,13 @@ export class RolesService {
   async create(actor: SessionUser, input: CreateRoleInput): Promise<RoleRow> {
     const tenantId = requireTenantId(actor);
     const name = input.name.trim();
+
     await this.assertNameFree(tenantId, name);
     const role = await this.prisma.role.create({
       data: { tenantId, name, permissions: input.permissions, isSystem: false },
       include: { _count: { select: { users: true } } },
     });
+
     return this.toRow(role);
   }
 
@@ -57,38 +60,45 @@ export class RolesService {
       data: { tenantId, name, permissions: source.permissions, isSystem: false },
       include: { _count: { select: { users: true } } },
     });
+
     return this.toRow(role);
   }
 
   async update(actor: SessionUser, id: string, input: UpdateRoleInput): Promise<RoleRow> {
     const tenantId = requireTenantId(actor);
     const role = await this.requireRole(tenantId, id);
+
     if (role.isSystem) {
       throw new ForbiddenException('Built-in roles cannot be edited — clone one to customise it');
     }
+
     const name = input.name?.trim();
+
     if (name && name !== role.name) {
       await this.assertNameFree(tenantId, name);
     }
+
     const updated = await this.prisma.role.update({
       where: { id },
       data: { name: name ?? undefined, permissions: input.permissions ?? undefined },
       include: { _count: { select: { users: true } } },
     });
+
     return this.toRow(updated);
   }
 
   async remove(actor: SessionUser, id: string): Promise<void> {
     const tenantId = requireTenantId(actor);
     const role = await this.requireRole(tenantId, id);
+
     if (role.isSystem) {
       throw new ForbiddenException('Built-in roles cannot be deleted');
     }
+
     if (role._count.users > 0) {
-      throw new BadRequestException(
-        'Reassign the members of this role before deleting it',
-      );
+      throw new BadRequestException('Reassign the members of this role before deleting it');
     }
+
     await this.prisma.role.delete({ where: { id } });
   }
 
@@ -99,14 +109,17 @@ export class RolesService {
       where: { id, tenantId },
       include: { _count: { select: { users: true } } },
     });
+
     if (!role) {
       throw new NotFoundException('Role not found');
     }
+
     return role;
   }
 
   private async assertNameFree(tenantId: string, name: string): Promise<void> {
     const existing = await this.prisma.role.findFirst({ where: { tenantId, name } });
+
     if (existing) {
       throw new ConflictException('A role with this name already exists');
     }
@@ -119,13 +132,17 @@ export class RolesService {
       select: { name: true },
     });
     const taken = new Set(existing.map((role) => role.name));
+
     if (!taken.has(base)) {
       return base;
     }
+
     let suffix = 2;
+
     while (taken.has(`${base} ${suffix}`)) {
       suffix += 1;
     }
+
     return `${base} ${suffix}`;
   }
 

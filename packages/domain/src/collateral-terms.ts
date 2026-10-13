@@ -96,5 +96,6 @@ export const getCollateralTerms = (version?: string): Terms => {
   if (version && version !== COLLATERAL_TERMS_VERSION) {
     return { ...CURRENT_TERMS, version };
   }
+
   return CURRENT_TERMS;
 };

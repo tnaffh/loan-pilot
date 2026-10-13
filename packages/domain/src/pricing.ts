@@ -23,9 +23,11 @@ export const quoteWithPricing = (
   input: { amount: number; termMonths: number; type: LoanType },
 ): LoanQuote => {
   const principalCents = toCents(input.amount);
+
   if (!config) {
     return quote({ principalCents, termMonths: input.termMonths, type: input.type });
   }
+
   return quote({
     principalCents,
     termMonths: input.termMonths,

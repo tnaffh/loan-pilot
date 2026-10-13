@@ -58,6 +58,7 @@ export class UsersService {
       include: { accounts: true, customRole: true },
       orderBy: { createdAt: 'asc' },
     });
+
     return users.map((user) => this.toRow(user));
   }
 
@@ -68,6 +69,7 @@ export class UsersService {
     const assignment = await this.resolveAssignment(actor, input.roleId);
 
     const existing = await this.prisma.user.findUnique({ where: { email: input.email } });
+
     if (existing) {
       throw new ConflictException('A user with this email already exists');
     }
@@ -90,7 +92,9 @@ export class UsersService {
     });
 
     const acceptUrl = `${this.dashboardUrl()}/invite/accept?token=${token}`;
+
     await this.mail.sendInvite(input.email, user.name, acceptUrl);
+
     return { user: this.toRow(user), acceptUrl };
   }
 
@@ -106,14 +110,18 @@ export class UsersService {
       if (actor.role === UserRole.Platform) {
         throw new BadRequestException('Platform operators do not have assignable roles');
       }
+
       if (target.id === actor.id) {
         throw new BadRequestException('You cannot change your own role');
       }
+
       const role = await this.requireAssignableRole(actor, input.roleId);
+
       // Block a demotion that would leave the tenant with no user manager.
       if (hasUserManage(target.customRole) && !role.permissions.includes('users:manage')) {
         await this.assertNotLastUserManager(target);
       }
+
       data.customRole = { connect: { id: role.id } };
       data.role = role.permissions.includes('users:manage')
         ? UserRole.LenderAdmin
@@ -124,9 +132,11 @@ export class UsersService {
       if (target.id === actor.id) {
         throw new BadRequestException('You cannot change your own status');
       }
+
       if (input.status === UserStatus.Disabled) {
         await this.assertNotLastUserManager(target);
       }
+
       data.status = input.status;
     }
 
@@ -135,16 +145,20 @@ export class UsersService {
       data,
       include: { accounts: true, customRole: true },
     });
+
     return this.toRow(updated);
   }
 
   async resendInvite(actor: SessionUser, id: string): Promise<{ acceptUrl: string }> {
     const target = await this.requireInScope(actor, id);
+
     if (target.status !== UserStatus.Invited || !target.email) {
       throw new BadRequestException('This user has already accepted their invitation');
     }
+
     const email = target.email;
     const token = newToken();
+
     await this.prisma.user.update({
       where: { id },
       data: {
@@ -153,15 +167,19 @@ export class UsersService {
       },
     });
     const acceptUrl = `${this.dashboardUrl()}/invite/accept?token=${token}`;
+
     await this.mail.sendInvite(email, target.name, acceptUrl);
+
     return { acceptUrl };
   }
 
   async remove(actor: SessionUser, id: string): Promise<void> {
     const target = await this.requireInScope(actor, id);
+
     if (target.id === actor.id) {
       throw new BadRequestException('You cannot delete your own account');
     }
+
     await this.assertNotLastUserManager(target);
     await this.prisma.user.delete({ where: { id } });
   }
@@ -183,10 +201,13 @@ export class UsersService {
     if (actor.role === UserRole.Platform) {
       return { role: UserRole.Platform, roleId: null, tenantId: null };
     }
+
     if (!roleId) {
       throw new BadRequestException('Select a role for this member');
     }
+
     const role = await this.requireAssignableRole(actor, roleId);
+
     return {
       role: role.permissions.includes('users:manage') ? UserRole.LenderAdmin : UserRole.LenderStaff,
       roleId: role.id,
@@ -199,9 +220,11 @@ export class UsersService {
     const role = await this.prisma.role.findFirst({
       where: { id: roleId, tenantId: requireTenantId(actor) },
     });
+
     if (!role) {
       throw new ForbiddenException('That role is not available in your team');
     }
+
     return role;
   }
 
@@ -211,17 +234,21 @@ export class UsersService {
       where: { id },
       include: { customRole: true },
     });
+
     if (!target) {
       throw new NotFoundException('User not found');
     }
+
     const inScope =
       actor.role === UserRole.Platform
         ? target.tenantId === null && target.role === UserRole.Platform
         : target.tenantId === actor.tenantId &&
           (target.role === UserRole.LenderAdmin || target.role === UserRole.LenderStaff);
+
     if (!inScope) {
       throw new NotFoundException('User not found');
     }
+
     return target;
   }
 
@@ -230,6 +257,7 @@ export class UsersService {
     if (target.status !== UserStatus.Active || !hasUserManage(target.customRole)) {
       return;
     }
+
     const others = await this.prisma.user.count({
       where: {
         tenantId: target.tenantId,
@@ -238,6 +266,7 @@ export class UsersService {
         customRole: { permissions: { has: 'users:manage' } },
       },
     });
+
     if (others === 0) {
       throw new BadRequestException('A tenant must keep at least one member who can manage users');
     }

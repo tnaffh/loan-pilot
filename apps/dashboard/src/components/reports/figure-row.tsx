@@ -30,7 +30,14 @@ interface FigureRowProps {
  * amount, and the raw value with a copy control. Both are shown because the
  * figure is read by a person and typed into a portal by the same person.
  */
-export const FigureRow = ({ label, value, kind = 'money', strong, indent, hint }: FigureRowProps) => {
+export const FigureRow = ({
+  label,
+  value,
+  kind = 'money',
+  strong,
+  indent,
+  hint,
+}: FigureRowProps) => {
   const [copied, setCopied] = useState(false);
   const raw = kind === 'money' ? rawAmount(value) : String(value);
   const display = kind === 'money' ? formatNad(value) : String(value);

@@ -55,10 +55,25 @@ const loanPayload = {
     employerAddress: null,
     employeeNo: null,
     addresses: [
-      { isActive: true, label: 'Residential', street: '12 Acacia', suburb: null, city: 'Windhoek', region: null, country: 'Namibia' },
+      {
+        isActive: true,
+        label: 'Residential',
+        street: '12 Acacia',
+        suburb: null,
+        city: 'Windhoek',
+        region: null,
+        country: 'Namibia',
+      },
     ],
     bankAccounts: [
-      { isActive: true, bankName: 'Bank Windhoek', accountNumber: '620', branchName: null, accountHolderName: 'Selma N', accountType: 'Savings' },
+      {
+        isActive: true,
+        bankName: 'Bank Windhoek',
+        accountNumber: '620',
+        branchName: null,
+        accountHolderName: 'Selma N',
+        accountType: 'Savings',
+      },
     ],
     references: [{ name: 'Helena', phone: '+264811234567' }],
   },
@@ -142,6 +157,7 @@ describe('AgreementsService', () => {
     );
     // A PDF buffer was stored...
     const saved = storageMock.save.mock.calls[0][0];
+
     expect(saved.contentType).toBe('application/pdf');
     expect(saved.buffer.subarray(0, 5).toString('latin1')).toBe('%PDF-');
     // ...and linked to the loan + borrower as a loan_agreement, under a readable name.
@@ -172,6 +188,7 @@ describe('AgreementsService', () => {
     const view = await service.generateCollateralForLoan('tenant_1', 'loan_1');
 
     const saved = storageMock.save.mock.calls[0][0];
+
     expect(saved.buffer.subarray(0, 5).toString('latin1')).toBe('%PDF-');
     expect(documentCreate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -251,6 +268,7 @@ describe('AgreementsService', () => {
 
     it('never throws — a storage failure is logged so the loan edit still stands', async () => {
       const logged = jest.spyOn(Logger.prototype, 'error').mockImplementation(() => undefined);
+
       loanFindFirst.mockResolvedValue(loanPayload);
       documentFindFirst.mockResolvedValue({ id: 'doc_old' });
       storageMock.save.mockRejectedValue(new Error('bucket offline'));

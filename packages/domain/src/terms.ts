@@ -36,8 +36,7 @@ export interface Terms {
   readonly sections: readonly TermsSection[];
 }
 
-const PREAMBLE =
-  'This loan agreement only applies to loans not exceeding a period of 5 months.';
+const PREAMBLE = 'This loan agreement only applies to loans not exceeding a period of 5 months.';
 
 const SECTIONS: readonly TermsSection[] = [
   {
@@ -85,7 +84,9 @@ const SECTIONS: readonly TermsSection[] = [
   },
   {
     title: '8. Governing Law',
-    body: ['The agreement shall be governed in all respects by the laws of the Republic of Namibia.'],
+    body: [
+      'The agreement shall be governed in all respects by the laws of the Republic of Namibia.',
+    ],
   },
   {
     title: '9. Disclosure',
@@ -142,5 +143,6 @@ export const getTerms = (version?: string): Terms => {
   if (version && version !== TERMS_VERSION) {
     return { ...CURRENT_TERMS, version };
   }
+
   return CURRENT_TERMS;
 };

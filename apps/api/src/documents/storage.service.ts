@@ -46,6 +46,7 @@ export class StorageService {
     if (!this.s3Client) {
       const accessKeyId = process.env.S3_ACCESS_KEY_ID;
       const secretAccessKey = process.env.S3_SECRET_ACCESS_KEY;
+
       this.s3Client = new S3Client({
         region: process.env.S3_REGION ?? 'auto',
         endpoint: process.env.S3_ENDPOINT || undefined,
@@ -55,10 +56,10 @@ export class StorageService {
         // endpoint that redirects between the two styles drops the query string and the
         // browser lands on SignatureDoesNotMatch with nothing logged server-side.
         forcePathStyle: process.env.S3_FORCE_PATH_STYLE === 'true',
-        credentials:
-          accessKeyId && secretAccessKey ? { accessKeyId, secretAccessKey } : undefined,
+        credentials: accessKeyId && secretAccessKey ? { accessKeyId, secretAccessKey } : undefined,
       });
     }
+
     return this.s3Client;
   }
 
@@ -67,23 +68,32 @@ export class StorageService {
     if (!this.gcsBucketRef) {
       this.gcsBucketRef = new Storage().bucket(this.gcsBucketName);
     }
+
     return this.gcsBucketRef;
   }
 
   /** Persist a document and return its opaque storage key. */
   async save({ buffer, contentType, originalName }: SaveInput): Promise<{ key: string }> {
     const key = `documents/${randomUUID()}${extname(originalName)}`;
+
     if (this.driver === 'gcs') {
       await this.gcsBucket().file(key).save(buffer, { contentType, resumable: false });
     } else if (this.driver === 's3') {
       await this.client().send(
-        new PutObjectCommand({ Bucket: this.bucket, Key: key, Body: buffer, ContentType: contentType }),
+        new PutObjectCommand({
+          Bucket: this.bucket,
+          Key: key,
+          Body: buffer,
+          ContentType: contentType,
+        }),
       );
     } else {
       const destination = join(uploadsDir, key);
+
       await mkdir(dirname(destination), { recursive: true });
       await writeFile(destination, buffer);
     }
+
     return { key };
   }
 
@@ -95,18 +105,23 @@ export class StorageService {
   async read(key: string): Promise<Buffer> {
     if (this.driver === 'gcs') {
       const [contents] = await this.gcsBucket().file(key).download();
+
       return contents;
     }
+
     if (this.driver === 's3') {
       const response = await this.client().send(
         new GetObjectCommand({ Bucket: this.bucket, Key: key }),
       );
       const bytes = await response.Body?.transformToByteArray();
+
       if (!bytes) {
         throw new Error(`Empty object for key "${key}"`);
       }
+
       return Buffer.from(bytes);
     }
+
     return readFile(join(uploadsDir, key));
   }
 
@@ -117,6 +132,7 @@ export class StorageService {
    */
   async tryRead(key: string | null | undefined, label: string): Promise<Buffer | null> {
     if (!key || /^https?:\/\//i.test(key)) return null;
+
     try {
       return await this.read(key);
     } catch (error) {
@@ -124,6 +140,7 @@ export class StorageService {
         `Failed to read ${label}`,
         error instanceof Error ? error.stack : String(error),
       );
+
       return null;
     }
   }
@@ -134,6 +151,7 @@ export class StorageService {
       if (this.gcsPublicBase) {
         return `${trimTrailingSlash(this.gcsPublicBase)}/${key}`;
       }
+
       const [url] = await this.gcsBucket()
         .file(key)
         .getSignedUrl({
@@ -141,16 +159,20 @@ export class StorageService {
           action: 'read',
           expires: Date.now() + SIGNED_URL_TTL_SECONDS * 1000,
         });
+
       return url;
     }
+
     if (this.driver === 's3') {
       if (this.publicBase) {
         return `${trimTrailingSlash(this.publicBase)}/${key}`;
       }
+
       return getSignedUrl(this.client(), new GetObjectCommand({ Bucket: this.bucket, Key: key }), {
         expiresIn: SIGNED_URL_TTL_SECONDS,
       });
     }
+
     return `${trimTrailingSlash(this.apiOrigin)}/uploads/${key}`;
   }
 
@@ -169,6 +191,7 @@ export class StorageService {
         `Failed to resolve document URL for "${key}"`,
         error instanceof Error ? error.stack : String(error),
       );
+
       return null;
     }
   }

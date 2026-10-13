@@ -16,6 +16,7 @@ export const Sheet = ({
   children: ReactNode;
 }) => {
   const insets = useSafeAreaInsets();
+
   return (
     <Modal
       visible={open}

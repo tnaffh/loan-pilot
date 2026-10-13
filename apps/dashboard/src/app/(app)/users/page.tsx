@@ -73,22 +73,26 @@ const InviteSheet = ({
   const submit = async () => {
     if (!name.trim() || !email.trim()) {
       toast.error('Name and email are required');
+
       return;
     }
+
     if (!platformActor && !effectiveRoleId) {
       toast.error('Select a role');
+
       return;
     }
+
     setBusy(true);
+
     try {
-      const body = platformActor
-        ? { name, email }
-        : { name, email, roleId: effectiveRoleId };
+      const body = platformActor ? { name, email } : { name, email, roleId: effectiveRoleId };
       const result = await apiFetch<{ acceptUrl: string }>('/users/invite', {
         method: 'POST',
         body,
         token,
       });
+
       toast.success(`Invitation sent to ${email}`);
       setName('');
       setEmail('');
@@ -112,7 +116,9 @@ const InviteSheet = ({
         <SheetContent className="w-full overflow-y-auto sm:max-w-md">
           <SheetHeader>
             <SheetTitle>Invite a user</SheetTitle>
-            <SheetDescription>They receive an email link to set a password and sign in.</SheetDescription>
+            <SheetDescription>
+              They receive an email link to set a password and sign in.
+            </SheetDescription>
           </SheetHeader>
           <div className="space-y-4 px-4">
             <FormField label="Full name" htmlFor="name">
@@ -178,6 +184,7 @@ const EditSheet = ({
 
   // Sync local state whenever a different user is opened.
   const [syncId, setSyncId] = useState<string | null>(null);
+
   if (target && target.id !== syncId) {
     setSyncId(target.id);
     setRoleId(target.roleId ?? '');
@@ -187,8 +194,10 @@ const EditSheet = ({
   const save = async () => {
     if (!target) return;
     setBusy(true);
+
     try {
       const body = platformActor ? { status } : { roleId: roleId || undefined, status };
+
       await apiFetch(`/users/${target.id}`, { method: 'PATCH', body, token });
       toast.success('User updated');
       onOpenChange(false);
@@ -265,7 +274,9 @@ const UsersPage = () => {
   const { data: roles } = useApi<RoleRow[]>(platformActor ? null : '/roles');
   const [editing, setEditing] = useState<UserRow | null>(null);
   const [removing, setRemoving] = useState<UserRow | null>(null);
-  const [inviteResult, setInviteResult] = useState<{ email: string; acceptUrl: string } | null>(null);
+  const [inviteResult, setInviteResult] = useState<{ email: string; acceptUrl: string } | null>(
+    null,
+  );
   const [deleting, setDeleting] = useState(false);
 
   const resend = async (row: UserRow) => {
@@ -274,6 +285,7 @@ const UsersPage = () => {
         method: 'POST',
         token,
       });
+
       toast.success(`Invitation resent to ${row.email}`);
       setInviteResult({ email: row.email, acceptUrl: result.acceptUrl });
     } catch (resendError) {
@@ -284,6 +296,7 @@ const UsersPage = () => {
   const confirmRemove = async () => {
     if (!removing) return;
     setDeleting(true);
+
     try {
       await apiFetch(`/users/${removing.id}`, { method: 'DELETE', token });
       toast.success('User removed');
@@ -401,7 +414,11 @@ const UsersPage = () => {
         title="Users"
         description="Invite teammates and manage their roles and access"
         action={
-          <InviteSheet platformActor={platformActor} roles={roles ?? []} onInvited={setInviteResult} />
+          <InviteSheet
+            platformActor={platformActor}
+            roles={roles ?? []}
+            onInvited={setInviteResult}
+          />
         }
       />
 
@@ -426,7 +443,10 @@ const UsersPage = () => {
         onSaved={refresh}
       />
 
-      <AlertDialog open={removing !== null} onOpenChange={(open) => (open ? null : setRemoving(null))}>
+      <AlertDialog
+        open={removing !== null}
+        onOpenChange={(open) => (open ? null : setRemoving(null))}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Remove user</AlertDialogTitle>
@@ -444,13 +464,16 @@ const UsersPage = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={inviteResult !== null} onOpenChange={(open) => (open ? null : setInviteResult(null))}>
+      <Dialog
+        open={inviteResult !== null}
+        onOpenChange={(open) => (open ? null : setInviteResult(null))}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Invitation link</DialogTitle>
             <DialogDescription>
-              We emailed {inviteResult?.email}. You can also share this link directly — it expires in
-              7 days.
+              We emailed {inviteResult?.email}. You can also share this link directly — it expires
+              in 7 days.
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-center gap-2">

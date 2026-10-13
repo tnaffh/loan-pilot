@@ -93,6 +93,7 @@ describe('StatsService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [StatsService, { provide: PrismaService, useValue: prismaMock }],
     }).compile();
+
     service = moduleRef.get(StatsService);
   });
 
@@ -197,6 +198,7 @@ describe('StatsService', () => {
         loanRow({ id: 'loan_2', disbursedAt: utc('2099-01-06') }),
       ]);
       const series = await service.lenderSeries('tenant_1', true);
+
       expect(series.monthly.map((point) => point.month)).toEqual(['2023-10']);
     });
 
@@ -245,6 +247,7 @@ describe('StatsService', () => {
       seedCashMocks();
 
       const overview = await service.overview(admin);
+
       if (overview.kind !== 'lender') throw new Error('expected lender overview');
 
       expect(overview.disbursed).toBe(600_000);
@@ -272,6 +275,7 @@ describe('StatsService', () => {
       ]);
 
       const overview = await service.overview(admin);
+
       if (overview.kind !== 'lender') throw new Error('expected lender overview');
 
       expect(overview.collected).toBe(380_000);
@@ -295,6 +299,7 @@ describe('StatsService', () => {
       seedCashMocks();
 
       const overview = await service.overview(staff);
+
       if (overview.kind !== 'lender') throw new Error('expected lender overview');
 
       // Operational figures stay.

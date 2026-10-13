@@ -20,7 +20,9 @@ export interface ReportColumn<T> {
 /** The shared document layout plus the report-only sections. */
 export interface ReportLayout extends DocumentLayout {
   /** A row of `label ....... value` lines, mirroring the form's own ordering. */
-  labelValues(rows: readonly { label: string; value: string; strong?: boolean; indent?: boolean }[]): void;
+  labelValues(
+    rows: readonly { label: string; value: string; strong?: boolean; indent?: boolean }[],
+  ): void;
   /** A bordered grid. Repeats the header band after a page break. */
   table<T>(columns: readonly ReportColumn<T>[], rows: readonly T[], emptyText?: string): void;
   /** A caveat block printed under a report, so the PDF carries its own disclosure. */
@@ -38,24 +40,29 @@ export const createReportLayout = (doc: PDFKit.PDFDocument): ReportLayout => {
   ): void => {
     const valueW = 150;
     const labelW = W - valueW - 10;
+
     for (const row of rows) {
       if (doc.y + 18 > bottomLimit()) {
         doc.addPage();
       }
+
       const y = doc.y;
       const indent = row.indent ? 12 : 0;
+
       doc
         .font(row.strong ? 'Helvetica-Bold' : 'Helvetica')
         .fontSize(9)
         .fillColor(row.strong ? COLORS.ink : COLORS.body)
         .text(row.label, M + indent, y, { width: labelW - indent });
       const labelBottom = doc.y;
+
       doc
         .font('Helvetica-Bold')
         .fontSize(9)
         .fillColor(COLORS.ink)
         .text(row.value, M + labelW + 10, y, { width: valueW, align: 'right', lineBreak: false });
       doc.y = Math.max(labelBottom, y + 12) + 3;
+
       if (row.strong) {
         doc
           .moveTo(M, doc.y - 1)
@@ -66,6 +73,7 @@ export const createReportLayout = (doc: PDFKit.PDFDocument): ReportLayout => {
         doc.y += 2;
       }
     }
+
     doc.fillColor(COLORS.ink);
   };
 
@@ -80,13 +88,17 @@ export const createReportLayout = (doc: PDFKit.PDFDocument): ReportLayout => {
     if (width <= 0) {
       return '';
     }
+
     if (doc.widthOfString(text) <= width) {
       return text;
     }
+
     const state = { out: text };
+
     while (state.out.length > 1 && doc.widthOfString(`${state.out}…`) > width) {
       state.out = state.out.slice(0, -1);
     }
+
     return `${state.out}…`;
   };
 
@@ -108,14 +120,20 @@ export const createReportLayout = (doc: PDFKit.PDFDocument): ReportLayout => {
 
     const drawHeader = (): void => {
       const y = doc.y;
+
       doc.rect(M, y, W, headerH).fill(COLORS.accent);
       doc.font('Helvetica-Bold').fontSize(7).fillColor('#ffffff');
       columns.forEach((column, index) => {
-        doc.text(fit(column.header.toUpperCase(), cellWidth(index)), (xs[index] ?? M) + pad, y + 7, {
-          width: cellWidth(index),
-          align: column.align ?? 'left',
-          lineBreak: false,
-        });
+        doc.text(
+          fit(column.header.toUpperCase(), cellWidth(index)),
+          (xs[index] ?? M) + pad,
+          y + 7,
+          {
+            width: cellWidth(index),
+            align: column.align ?? 'left',
+            lineBreak: false,
+          },
+        );
       });
       doc.y = y + headerH;
     };
@@ -123,6 +141,7 @@ export const createReportLayout = (doc: PDFKit.PDFDocument): ReportLayout => {
     if (rows.length === 0) {
       drawHeader();
       const y = doc.y;
+
       doc.rect(M, y, W, rowH + 4).fillAndStroke('#ffffff', COLORS.rule);
       doc
         .font('Helvetica-Oblique')
@@ -131,6 +150,7 @@ export const createReportLayout = (doc: PDFKit.PDFDocument): ReportLayout => {
         .text(emptyText, M + pad, y + 7, { width: W - pad * 2, lineBreak: false });
       doc.y = y + rowH + 4 + 8;
       doc.fillColor(COLORS.ink);
+
       return;
     }
 
@@ -138,6 +158,7 @@ export const createReportLayout = (doc: PDFKit.PDFDocument): ReportLayout => {
     if (doc.y + headerH + rowH * Math.min(rows.length, 3) > bottomLimit()) {
       doc.addPage();
     }
+
     drawHeader();
     const tableTop = { y: doc.y - headerH };
 
@@ -156,7 +177,9 @@ export const createReportLayout = (doc: PDFKit.PDFDocument): ReportLayout => {
         drawHeader();
         tableTop.y = doc.y - headerH;
       }
+
       const y = doc.y;
+
       // Zebra striping carries the eye across a wide row better than rules do.
       doc.rect(M, y, W, rowH).fill(rowIndex % 2 === 1 ? COLORS.cellBg : '#ffffff');
       doc.font('Helvetica').fontSize(8).fillColor(COLORS.ink);
@@ -179,9 +202,11 @@ export const createReportLayout = (doc: PDFKit.PDFDocument): ReportLayout => {
     if (lines.length === 0) {
       return;
     }
+
     if (doc.y + 40 > bottomLimit()) {
       doc.addPage();
     }
+
     doc.moveDown(0.6);
     doc
       .font('Helvetica-Bold')
@@ -190,13 +215,16 @@ export const createReportLayout = (doc: PDFKit.PDFDocument): ReportLayout => {
       .text(title.toUpperCase(), M, doc.y, { characterSpacing: 0.4 });
     doc.moveDown(0.25);
     doc.font('Helvetica').fontSize(7.5).fillColor(COLORS.body);
+
     for (const line of lines) {
       if (doc.y + 16 > bottomLimit()) {
         doc.addPage();
       }
+
       doc.text(`•  ${line}`, M, doc.y, { width: W });
       doc.moveDown(0.15);
     }
+
     doc.fillColor(COLORS.ink);
   };
 

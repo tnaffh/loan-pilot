@@ -42,11 +42,13 @@ describe('AuthService.handleOAuth', () => {
         { provide: MailService, useValue: mailMock },
       ],
     }).compile();
+
     service = moduleRef.get(AuthService);
   });
 
   it('rejects an email outside the allowed domains', async () => {
     const result = await service.handleOAuth({ ...profile, email: 'someone@gmail.com' });
+
     expect(result).toEqual({ ok: false, error: 'domain_not_allowed' });
     expect(userFindUnique).not.toHaveBeenCalled();
   });
@@ -54,12 +56,14 @@ describe('AuthService.handleOAuth', () => {
   it('rejects a non-invited account (invite-only)', async () => {
     userFindUnique.mockResolvedValue(null);
     const result = await service.handleOAuth(profile);
+
     expect(result).toEqual({ ok: false, error: 'not_invited' });
   });
 
   it('rejects a disabled account', async () => {
     userFindUnique.mockResolvedValue({ id: 'u1', status: UserStatus.Disabled });
     const result = await service.handleOAuth(profile);
+
     expect(result).toEqual({ ok: false, error: 'account_disabled' });
   });
 
@@ -82,6 +86,7 @@ describe('AuthService.handleOAuth', () => {
       tenant: { slug: 'rfs' },
     });
     const result = await service.handleOAuth(profile);
+
     expect(accountUpsert).toHaveBeenCalled();
     expect(userUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: UserStatus.Active }) }),

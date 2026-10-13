@@ -34,15 +34,18 @@ const resolvePermissions = (user: UserForSession, role: UserRole): Permission[] 
   if (role === UserRole.Platform) {
     return [...ALL_PERMISSIONS];
   }
+
   if (role === UserRole.Borrower) {
     return [];
   }
+
   return (user.customRole?.permissions ?? []).filter(isPermission);
 };
 
 /** Build the SessionUser carried on the request / issued in the login response. */
 export const buildSessionUser = (user: UserForSession): SessionUser => {
   const role = ROLE_MAP[user.role] ?? UserRole.Borrower;
+
   return {
     id: user.id,
     email: user.email ?? '',

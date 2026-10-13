@@ -6,6 +6,7 @@ import type { SessionUser } from '@loan-pilot/domain';
 export const CurrentUser = createParamDecorator(
   (_data: unknown, context: ExecutionContext): SessionUser | undefined => {
     const request = context.switchToHttp().getRequest<Request & { user?: SessionUser }>();
+
     return request.user;
   },
 );

@@ -90,9 +90,13 @@ export const DateRangeFilter = ({ value, onChange, className }: DateRangeFilterP
 /** True when `iso` falls within the (inclusive) range; an empty range matches everything. */
 export const isInRange = (iso: string | null | undefined, range: IsoRange): boolean => {
   if (!range.from) return true;
+
   if (!iso) return false;
   const day = iso.slice(0, 10);
+
   if (day < range.from) return false;
+
   if (range.to && day > range.to) return false;
+
   return true;
 };

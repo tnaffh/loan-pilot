@@ -38,6 +38,7 @@ export class DocumentsService {
       where: { id: applicationId, tenantId },
       select: { id: true },
     });
+
     if (!application) {
       throw new NotFoundException('Application not found');
     }
@@ -72,6 +73,7 @@ export class DocumentsService {
       where: { id: borrowerId, tenantId },
       select: { id: true },
     });
+
     if (!borrower) {
       throw new NotFoundException('Borrower not found');
     }
@@ -92,6 +94,7 @@ export class DocumentsService {
         sizeBytes: file.size,
       },
     });
+
     return this.toView(document);
   }
 
@@ -101,6 +104,7 @@ export class DocumentsService {
       where: { borrowerId, borrower: { tenantId } },
       orderBy: { uploadedAt: 'desc' },
     });
+
     return Promise.all(documents.map((document) => this.toView(document)));
   }
 
@@ -110,6 +114,7 @@ export class DocumentsService {
       where: { loanId, kind, loan: { tenantId } },
       orderBy: { uploadedAt: 'asc' },
     });
+
     return Promise.all(documents.map((document) => this.toView(document)));
   }
 
@@ -127,13 +132,16 @@ export class DocumentsService {
         OR: [{ borrower: { tenantId } }, { loan: { tenantId } }, { application: { tenantId } }],
       },
     });
+
     if (!document) {
       throw new NotFoundException('Document not found');
     }
+
     // Legacy rows may hold an external URL rather than a storage key.
     if (/^https?:\/\//i.test(document.url)) {
       throw new BadRequestException('This document is stored externally — open it by its link');
     }
+
     return {
       document,
       buffer: await this.storage.read(document.url),
@@ -147,9 +155,11 @@ export class DocumentsService {
       where: { id: documentId, borrowerId, borrower: { tenantId } },
       select: { id: true },
     });
+
     if (!document) {
       throw new NotFoundException('Document not found');
     }
+
     await this.prisma.document.delete({ where: { id: documentId } });
   }
 

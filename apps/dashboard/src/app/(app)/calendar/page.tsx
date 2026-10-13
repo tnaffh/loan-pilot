@@ -15,8 +15,18 @@ import type { LoanRow } from '@/lib/types';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
 ];
 
 const dayKey = (iso: string): string => iso.slice(0, 10);
@@ -33,13 +43,16 @@ const CalendarPage = () => {
   // Group open loans with a due date by their due day.
   const dueByDay = useMemo(() => {
     const map = new Map<string, LoanRow[]>();
+
     for (const loan of data ?? []) {
       if (!loan.nextDueAt || !isOpenLoan(loan.status)) continue;
       const key = dayKey(loan.nextDueAt);
       const list = map.get(key) ?? [];
+
       list.push(loan);
       map.set(key, list);
     }
+
     return map;
   }, [data]);
 
@@ -52,8 +65,10 @@ const CalendarPage = () => {
     const blanks: (string | null)[] = Array.from({ length: lead }, () => null);
     const days = Array.from({ length: daysInMonth }, (_, index) => {
       const dd = String(index + 1).padStart(2, '0');
+
       return `${cursor.year}-${mm}-${dd}`;
     });
+
     return [...blanks, ...days];
   }, [cursor]);
 
@@ -63,6 +78,7 @@ const CalendarPage = () => {
   const step = (delta: number) =>
     setCursor((current) => {
       const next = new Date(Date.UTC(current.year, current.month + delta, 1));
+
       return { year: next.getUTCFullYear(), month: next.getUTCMonth() };
     });
 
@@ -99,7 +115,10 @@ const CalendarPage = () => {
 
               <div className="grid grid-cols-7 gap-1">
                 {WEEKDAYS.map((weekday) => (
-                  <div key={weekday} className="pb-1 text-center text-xs font-medium text-muted-foreground">
+                  <div
+                    key={weekday}
+                    className="pb-1 text-center text-xs font-medium text-muted-foreground"
+                  >
                     {weekday}
                   </div>
                 ))}
@@ -108,6 +127,7 @@ const CalendarPage = () => {
                   const due = dueByDay.get(key) ?? [];
                   const arrears = due.some((loan) => loan.status === LoanStatus.Arrears);
                   const day = Number(key.slice(8, 10));
+
                   return (
                     <button
                       key={key}
@@ -116,7 +136,9 @@ const CalendarPage = () => {
                       onClick={() => setSelected(key)}
                       className={cn(
                         'flex aspect-square flex-col items-center justify-center rounded-md border text-sm transition-colors',
-                        due.length === 0 ? 'border-transparent text-muted-foreground' : 'hover:border-ring',
+                        due.length === 0
+                          ? 'border-transparent text-muted-foreground'
+                          : 'hover:border-ring',
                         key === todayKey && 'ring-2 ring-ring/40',
                         selected === key && 'border-ring bg-accent',
                       )}

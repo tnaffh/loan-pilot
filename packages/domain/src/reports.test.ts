@@ -40,6 +40,7 @@ describe('period math', () => {
   it('produces half-open ranges that abut without overlapping', () => {
     const q1 = quarterRange('2026-Q1');
     const q2 = quarterRange('2026-Q2');
+
     expect(q1?.start.toISOString()).toBe('2026-01-01T00:00:00.000Z');
     expect(q1?.end.toISOString()).toBe('2026-04-01T00:00:00.000Z');
     expect(q1?.end.getTime()).toBe(q2?.start.getTime());
@@ -107,6 +108,7 @@ describe('amount bands', () => {
     for (const bands of [LOAN_VALUE_BANDS, LOAN_COUNT_BANDS]) {
       bands.forEach((band, index) => {
         const next = bands[index + 1];
+
         if (next && band.maxCents !== null) {
           expect(next.minCents).toBe(band.maxCents + 1);
         }
@@ -183,6 +185,7 @@ describe('classification', () => {
         namfisaCollectionMethod(method),
       );
     }
+
     expect(namfisaCollectionMethod(PaymentMethod.Payroll)).toBe('payroll');
     expect(namfisaCollectionMethod(PaymentMethod.DebitOrder)).toBe('debit_order');
     expect(namfisaCollectionMethod(PaymentMethod.Cash)).toBe('cash');
@@ -214,6 +217,7 @@ describe('reconcileCredits', () => {
       payments: [payment('2026-01-10', 5_000), payment('2026-02-10', 5_000)],
       paidScheduleItems: [],
     });
+
     expect(credits).toHaveLength(2);
     expect(creditsUpTo(credits, utc('2026-03-01'))).toBe(10_000);
   });
@@ -223,6 +227,7 @@ describe('reconcileCredits', () => {
       payments: [],
       paidScheduleItems: [item('2026-01-10', 5_000), item('2026-02-10', 5_000)],
     });
+
     expect(credits).toHaveLength(2);
     expect(credits.every((credit) => credit.method === null)).toBe(true);
     expect(creditsUpTo(credits, utc('2026-03-01'))).toBe(10_000);
@@ -235,6 +240,7 @@ describe('reconcileCredits', () => {
       payments: [payment('2026-02-10', 12_000)],
       paidScheduleItems: [item('2026-02-10', 5_000), item('2026-02-10', 5_000)],
     });
+
     expect(credits).toHaveLength(1);
     expect(creditsUpTo(credits, utc('2026-03-01'))).toBe(12_000);
   });
@@ -248,6 +254,7 @@ describe('reconcileCredits', () => {
       payments: [payment('2026-03-10', 5_000)],
       paidScheduleItems: [item('2026-01-10', 1_500), item('2026-02-10', 1_500)],
     });
+
     expect(creditsUpTo(credits, utc('2026-04-01'))).toBe(8_000);
     expect(creditsUpTo(credits, utc('2026-04-01'))).toBeGreaterThan(5_000);
   });
@@ -257,6 +264,7 @@ describe('reconcileCredits', () => {
       payments: [],
       paidScheduleItems: [item(null, 5_000)],
     });
+
     expect(credits).toHaveLength(0);
   });
 
@@ -265,6 +273,7 @@ describe('reconcileCredits', () => {
       payments: [payment('2026-03-10', 300), payment('2026-01-10', 100)],
       paidScheduleItems: [item('2026-02-10', 200)],
     });
+
     expect(credits.map((credit) => credit.amountCents)).toEqual([100, 200, 300]);
     expect(creditsUpTo(credits, utc('2026-03-10'))).toBe(300);
     expect(creditsUpTo(credits, utc('2026-03-11'))).toBe(600);
@@ -282,6 +291,7 @@ describe('effectiveClosedAt', () => {
       { status: LoanStatus.Settled, closedAt: utc('2026-03-01'), disbursedAt: utc('2026-01-01') },
       credits,
     );
+
     expect(closed?.toISOString().slice(0, 10)).toBe('2026-03-01');
   });
 
@@ -292,6 +302,7 @@ describe('effectiveClosedAt', () => {
       { status: LoanStatus.Settled, closedAt: null, disbursedAt: utc('2026-01-01') },
       credits,
     );
+
     expect(closed?.toISOString().slice(0, 10)).toBe('2026-02-10');
   });
 
@@ -300,6 +311,7 @@ describe('effectiveClosedAt', () => {
       { status: LoanStatus.WrittenOff, closedAt: null, disbursedAt: utc('2026-01-01') },
       [],
     );
+
     expect(closed?.toISOString().slice(0, 10)).toBe('2026-01-01');
   });
 
@@ -320,6 +332,7 @@ describe('impliedSchedule', () => {
       instalmentsTotal: 3,
       totalCents: 100_003,
     });
+
     expect(schedule).toHaveLength(3);
     expect(schedule.reduce((sum, item) => sum + item.amountCents, 0)).toBe(100_003);
   });
@@ -330,6 +343,7 @@ describe('impliedSchedule', () => {
       instalmentsTotal: 3,
       totalCents: 300,
     });
+
     expect(schedule.map((item) => item.dueAt.toISOString().slice(0, 10))).toEqual([
       '2026-02-15',
       '2026-03-15',
@@ -338,8 +352,9 @@ describe('impliedSchedule', () => {
   });
 
   it('never produces an empty schedule', () => {
-    expect(impliedSchedule({ disbursedAt: utc('2026-01-15'), instalmentsTotal: 0, totalCents: 500 }))
-      .toHaveLength(1);
+    expect(
+      impliedSchedule({ disbursedAt: utc('2026-01-15'), instalmentsTotal: 0, totalCents: 500 }),
+    ).toHaveLength(1);
   });
 });
 
@@ -354,6 +369,7 @@ describe('ageAt', () => {
     // N$2,500 collected covers instalments 1 and 2; instalment 3 fell due
     // 2026-04-01 and is 44 days late on 2026-05-15.
     const result = ageAt({ schedule, amountRepaidCents: 250_000, asOf: utc('2026-05-15') });
+
     expect(result.outstandingCents).toBe(250_000);
     expect(result.daysLate).toBe(44);
     expect(ageingBucketFor(result.daysLate)).toBe('d30');
@@ -361,6 +377,7 @@ describe('ageAt', () => {
 
   it('reports a fully-paid loan as current with nothing outstanding', () => {
     const result = ageAt({ schedule, amountRepaidCents: 500_000, asOf: utc('2026-07-01') });
+
     expect(result.outstandingCents).toBe(0);
     expect(result.daysLate).toBe(0);
     expect(result.overdueCents).toBe(0);
@@ -368,6 +385,7 @@ describe('ageAt', () => {
 
   it('does not age instalments that are not yet due', () => {
     const result = ageAt({ schedule, amountRepaidCents: 0, asOf: utc('2026-01-15') });
+
     expect(result.daysLate).toBe(0);
     expect(result.overdueCents).toBe(0);
     expect(result.outstandingCents).toBe(500_000);
@@ -375,6 +393,7 @@ describe('ageAt', () => {
 
   it('accumulates the shortfall across every overdue instalment', () => {
     const result = ageAt({ schedule, amountRepaidCents: 150_000, asOf: utc('2026-04-02') });
+
     // Instalments 1–3 are due; N$1,500 covers 1 and half of 2.
     expect(result.overdueCents).toBe(150_000);
     expect(result.daysLate).toBe(32); // instalment 2, due 2026-03-01
@@ -383,6 +402,7 @@ describe('ageAt', () => {
   it('clamps an overpayment rather than reporting a negative book', () => {
     // settle() pays balance + default interest, which exceeds the schedule.
     const result = ageAt({ schedule, amountRepaidCents: 600_000, asOf: utc('2026-07-01') });
+
     expect(result.outstandingCents).toBe(0);
   });
 });

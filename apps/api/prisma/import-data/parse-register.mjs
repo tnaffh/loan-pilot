@@ -144,8 +144,18 @@ const isoDate = (v, anchor = null, bias = 'after') => {
 };
 
 const MONTHS = {
-  jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
-  jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
+  jan: 1,
+  feb: 2,
+  mar: 3,
+  apr: 4,
+  may: 5,
+  jun: 6,
+  jul: 7,
+  aug: 8,
+  sep: 9,
+  oct: 10,
+  nov: 11,
+  dec: 12,
 };
 
 /** A month label ("October 2023", " November 2024 ") to "YYYY-MM", or null. */
@@ -214,7 +224,8 @@ const truthy = (v) => {
 
 const SPECIAL = new Set(['additional investment', 'expenditures sheet', 'refunded $']);
 const isPaymentTab = (name) => str(name).toLowerCase().startsWith('payments');
-const rowsOf = (name) => XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: true, defval: null });
+const rowsOf = (name) =>
+  XLSX.utils.sheet_to_json(wb.Sheets[name], { header: 1, raw: true, defval: null });
 
 const loanTabs = wb.SheetNames.filter(
   (n) => !isPaymentTab(n) && !SPECIAL.has(str(n).toLowerCase()),
@@ -417,7 +428,11 @@ const expHeader = expRows[expHeaderRow] ?? [];
 const SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const monthCols = []; // { col, period, incurredAt }
 const pushMonth = (col, year, mon) =>
-  monthCols.push({ col, period: `${SHORT[mon - 1]} ${year}`, incurredAt: `${year}-${pad(mon)}-01` });
+  monthCols.push({
+    col,
+    period: `${SHORT[mon - 1]} ${year}`,
+    incurredAt: `${year}-${pad(mon)}-01`,
+  });
 let carryYear = null;
 for (let c = categoryCol + 1; c < expHeader.length; c += 1) {
   const h = expHeader[c];
@@ -489,10 +504,19 @@ console.log(`  loan tabs:    ${loanTabs.length}`);
 console.log(`  payment tabs: ${paymentTabs.length}`);
 console.log(`  borrowers:    ${borrowers.length}`);
 console.log(`  loans:        ${loans.length}`);
-console.log(`  payments:     ${payments.length} (matched ${matched}, unmatched ${payments.length - matched})`);
-console.log(`  expenses:     ${expenses.length - drawings.length} operating + ${drawings.length} drawings`);
-console.log(`  investments:  ${investments.length} (N$ ${(sum(investments, (i) => i.amount) / 100).toLocaleString()})`);
-console.log('  unmatched payments:', payments.filter((p) => !loanKeySet.has(p.loanKey)).map((p) => p.loanKey));
+console.log(
+  `  payments:     ${payments.length} (matched ${matched}, unmatched ${payments.length - matched})`,
+);
+console.log(
+  `  expenses:     ${expenses.length - drawings.length} operating + ${drawings.length} drawings`,
+);
+console.log(
+  `  investments:  ${investments.length} (N$ ${(sum(investments, (i) => i.amount) / 100).toLocaleString()})`,
+);
+console.log(
+  '  unmatched payments:',
+  payments.filter((p) => !loanKeySet.has(p.loanKey)).map((p) => p.loanKey),
+);
 console.log('  distinct loan statuses:', [...new Set(loans.map((l) => l.status))].sort());
 console.log('  distinct payment methods:', [...new Set(payments.map((p) => p.method))].sort());
 console.log('  loans missing ID number:', loans.filter((l) => !l.idNumber).length);

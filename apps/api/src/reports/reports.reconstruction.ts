@@ -80,8 +80,10 @@ export const buildLedgers = <TLoan extends ReportLoanRow>({
   readonly scheduleItems: readonly ReportScheduleRow[];
 }): Map<string, LoanLedger<TLoan>> => {
   const paymentsByLoan = new Map<string, ReportPaymentRow[]>();
+
   for (const payment of payments) {
     const bucket = paymentsByLoan.get(payment.loanId);
+
     if (bucket) {
       bucket.push(payment);
     } else {
@@ -90,11 +92,14 @@ export const buildLedgers = <TLoan extends ReportLoanRow>({
   }
 
   const itemsByLoan = new Map<string, ReportScheduleRow[]>();
+
   for (const item of scheduleItems) {
     if (item.status !== RepaymentStatus.Paid) {
       continue;
     }
+
     const bucket = itemsByLoan.get(item.loanId);
+
     if (bucket) {
       bucket.push(item);
     } else {
@@ -103,6 +108,7 @@ export const buildLedgers = <TLoan extends ReportLoanRow>({
   }
 
   const ledgers = new Map<string, LoanLedger<TLoan>>();
+
   for (const loan of loans) {
     const credits = reconcileCredits({
       payments: (paymentsByLoan.get(loan.id) ?? []).map((payment) => ({
@@ -115,6 +121,7 @@ export const buildLedgers = <TLoan extends ReportLoanRow>({
         amountCents: item.amount,
       })),
     });
+
     ledgers.set(loan.id, {
       loan,
       credits,
@@ -128,6 +135,7 @@ export const buildLedgers = <TLoan extends ReportLoanRow>({
         : [],
     });
   }
+
   return ledgers;
 };
 
@@ -145,26 +153,32 @@ export const outstandingAt = (ledger: LoanLedger, asOf: Date): Cents =>
  */
 export const onBookAt = (ledger: LoanLedger, asOf: Date): boolean => {
   const { loan, closedAt } = ledger;
+
   if (loan.status === LoanStatus.Cancelled || !loan.disbursedAt) {
     return false;
   }
+
   if (loan.disbursedAt.getTime() >= asOf.getTime()) {
     return false;
   }
+
   if (closedAt !== null && closedAt.getTime() <= asOf.getTime()) {
     return false;
   }
+
   return outstandingAt(ledger, asOf) > 0;
 };
 
 /** Total value of the loan book at `asOf`. */
 export const bookValueAt = (ledgers: Iterable<LoanLedger>, asOf: Date): Cents => {
   const state = { total: 0 };
+
   for (const ledger of ledgers) {
     if (onBookAt(ledger, asOf)) {
       state.total += outstandingAt(ledger, asOf);
     }
   }
+
   return state.total;
 };
 
@@ -180,10 +194,12 @@ export const bookAt = <TLoan extends ReportLoanRow>(
   asOf: Date,
 ): BookEntry<TLoan>[] => {
   const entries: BookEntry<TLoan>[] = [];
+
   for (const ledger of ledgers) {
     if (!onBookAt(ledger, asOf)) {
       continue;
     }
+
     entries.push({
       ledger,
       outstandingCents: outstandingAt(ledger, asOf),
@@ -194,6 +210,7 @@ export const bookAt = <TLoan extends ReportLoanRow>(
       }),
     });
   }
+
   return entries;
 };
 
@@ -204,14 +221,17 @@ export const creditsInPeriod = (
   end: Date,
 ): LoanCredit[] => {
   const collected: LoanCredit[] = [];
+
   for (const ledger of ledgers) {
     for (const credit of ledger.credits) {
       const at = credit.at.getTime();
+
       if (at >= start.getTime() && at < end.getTime()) {
         collected.push(credit);
       }
     }
   }
+
   return collected;
 };
 
@@ -228,19 +248,24 @@ export const writeOffsInPeriod = <TLoan extends ReportLoanRow>(
   end: Date,
 ): { readonly ledger: LoanLedger<TLoan>; readonly amountCents: Cents }[] => {
   const written: { ledger: LoanLedger<TLoan>; amountCents: Cents }[] = [];
+
   for (const ledger of ledgers) {
     const { loan, closedAt } = ledger;
+
     if (closedAt === null) {
       continue;
     }
+
     if (closedAt.getTime() < start.getTime() || closedAt.getTime() >= end.getTime()) {
       continue;
     }
+
     if (loan.status === LoanStatus.WrittenOff) {
       written.push({ ledger, amountCents: outstandingAt(ledger, closedAt) });
     } else if (loan.status === LoanStatus.Settled && loan.waived > 0) {
       written.push({ ledger, amountCents: loan.waived });
     }
   }
+
   return written;
 };

@@ -143,6 +143,7 @@ describe('BorrowersService', () => {
         { provide: StorageService, useValue: storageMock },
       ],
     }).compile();
+
     service = moduleRef.get(BorrowersService);
   });
 
@@ -168,6 +169,7 @@ describe('BorrowersService', () => {
   it('stores monthly income in cents, connects the tenant, and seeds an active address + account', async () => {
     await service.create('tenant_1', baseInput);
     const data = create.mock.calls[0][0].data;
+
     expect(data.monthlyIncome).toBe(1850000);
     expect(data.tenant.connect.id).toBe('tenant_1');
     expect(data.addresses.create[0]).toMatchObject({ street: '12 Acacia St', isActive: true });
@@ -324,6 +326,7 @@ describe('BorrowersService', () => {
     ]);
     const result = await service.duplicateSuggestions('tenant_1', 'bor_1');
     const ids = result.map((b) => b.id);
+
     expect(ids).toContain('same_phone');
     expect(ids).toContain('same_name');
     expect(ids).not.toContain('noise');
@@ -389,6 +392,7 @@ describe('BorrowersService', () => {
     // A cancelled loan never advanced funds, so it is not "borrowed".
     expect(letter.totals.lifetimeBorrowed).toBe(180000);
     const openLoan = letter.loans[0];
+
     expect(openLoan?.payoff).toBeGreaterThan(130000); // includes default interest
     expect(openLoan?.defaultInterest).toBe((openLoan?.payoff ?? 0) - 130000);
     expect(letter.totals.outstanding).toBe(openLoan?.payoff);

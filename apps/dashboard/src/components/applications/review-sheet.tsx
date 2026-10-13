@@ -37,7 +37,9 @@ interface Props {
 
 export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Props) => {
   const { token } = useAuth();
-  const { data } = useApi<ApplicationDetail>(open && applicationId ? `/applications/${applicationId}` : null);
+  const { data } = useApi<ApplicationDetail>(
+    open && applicationId ? `/applications/${applicationId}` : null,
+  );
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState<ApplicationStatus | null>(null);
   const [declining, setDeclining] = useState(false);
@@ -45,12 +47,14 @@ export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Pr
   const decide = async (status: ApplicationStatus) => {
     if (!applicationId) return;
     setBusy(status);
+
     try {
       const result = await apiFetch<ApplicationDecision>(`/applications/${applicationId}/status`, {
         method: 'PATCH',
         body: { status, reason: status === ApplicationStatus.Declined ? reason : '' },
         token,
       });
+
       if (status === ApplicationStatus.Approved && result.loanId) {
         toast.success('Approved & loan disbursed');
       } else if (status === ApplicationStatus.Declined) {
@@ -58,6 +62,7 @@ export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Pr
       } else {
         toast.success('Moved to review');
       }
+
       bumpRevalidation();
       onOpenChange(false);
     } catch (error) {
@@ -137,7 +142,13 @@ export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Pr
                 <Kv
                   label="Address"
                   value={
-                    [data.addrStreet, data.addrSuburb, data.addrCity, data.addrRegion, data.addrCountry]
+                    [
+                      data.addrStreet,
+                      data.addrSuburb,
+                      data.addrCity,
+                      data.addrRegion,
+                      data.addrCountry,
+                    ]
                       .filter(Boolean)
                       .join(', ') || '—'
                   }
@@ -145,9 +156,7 @@ export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Pr
                 <Kv label="Bank" value={`${data.bankName} · ${data.accountType}`} />
                 <Kv
                   label="Account"
-                  value={
-                    `${data.bankAccountNumber || '—'}${data.bankBranchCode ? ` · ${data.bankBranchCode}` : ''}`
-                  }
+                  value={`${data.bankAccountNumber || '—'}${data.bankBranchCode ? ` · ${data.bankBranchCode}` : ''}`}
                 />
               </div>
 
@@ -178,10 +187,13 @@ export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Pr
                     />
                   </div>
                   {data.collateralDescription ? (
-                    <p className="mt-1 text-sm text-muted-foreground">{data.collateralDescription}</p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {data.collateralDescription}
+                    </p>
                   ) : null}
                   {(() => {
                     const photos = data.documents.filter((doc) => doc.kind === 'collateral_photo');
+
                     return photos.length > 0 ? (
                       <div className="mt-2 grid grid-cols-4 gap-2">
                         {photos.map((photo) =>
@@ -194,7 +206,11 @@ export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Pr
                               className="aspect-square overflow-hidden rounded-md border"
                             >
                               {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img src={photo.url} alt={photo.fileName} className="h-full w-full object-cover" />
+                              <img
+                                src={photo.url}
+                                alt={photo.fileName}
+                                className="h-full w-full object-cover"
+                              />
                             </a>
                           ) : null,
                         )}
@@ -261,18 +277,29 @@ export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Pr
                           disabled={busy !== null}
                           onClick={() => decide(ApplicationStatus.Declined)}
                         >
-                          {busy === ApplicationStatus.Declined ? <Loader2 className="animate-spin" /> : null}
+                          {busy === ApplicationStatus.Declined ? (
+                            <Loader2 className="animate-spin" />
+                          ) : null}
                           Confirm decline
                         </Button>
-                        <Button variant="outline" onClick={() => setDeclining(false)} disabled={busy !== null}>
+                        <Button
+                          variant="outline"
+                          onClick={() => setDeclining(false)}
+                          disabled={busy !== null}
+                        >
                           Back
                         </Button>
                       </div>
                     </div>
                   ) : (
                     <div className="flex flex-wrap gap-2">
-                      <Button disabled={busy !== null} onClick={() => decide(ApplicationStatus.Approved)}>
-                        {busy === ApplicationStatus.Approved ? <Loader2 className="animate-spin" /> : null}
+                      <Button
+                        disabled={busy !== null}
+                        onClick={() => decide(ApplicationStatus.Approved)}
+                      >
+                        {busy === ApplicationStatus.Approved ? (
+                          <Loader2 className="animate-spin" />
+                        ) : null}
                         Approve &amp; disburse
                       </Button>
                       {data.status === ApplicationStatus.Pending ? (
@@ -281,11 +308,17 @@ export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Pr
                           disabled={busy !== null}
                           onClick={() => decide(ApplicationStatus.Review)}
                         >
-                          {busy === ApplicationStatus.Review ? <Loader2 className="animate-spin" /> : null}
+                          {busy === ApplicationStatus.Review ? (
+                            <Loader2 className="animate-spin" />
+                          ) : null}
                           Move to review
                         </Button>
                       ) : null}
-                      <Button variant="ghost" className="text-destructive" onClick={() => setDeclining(true)}>
+                      <Button
+                        variant="ghost"
+                        className="text-destructive"
+                        onClick={() => setDeclining(true)}
+                      >
                         Decline
                       </Button>
                     </div>

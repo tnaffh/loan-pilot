@@ -20,12 +20,14 @@ const CodeScreen = () => {
   useEffect(() => {
     if (wait <= 0) return undefined;
     const timer = setTimeout(() => setWait((seconds) => seconds - 1), 1000);
+
     return () => clearTimeout(timer);
   }, [wait]);
 
   const verify = async (value: string) => {
     setVerifying(true);
     setError(undefined);
+
     try {
       // Signing in flips the root stack's guards, which moves to the tabs.
       await verifyCode(phone, value);

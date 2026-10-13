@@ -8,6 +8,7 @@ const Segment = ({ reached }: { reached: boolean }) => {
   const fill = useAnimatedStyle(() => ({
     transform: [{ scaleX: withTiming(reached ? 1 : 0, { duration: 320 }) }],
   }));
+
   return (
     <View className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
       <Animated.View

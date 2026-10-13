@@ -13,9 +13,7 @@ export class HealthController {
 
   @Get()
   async check(): Promise<HealthResponse> {
-    const database = await this.prisma
-      .$queryRaw`SELECT 1`.then(() => 'up')
-      .catch(() => 'down');
+    const database = await this.prisma.$queryRaw`SELECT 1`.then(() => 'up').catch(() => 'down');
 
     const body: HealthResponse = {
       status: database === 'up' ? 'ok' : 'degraded',

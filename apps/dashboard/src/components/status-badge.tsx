@@ -71,6 +71,7 @@ interface StatusBadgeProps {
 
 export const StatusBadge = ({ value, iconless, className }: StatusBadgeProps) => {
   const meta = STATUS[value];
+
   if (!meta) {
     return (
       <Badge variant="outline" className={className}>
@@ -78,7 +79,9 @@ export const StatusBadge = ({ value, iconless, className }: StatusBadgeProps) =>
       </Badge>
     );
   }
+
   const Icon = meta.icon;
+
   return (
     <Badge className={cn(TONE_CLASS[meta.tone], className)}>
       {iconless ? null : <Icon />}

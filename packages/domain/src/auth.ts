@@ -68,8 +68,10 @@ export const assignableRoles = (actorRole: UserRole): UserRole[] => {
   if (actorRole === UserRole.Platform) {
     return [UserRole.Platform];
   }
+
   if (actorRole === UserRole.LenderAdmin) {
     return [UserRole.LenderAdmin, UserRole.LenderStaff];
   }
+
   return [];
 };

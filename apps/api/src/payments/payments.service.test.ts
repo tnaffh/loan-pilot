@@ -27,8 +27,7 @@ describe('PaymentsService', () => {
   let service: PaymentsService;
 
   /** The loan update is the first operation handed to $transaction. */
-  const loanWrite = (): Record<string, unknown> =>
-    transaction.mock.calls[0]?.[0]?.[0]?.data ?? {};
+  const loanWrite = (): Record<string, unknown> => transaction.mock.calls[0]?.[0]?.[0]?.data ?? {};
   /** Every schedule row the recompute chose to rewrite. */
   const scheduleWrites = (): { where: { id: string }; data: Record<string, unknown> }[] =>
     scheduleUpdate.mock.calls.map((call) => call[0]);
@@ -47,6 +46,7 @@ describe('PaymentsService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [PaymentsService, { provide: PrismaService, useValue: prismaMock }],
     }).compile();
+
     service = moduleRef.get(PaymentsService);
   });
 
@@ -65,12 +65,18 @@ describe('PaymentsService', () => {
 
   it('stores the amount in cents and connects loan + tenant', async () => {
     loanFindFirst.mockResolvedValue({ id: 'loan_1', total: 130000 });
-    loanFindUnique.mockResolvedValue({ id: 'loan_1', total: 130000, waived: 0, status: LoanStatus.Active });
+    loanFindUnique.mockResolvedValue({
+      id: 'loan_1',
+      total: 130000,
+      waived: 0,
+      status: LoanStatus.Active,
+    });
     paymentFindMany.mockResolvedValue([{ amount: 50000, paidAt: new Date('2026-06-17') }]);
 
     await service.create('tenant_1', input);
 
     const data = paymentCreate.mock.calls[0][0].data;
+
     expect(data.amount).toBe(50000); // N$ 500
     expect(data.loan.connect.id).toBe('loan_1');
     expect(data.tenant.connect.id).toBe('tenant_1');
@@ -78,7 +84,12 @@ describe('PaymentsService', () => {
 
   it('settles the loan once payments cover the total', async () => {
     loanFindFirst.mockResolvedValue({ id: 'loan_1', total: 130000 });
-    loanFindUnique.mockResolvedValue({ id: 'loan_1', total: 130000, waived: 0, status: LoanStatus.Active });
+    loanFindUnique.mockResolvedValue({
+      id: 'loan_1',
+      total: 130000,
+      waived: 0,
+      status: LoanStatus.Active,
+    });
     paymentFindMany.mockResolvedValue([{ amount: 130000, paidAt: new Date('2026-06-17') }]);
 
     await service.create('tenant_1', { ...input, amount: 1300 });
@@ -88,7 +99,12 @@ describe('PaymentsService', () => {
 
   it('marks the loan partly paid when payments are below the total', async () => {
     loanFindFirst.mockResolvedValue({ id: 'loan_1', total: 130000 });
-    loanFindUnique.mockResolvedValue({ id: 'loan_1', total: 130000, waived: 0, status: LoanStatus.Active });
+    loanFindUnique.mockResolvedValue({
+      id: 'loan_1',
+      total: 130000,
+      waived: 0,
+      status: LoanStatus.Active,
+    });
     paymentFindMany.mockResolvedValue([{ amount: 50000, paidAt: new Date('2026-06-17') }]);
 
     await service.create('tenant_1', input);

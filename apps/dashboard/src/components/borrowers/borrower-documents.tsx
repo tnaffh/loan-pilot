@@ -70,22 +70,29 @@ const canPreview = (doc: DocumentRow): boolean =>
 /** Group documents by kind, ordered by {@link KIND_OPTIONS} with unknown kinds last. */
 const groupByKind = (documents: DocumentRow[]): { kind: string; docs: DocumentRow[] }[] => {
   const byKind = new Map<string, DocumentRow[]>();
+
   for (const doc of documents) {
     const list = byKind.get(doc.kind) ?? [];
+
     list.push(doc);
     byKind.set(doc.kind, list);
   }
+
   const ordered: { kind: string; docs: DocumentRow[] }[] = [];
+
   for (const kind of KIND_OPTIONS) {
     const docs = byKind.get(kind);
+
     if (docs) {
       ordered.push({ kind, docs });
       byKind.delete(kind);
     }
   }
+
   for (const [kind, docs] of byKind) {
     ordered.push({ kind, docs });
   }
+
   return ordered;
 };
 
@@ -112,6 +119,7 @@ export const BorrowerDocuments = ({
 
   const download = async (doc: DocumentRow) => {
     setDownloading(doc.id);
+
     try {
       await downloadDocument(doc, token);
     } catch (error) {
@@ -124,6 +132,7 @@ export const BorrowerDocuments = ({
   const onPick = async (file: File | undefined) => {
     if (!file) return;
     setUploading(true);
+
     try {
       await uploadDocument(`/borrowers/${borrowerId}/documents`, { kind, file }, { token });
       toast.success('Document uploaded');
@@ -132,12 +141,14 @@ export const BorrowerDocuments = ({
       toast.error(error instanceof ApiError ? error.message : 'Upload failed');
     } finally {
       setUploading(false);
+
       if (fileInput.current) fileInput.current.value = '';
     }
   };
 
   const remove = async (id: string) => {
     setRemoving(id);
+
     try {
       await apiFetch(`/borrowers/${borrowerId}/documents/${id}`, { method: 'DELETE', token });
       toast.success('Document removed');
@@ -161,6 +172,7 @@ export const BorrowerDocuments = ({
         <div className="flex flex-wrap gap-2">
           {REQUIRED_KINDS.map((requiredKind) => {
             const present = presentKinds.has(requiredKind);
+
             return (
               <span
                 key={requiredKind}
@@ -265,7 +277,10 @@ export const BorrowerDocuments = ({
         {canEdit ? (
           <div className="flex flex-wrap items-end gap-3 border-t pt-4">
             <FormField label="Type" htmlFor="doc-kind" className="w-44">
-              <Select value={kind} onValueChange={(value) => setKind(value ?? DocumentKind.IdDocument)}>
+              <Select
+                value={kind}
+                onValueChange={(value) => setKind(value ?? DocumentKind.IdDocument)}
+              >
                 <SelectTrigger id="doc-kind" className="w-full">
                   <SelectValue />
                 </SelectTrigger>
@@ -285,8 +300,16 @@ export const BorrowerDocuments = ({
               className="hidden"
               onChange={(e) => onPick(e.target.files?.[0])}
             />
-            <Button variant="outline" disabled={uploading} onClick={() => fileInput.current?.click()}>
-              {uploading ? <Loader2 className="size-4 animate-spin" /> : <Upload className="size-4" />}
+            <Button
+              variant="outline"
+              disabled={uploading}
+              onClick={() => fileInput.current?.click()}
+            >
+              {uploading ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Upload className="size-4" />
+              )}
               Upload (PDF, JPG, PNG)
             </Button>
           </div>

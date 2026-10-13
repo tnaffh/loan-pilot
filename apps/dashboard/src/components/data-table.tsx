@@ -144,6 +144,7 @@ export const DataTable = <TData, TValue>({
                   const content = header.isPlaceholder
                     ? null
                     : flexRender(header.column.columnDef.header, header.getContext());
+
                   return (
                     <TableHead key={header.id}>
                       {canSort ? (
@@ -190,7 +191,10 @@ export const DataTable = <TData, TValue>({
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center text-muted-foreground"
+                >
                   No results.
                 </TableCell>
               </TableRow>

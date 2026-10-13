@@ -111,7 +111,9 @@ export const EditBorrowerSheet = ({ borrower, open, onOpenChange, onSaved }: Pro
       <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
         <SheetHeader>
           <SheetTitle>Edit borrower</SheetTitle>
-          <SheetDescription>Correct imported details. Changes are recorded in the audit trail.</SheetDescription>
+          <SheetDescription>
+            Correct imported details. Changes are recorded in the audit trail.
+          </SheetDescription>
         </SheetHeader>
         <form onSubmit={onSubmit} className="space-y-4 px-4 pb-4" noValidate>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -142,8 +144,17 @@ export const EditBorrowerSheet = ({ borrower, open, onOpenChange, onSaved }: Pro
             <FormField label="Occupation" htmlFor="occupation" error={errors.occupation?.message}>
               <Input id="occupation" {...register('occupation')} />
             </FormField>
-            <FormField label="Monthly income (N$)" htmlFor="monthlyIncome" error={errors.monthlyIncome?.message}>
-              <Input id="monthlyIncome" type="number" inputMode="numeric" {...register('monthlyIncome')} />
+            <FormField
+              label="Monthly income (N$)"
+              htmlFor="monthlyIncome"
+              error={errors.monthlyIncome?.message}
+            >
+              <Input
+                id="monthlyIncome"
+                type="number"
+                inputMode="numeric"
+                {...register('monthlyIncome')}
+              />
             </FormField>
             <FormField label="Employment type" htmlFor="employmentType">
               <select id="employmentType" className={selectClass} {...register('employmentType')}>
@@ -197,7 +208,12 @@ export const EditBorrowerSheet = ({ borrower, open, onOpenChange, onSaved }: Pro
               {isSubmitting ? <Loader2 className="animate-spin" /> : null}
               Save changes
             </Button>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
           </SheetFooter>

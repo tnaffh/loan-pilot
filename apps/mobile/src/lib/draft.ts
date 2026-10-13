@@ -21,8 +21,10 @@ export const saveDraft = (values: DeepPartial<CreateApplicationInput>): void => 
     tcAccepted: _tc,
     ...rest
   } = values;
+
   try {
     const file = draftFile();
+
     if (!file.exists) file.create();
     file.write(JSON.stringify(rest));
   } catch {
@@ -33,8 +35,10 @@ export const saveDraft = (values: DeepPartial<CreateApplicationInput>): void => 
 export const loadDraft = (): ApplicationDraft | null => {
   try {
     const file = draftFile();
+
     if (!file.exists) return null;
     const parsed: ApplicationDraft = JSON.parse(file.textSync());
+
     return parsed;
   } catch {
     return null;
@@ -44,6 +48,7 @@ export const loadDraft = (): ApplicationDraft | null => {
 export const clearDraft = (): void => {
   try {
     const file = draftFile();
+
     if (file.exists) file.delete();
   } catch {
     // Nothing to clear.

@@ -17,7 +17,8 @@ const formatter = new Intl.NumberFormat('en-NA', {
 });
 
 /** Format integer cents as a display string, e.g. 650000 -> "N$ 6,500". */
-export const formatNad = (cents: Cents): string => `N$ ${formatter.format(Math.round(fromCents(cents)))}`;
+export const formatNad = (cents: Cents): string =>
+  `N$ ${formatter.format(Math.round(fromCents(cents)))}`;
 
 /**
  * Split a total amount of cents into `count` integer instalments. The remainder
@@ -27,8 +28,10 @@ export const splitInstalments = (totalCents: Cents, count: number): Cents[] => {
   if (count <= 0) {
     throw new RangeError('Instalment count must be a positive integer');
   }
+
   const base = Math.floor(totalCents / count);
   const remainder = totalCents - base * count;
+
   return Array.from({ length: count }, (_unused, index) =>
     index === count - 1 ? base + remainder : base,
   );

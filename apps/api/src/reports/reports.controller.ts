@@ -64,6 +64,7 @@ export class ReportsController {
     @Param('period') period: string,
   ): Promise<StreamableFile> {
     const pdf = await this.reports.quarterlyPdf(requireTenantId(user), period);
+
     return new StreamableFile(pdf, {
       type: PDF,
       disposition: `attachment; filename="namfisa-return-${period}.pdf"`,
@@ -73,10 +74,7 @@ export class ReportsController {
 
   @Get('monthly')
   @RequirePermissions('reports:read', 'finance:read')
-  monthly(
-    @CurrentUser() user: SessionUser,
-    @Query('month') month: string,
-  ): Promise<MonthlyReport> {
+  monthly(@CurrentUser() user: SessionUser, @Query('month') month: string): Promise<MonthlyReport> {
     return this.reports.monthly(requireTenantId(user), month);
   }
 
@@ -87,6 +85,7 @@ export class ReportsController {
     @Param('month') month: string,
   ): Promise<StreamableFile> {
     const pdf = await this.reports.monthlyPdf(requireTenantId(user), month);
+
     return new StreamableFile(pdf, {
       type: PDF,
       disposition: `attachment; filename="monthly-report-${month}.pdf"`,
@@ -101,6 +100,7 @@ export class ReportsController {
     @Param('month') month: string,
   ): Promise<StreamableFile> {
     const book = await this.reports.monthlyXlsx(requireTenantId(user), month);
+
     return new StreamableFile(book, {
       type: XLSX,
       disposition: `attachment; filename="monthly-report-${month}.xlsx"`,

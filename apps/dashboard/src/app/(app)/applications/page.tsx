@@ -72,11 +72,13 @@ const ApplicationsPage = () => {
     const decided = approved + declined;
     const rate = decided ? Math.round((approved / decided) * 100) : 0;
     const requested = all.reduce((sum, a) => sum + a.amount, 0);
+
     return { pending, review, rate, requested };
   }, [data]);
 
   const move = async (id: string, status: ApplicationStatus) => {
     setMovingId(id);
+
     try {
       await apiFetch(`/applications/${id}/status`, { method: 'PATCH', body: { status }, token });
       toast.success(
@@ -101,7 +103,9 @@ const ApplicationsPage = () => {
       [ApplicationStatus.Approved]: [],
       [ApplicationStatus.Declined]: [],
     };
+
     for (const row of data ?? []) groups[row.status]?.push(row);
+
     return groups;
   }, [data]);
 
@@ -217,6 +221,7 @@ const ApplicationsPage = () => {
                 const cards = byStatus[column.status];
                 const shown = cards.slice(0, shownCount(column.status));
                 const remaining = cards.length - shown.length;
+
                 return (
                   <div key={column.status} className="rounded-xl border bg-muted/30 p-3">
                     <div className="mb-3 flex items-center justify-between px-1">

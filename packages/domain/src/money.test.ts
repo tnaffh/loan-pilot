@@ -12,6 +12,7 @@ describe('money helpers', () => {
 
   it('splits totals into instalments that sum back to the total', () => {
     const parts = splitInstalments(1000, 3);
+
     expect(parts).toEqual([333, 333, 334]);
     expect(parts.reduce((a, b) => a + b, 0)).toBe(1000);
   });

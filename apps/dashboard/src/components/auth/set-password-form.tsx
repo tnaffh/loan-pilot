@@ -24,8 +24,10 @@ export const SetPasswordForm = ({
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+
     if (!valid) return;
     setBusy(true);
+
     try {
       await onSubmit(password);
     } finally {

@@ -30,6 +30,7 @@ const Accept = () => {
   const onSubmit = async (password: string) => {
     try {
       const { accessToken, user } = await acceptInvite(token, password);
+
       setSession(accessToken, user);
       toast.success('Account activated');
       router.replace('/');

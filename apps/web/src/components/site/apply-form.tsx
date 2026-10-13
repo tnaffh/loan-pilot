@@ -176,14 +176,18 @@ export const ApplyForm = () => {
 
   const next = async () => {
     const valid = await trigger(STEP_FIELDS[step]);
+
     if (valid) {
       setStep((current) => Math.min(current + 1, STEPS.length - 1));
+
       return;
     }
+
     // Surface why the step is blocked — some failing fields (e.g. a hidden
     // postal address) aren't on screen, so an inline error alone is invisible.
     const messages = collectStepErrors(form.formState.errors, STEP_FIELDS[step] ?? []);
     const { toast } = await import('sonner');
+
     toast.error('Please fix the highlighted fields', {
       description: messages.length ? messages.join(' · ') : undefined,
     });
@@ -202,18 +206,22 @@ export const ApplyForm = () => {
     const visit = (node: unknown): void => {
       if (!node || typeof node !== 'object') return;
       const record = node as Record<string, unknown>;
+
       if (typeof record.message === 'string' && !seen.has(record.message)) {
         seen.add(record.message);
         messages.push(record.message);
       }
+
       for (const key of Object.keys(record)) {
         if (key === 'message' || key === 'type' || key === 'ref') continue;
         visit(record[key]);
       }
     };
+
     for (const root of new Set(fieldsForStep.map((field) => field.split('.')[0] ?? field))) {
       visit((errs as Record<string, unknown>)[root]);
     }
+
     return messages;
   };
 
@@ -224,15 +232,18 @@ export const ApplyForm = () => {
     const index = STEP_FIELDS.findIndex((fields) =>
       fields.some((field) => erroredRoots.has(field.split('.')[0] ?? field)),
     );
+
     return index === -1 ? step : index;
   };
 
   const onInvalid = async (errs: FieldErrors<CreateApplicationInput>) => {
     const target = stepOfFirstError(errs);
+
     setStep(target);
     // Surface the errors on the destination step's fields.
     await trigger(STEP_FIELDS[target]);
     const { toast } = await import('sonner');
+
     toast.error('Please fix the highlighted fields before submitting.');
   };
 
@@ -246,23 +257,30 @@ export const ApplyForm = () => {
    * attached, otherwise sets per-slot errors. Collateral loans also require a photo. */
   const validateDocs = (): boolean => {
     const errs: Partial<Record<DocumentKind, string>> = {};
+
     for (const slot of DOCUMENT_SLOTS) {
       if (slotRequired(slot) && !docs[slot.kind]) {
         errs[slot.kind] = 'This document is required';
       }
     }
+
     setDocErrors(errs);
     const photosMissing = isCollateral && collateralPhotos.length < 1;
+
     setPhotoError(photosMissing ? 'At least one photo of the collateral is required' : null);
+
     return Object.keys(errs).length === 0 && !photosMissing;
   };
 
   const onSubmit = handleSubmit(async (values) => {
     if (!validateDocs()) {
       const { toast } = await import('sonner');
+
       toast.error('Please attach the required documents before submitting.');
+
       return;
     }
+
     try {
       const response = await submitApplication(values);
 
@@ -275,10 +293,13 @@ export const ApplyForm = () => {
           uploadApplicationDocument(response.id, DocumentKind.CollateralPhoto, file),
         ),
       ];
+
       if (uploads.length > 0) {
         const outcomes = await Promise.allSettled(uploads);
+
         if (outcomes.some((outcome) => outcome.status === 'rejected')) {
           const { toast } = await import('sonner');
+
           toast.warning('Application submitted, but some documents failed to upload.', {
             description: 'You can re-send them later — our team will follow up.',
           });
@@ -288,12 +309,15 @@ export const ApplyForm = () => {
       setResult(response);
     } catch (error) {
       const { toast } = await import('sonner');
+
       if (error instanceof ApiError) {
         toast.error(error.message, {
           description: error.issues.map((issue) => issue.message).join(', ') || undefined,
         });
+
         return;
       }
+
       toast.error('We could not submit your application. Please try again.');
     }
   }, onInvalid);
@@ -306,6 +330,7 @@ export const ApplyForm = () => {
         : result.affordability === 'fail'
           ? 'text-destructive'
           : 'text-warning';
+
     return (
       <Card>
         <CardContent className="space-y-6 py-12 text-center">
@@ -574,6 +599,7 @@ export const ApplyForm = () => {
                         value={collateralPhotos}
                         onChange={(files) => {
                           setCollateralPhotos(files);
+
                           if (files.length > 0) setPhotoError(null);
                         }}
                       />
@@ -748,6 +774,7 @@ export const ApplyForm = () => {
                           checked={field.value ?? false}
                           onCheckedChange={(checked) => {
                             field.onChange(checked === true);
+
                             // Drop any entered postal address so it can't linger
                             // as a hidden, half-filled (and failing) value.
                             if (checked === true) setValue('postalAddress', undefined);

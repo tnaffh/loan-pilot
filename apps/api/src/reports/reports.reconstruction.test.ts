@@ -59,6 +59,7 @@ describe('buildLedgers', () => {
 
   it('leaves a loan off the book before it was disbursed', () => {
     const ledgers = buildLedgers({ loans: [loan()], payments: [], scheduleItems: [] });
+
     expect(bookValueAt(ledgers.values(), utc('2026-01-01'))).toBe(0);
   });
 
@@ -68,6 +69,7 @@ describe('buildLedgers', () => {
       payments: [],
       scheduleItems: [],
     });
+
     expect(bookValueAt(ledgers.values(), utc('2026-06-01'))).toBe(0);
   });
 
@@ -80,6 +82,7 @@ describe('buildLedgers', () => {
       scheduleItems: [],
     });
     const entries = bookAt(ledgers.values(), utc('2026-04-01'));
+
     expect(entries).toHaveLength(1);
     expect(entries[0]?.outstandingCents).toBe(130_000);
     // Due 2026-02-10, so 50 days late on 2026-04-01.
@@ -93,6 +96,7 @@ describe('buildLedgers', () => {
       scheduleItems: [scheduleItem({ amount: 130_000 })],
     });
     const ledger = ledgers.get('loan_1');
+
     expect(ledger?.credits).toHaveLength(1);
     expect(bookValueAt(ledgers.values(), utc('2026-03-01'))).toBe(0);
   });
@@ -106,7 +110,9 @@ describe('buildLedgers', () => {
       scheduleItems: [scheduleItem({ amount: 30_000, paidAt: utc('2026-02-10') })],
     });
     const ledger = ledgers.get('loan_1');
+
     expect(ledger).toBeDefined();
+
     if (ledger) {
       expect(outstandingAt(ledger, utc('2026-04-01'))).toBe(60_000);
     }
@@ -118,6 +124,7 @@ describe('buildLedgers', () => {
       payments: [],
       scheduleItems: [scheduleItem({ status: RepaymentStatus.Due, paidAt: null })],
     });
+
     expect(bookValueAt(ledgers.values(), utc('2026-06-01'))).toBe(130_000);
   });
 });
@@ -130,7 +137,9 @@ describe('onBookAt', () => {
       scheduleItems: [],
     });
     const ledger = ledgers.get('loan_1');
+
     expect(ledger).toBeDefined();
+
     if (ledger) {
       expect(onBookAt(ledger, utc('2026-02-01'))).toBe(true);
       expect(onBookAt(ledger, utc('2026-03-01'))).toBe(false);
@@ -147,6 +156,7 @@ describe('onBookAt', () => {
       payments: [],
       scheduleItems: [],
     });
+
     expect(bookValueAt(ledgers.values(), utc('2026-03-01'))).toBe(130_000);
     expect(bookValueAt(ledgers.values(), utc('2026-04-01'))).toBe(0);
   });
@@ -168,6 +178,7 @@ describe('writeOffsInPeriod — waivers', () => {
     });
 
     const march = writeOffsInPeriod(ledgers.values(), utc('2026-03-01'), utc('2026-04-01'));
+
     expect(march.map((entry) => entry.amountCents)).toEqual([2_418]);
     // Settled loans with nothing waived are not bad debt.
     const clean = buildLedgers({
@@ -175,6 +186,7 @@ describe('writeOffsInPeriod — waivers', () => {
       payments: [payment()],
       scheduleItems: [],
     });
+
     expect(writeOffsInPeriod(clean.values(), utc('2026-03-01'), utc('2026-04-01'))).toEqual([]);
   });
 });
@@ -187,6 +199,7 @@ describe('writeOffsInPeriod', () => {
       scheduleItems: [],
     });
     const written = writeOffsInPeriod(ledgers.values(), utc('2026-03-01'), utc('2026-04-01'));
+
     expect(written).toHaveLength(1);
     expect(written[0]?.amountCents).toBe(100_000);
   });
@@ -197,7 +210,10 @@ describe('writeOffsInPeriod', () => {
       payments: [],
       scheduleItems: [],
     });
-    expect(writeOffsInPeriod(ledgers.values(), utc('2026-03-01'), utc('2026-04-01'))).toHaveLength(0);
+
+    expect(writeOffsInPeriod(ledgers.values(), utc('2026-03-01'), utc('2026-04-01'))).toHaveLength(
+      0,
+    );
   });
 });
 
@@ -214,6 +230,7 @@ describe('creditsInPeriod', () => {
       scheduleItems: [],
     });
     const credits = creditsInPeriod(ledgers.values(), utc('2026-03-01'), utc('2026-04-01'));
+
     expect(credits.reduce((sum, credit) => sum + credit.amountCents, 0)).toBe(6_000);
   });
 });

@@ -37,8 +37,10 @@ const errorFrom = (status: number, data: unknown, fallback: string): ApiError =>
   if (data && typeof data === 'object') {
     const message = 'message' in data && typeof data.message === 'string' ? data.message : fallback;
     const issues = 'issues' in data && Array.isArray(data.issues) ? data.issues : [];
+
     return new ApiError(message, status, issues);
   }
+
   return new ApiError(fallback, status);
 };
 
@@ -64,12 +66,15 @@ export const api = async <T>(
 
   // 204s (e.g. requesting a sign-in code) have no body; they resolve to null.
   const data = await response.json().catch(() => null);
+
   if (!response.ok) {
     if (response.status === 401 && session.token) {
       session.onUnauthorized?.();
     }
+
     throw errorFrom(response.status, data, 'Something went wrong. Please try again.');
   }
+
   return data;
 };
 
@@ -91,15 +96,19 @@ export const upload = <T>(
 ): Promise<T> =>
   new Promise<T>((resolve, reject) => {
     const form = new FormData();
+
     for (const [key, value] of Object.entries(fields)) form.append(key, value);
     form.append('file', file);
 
     const request = new XMLHttpRequest();
+
     request.open('POST', `${API_URL}${path}`);
+
     for (const [key, value] of Object.entries(headers(false))) request.setRequestHeader(key, value);
     request.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress?.(event.loaded / event.total);
     };
+
     request.onload = () => {
       const data: unknown = (() => {
         try {
@@ -108,6 +117,7 @@ export const upload = <T>(
           return null;
         }
       })();
+
       if (request.status >= 200 && request.status < 300) {
         onProgress?.(1);
         resolve(JSON.parse(request.responseText));
@@ -115,6 +125,7 @@ export const upload = <T>(
         reject(errorFrom(request.status, data, 'Could not upload the document'));
       }
     };
+
     request.onerror = () => reject(new ApiError('Upload failed. Check your connection.', 0));
     request.send(form);
   });

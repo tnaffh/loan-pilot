@@ -44,6 +44,7 @@ const LoginForm = () => {
 
   useEffect(() => {
     const error = params.get('error');
+
     if (error) toast.error(OAUTH_ERRORS[error] ?? 'Could not sign in');
   }, [params]);
 
@@ -86,7 +87,13 @@ const LoginForm = () => {
 
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
         <FormField label="Email" htmlFor="email" error={errors.email?.message}>
-          <Input id="email" type="email" autoComplete="email" placeholder="you@example.com" {...register('email')} />
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            {...register('email')}
+          />
         </FormField>
         <FormField
           label={
@@ -103,7 +110,12 @@ const LoginForm = () => {
           htmlFor="password"
           error={errors.password?.message}
         >
-          <Input id="password" type="password" autoComplete="current-password" {...register('password')} />
+          <Input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            {...register('password')}
+          />
         </FormField>
         <Button type="submit" className="w-full" disabled={isSubmitting}>
           {isSubmitting ? <Loader2 className="animate-spin" /> : null}

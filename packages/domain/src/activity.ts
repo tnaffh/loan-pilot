@@ -33,6 +33,7 @@ export const sortActivity = (events: ActivityEvent[]): ActivityEvent[] =>
 
 const iso = (value: Date | string | null | undefined): string | null => {
   if (!value) return null;
+
   return value instanceof Date ? value.toISOString() : value;
 };
 
@@ -50,6 +51,7 @@ export const buildApplicationActivity = (app: ApplicationActivityInput): Activit
     { kind: 'submitted', at: iso(app.submittedAt) ?? '', label: 'Application submitted' },
   ];
   const decidedAt = iso(app.decidedAt);
+
   if (decidedAt) {
     if (app.status === ApplicationStatus.Review) {
       events.push({ kind: 'reviewed', at: decidedAt, label: 'Moved to review' });
@@ -68,6 +70,7 @@ export const buildApplicationActivity = (app: ApplicationActivityInput): Activit
       });
     }
   }
+
   return sortActivity(events);
 };
 
@@ -112,6 +115,7 @@ export const buildLoanActivity = (
   }
 
   const closedAt = iso(loan.closedAt);
+
   if (loan.status === 'settled') {
     events.push({ kind: 'settled', at: closedAt ?? '', label: 'Loan settled' });
   } else if (loan.status === 'written_off') {

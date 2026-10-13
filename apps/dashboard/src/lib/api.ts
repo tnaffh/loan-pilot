@@ -30,6 +30,7 @@ interface RequestOptions {
 
 export const apiFetch = async <T>(path: string, options: RequestOptions = {}): Promise<T> => {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+
   if (options.token) {
     headers.Authorization = `Bearer ${options.token}`;
   }
@@ -46,6 +47,7 @@ export const apiFetch = async <T>(path: string, options: RequestOptions = {}): P
   if (!response.ok) {
     const message = data && typeof data.message === 'string' ? data.message : response.statusText;
     const issues = data && Array.isArray(data.issues) ? data.issues : [];
+
     throw new ApiError(message, response.status, issues);
   }
 
@@ -63,17 +65,22 @@ export const uploadDocument = async (
   auth: { token?: string | null; tenant?: string | null } = {},
 ): Promise<void> => {
   const form = new FormData();
+
   form.append('kind', kind);
   form.append('file', file);
 
   const headers: Record<string, string> = {};
+
   if (auth.token) headers.Authorization = `Bearer ${auth.token}`;
+
   if (auth.tenant) headers['x-tenant'] = auth.tenant;
 
   const response = await fetch(`${API_URL}${path}`, { method: 'POST', headers, body: form });
+
   if (!response.ok) {
     const data = await response.json().catch(() => null);
     const message = data && typeof data.message === 'string' ? data.message : response.statusText;
+
     throw new ApiError(message, response.status);
   }
 };
@@ -84,8 +91,10 @@ export const uploadDocument = async (
  */
 const dispositionFileName = (response: Response): string | null => {
   const header = response.headers.get('Content-Disposition');
+
   if (!header) return null;
   const utf8 = /filename\*=UTF-8''([^;]+)/i.exec(header);
+
   if (utf8?.[1]) {
     try {
       return decodeURIComponent(utf8[1]);
@@ -93,7 +102,9 @@ const dispositionFileName = (response: Response): string | null => {
       // Fall through to the plain form.
     }
   }
+
   const plain = /filename="?([^";]+)"?/i.exec(header);
+
   return plain?.[1] ?? null;
 };
 
@@ -115,15 +126,17 @@ export const downloadFile = async (
     headers: token ? { Authorization: `Bearer ${token}` } : {},
     cache: 'no-store',
   });
+
   if (!response.ok) {
     const data = await response.json().catch(() => null);
-    const message =
-      data && typeof data.message === 'string' ? data.message : response.statusText;
+    const message = data && typeof data.message === 'string' ? data.message : response.statusText;
+
     throw new ApiError(message, response.status);
   }
 
   const url = URL.createObjectURL(await response.blob());
   const link = document.createElement('a');
+
   link.href = url;
   link.download = dispositionFileName(response) ?? fallbackName;
   document.body.appendChild(link);

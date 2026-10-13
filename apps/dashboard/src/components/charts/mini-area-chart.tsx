@@ -11,8 +11,13 @@ interface MiniAreaChartProps {
 }
 
 /** A compact sparkline-style area chart for page-header summaries. */
-export const MiniAreaChart = ({ data, color = 'var(--chart-1)', className }: MiniAreaChartProps) => {
+export const MiniAreaChart = ({
+  data,
+  color = 'var(--chart-1)',
+  className,
+}: MiniAreaChartProps) => {
   const config = { value: { label: 'Value', color } } satisfies ChartConfig;
+
   return (
     <ChartContainer config={config} className={className ?? 'aspect-auto h-14 w-full'}>
       <AreaChart data={data} margin={{ top: 4, right: 0, bottom: 0, left: 0 }}>

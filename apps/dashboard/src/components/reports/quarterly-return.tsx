@@ -35,6 +35,7 @@ const flatten = (report: QuarterlyReturnData): (string | number)[][] => {
   };
 
   const { financial: f, nonFinancial: n } = report;
+
   push('Part D3', 'Interest on loans and advances — micro lenders', report.income.interestOnLoans);
   push('Part D3', 'Default interest', report.income.defaultInterest);
   push('Part D3', 'Bad debts recovered', report.income.badDebtsRecovered);
@@ -43,22 +44,30 @@ const flatten = (report: QuarterlyReturnData): (string | number)[][] => {
 
   push('Part 1.1', 'NAMFISA levy', report.liabilities.namfisaLevy);
   push('Part 1.1', 'Stamp duty', report.liabilities.stampDuty);
+
   for (const row of report.liabilities.other) {
     push('Part 1.1', row.label, row.value);
   }
+
   push('Part 1.1', 'Total current liabilities', report.liabilities.total);
 
   push('Part 14', 'Loan book at beginning of period', f.openingBookValue);
   push('Part 14', 'Loan disbursement breakdown', f.disbursedTotal);
+
   for (const bucket of f.disbursementsByTerm) {
     push('Part 14', `Disbursed — length of period from ${bucket.label}`, bucket.value);
   }
+
   push('Part 14', 'Other fees charged to borrowers', f.feesCharged.total);
   push('Part 14', 'NAMFISA levies', f.feesCharged.namfisaLevies);
   push('Part 14', 'Stamp duties', f.feesCharged.stampDuties);
   push('Part 14', 'Insurance', f.feesCharged.insurance);
   push('Part 14', 'Other fees', f.feesCharged.otherFees);
-  push('Part 14', 'Interest charged on loans outstanding at end of quarter', f.interestOnOutstanding);
+  push(
+    'Part 14',
+    'Interest charged on loans outstanding at end of quarter',
+    f.interestOnOutstanding,
+  );
   push('Part 14', 'Total value of repayment received', f.repayments.total);
   push('Part 14', 'Repayment by payroll deduction', f.repayments.payroll);
   push('Part 14', 'Repayment by debit orders', f.repayments.debitOrder);
@@ -70,6 +79,7 @@ const flatten = (report: QuarterlyReturnData): (string | number)[][] => {
   push('Part 14', 'Provision for bad debts, end of period', f.badDebts.closingProvision);
   push('Part 14', 'Value of loans rescheduled during the period', f.rescheduledValue);
   push('Part 14', 'Loan book at end of period', f.closingBookValue);
+
   for (const bucket of f.ageing) {
     push('Part 14', bucket.label, bucket.value);
   }
@@ -88,12 +98,15 @@ const flatten = (report: QuarterlyReturnData): (string | number)[][] => {
       ['total', 'Total'],
     ] as const) {
       const row = data[key];
+
       push(part, `${title} — ${label} — total`, row.total, money);
+
       for (const band of data.bands) {
         push(part, `${title} — ${label} — ${band.label}`, row.bands[band.key] ?? 0, money);
       }
     }
   };
+
   matrix('Part 15', 'Loan disbursement by gender', report.valueMatrices.loansByGender, true);
   matrix('Part 15', 'Borrower salaries by gender', report.valueMatrices.salariesByGender, true);
 
@@ -107,6 +120,7 @@ const flatten = (report: QuarterlyReturnData): (string | number)[][] => {
   push('Part 7.1', 'Number of loans outstanding', n.loansOutstanding.total, false);
   push('Part 7.1', 'Current loans', n.loansOutstanding.current, false);
   push('Part 7.1', 'Loans in arrears', n.loansOutstanding.arrears, false);
+
   for (const bucket of n.disbursementsByTerm) {
     push('Part 7.1', `Loans with a repayment period of ${bucket.label}`, bucket.value, false);
   }
@@ -117,17 +131,21 @@ const flatten = (report: QuarterlyReturnData): (string | number)[][] => {
   for (const row of n.loansByPurpose) {
     push('Part 7.3', `Loans by purpose — ${row.label}`, row.value, false);
   }
+
   for (const row of n.loansByCollectionMethod) {
     push('Part 7.3', `Loans by collection method — ${row.label}`, row.value, false);
   }
+
   push('Part 7.3', 'Number of loans written off as bad debt', n.writtenOffCount, false);
   push('Part 7.3', 'Number of loans rescheduled', n.rescheduledCount, false);
   push('Part 7.3', 'Secured loans', n.security.secured, false);
   push('Part 7.3', 'Unsecured loans', n.security.unsecured, false);
   push('Part 7.3', 'Number of outlets (branches)', n.outlets, false);
+
   for (const row of n.otherBusiness) {
     push('Part 7.3', row.label, row.value, false);
   }
+
   return rows;
 };
 
@@ -147,12 +165,9 @@ export const QuarterlyReturn = ({ period, user }: Props) => {
 
   const downloadPdf = async () => {
     setBusy('pdf');
+
     try {
-      await downloadFile(
-        `/reports/quarterly/${period}/pdf`,
-        `namfisa-return-${period}.pdf`,
-        token,
-      );
+      await downloadFile(`/reports/quarterly/${period}/pdf`, `namfisa-return-${period}.pdf`, token);
     } catch (downloadError) {
       toast.error(
         downloadError instanceof ApiError ? downloadError.message : 'Could not build the worksheet',
@@ -170,6 +185,7 @@ export const QuarterlyReturn = ({ period, user }: Props) => {
   if (error) {
     return <p className="text-sm text-destructive">{error}</p>;
   }
+
   if (!data) {
     return loading ? <Skeleton className="h-96 w-full rounded-xl" /> : null;
   }
@@ -198,17 +214,24 @@ export const QuarterlyReturn = ({ period, user }: Props) => {
             <FileSpreadsheet className="size-4" /> CSV
           </Button>
           <Button size="sm" onClick={downloadPdf} disabled={busy === 'pdf'}>
-            {busy === 'pdf' ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+            {busy === 'pdf' ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Download className="size-4" />
+            )}
             Worksheet PDF
           </Button>
         </div>
       </div>
 
-      <DataQualityAlert warnings={data.warnings} onCaptureFigures={canEdit ? () => setEditing(true) : undefined} />
+      <DataQualityAlert
+        warnings={data.warnings}
+        onCaptureFigures={canEdit ? () => setEditing(true) : undefined}
+      />
 
       <p className="text-xs text-muted-foreground">
-        Each line shows the amount and, beneath it, the plain number to type into the portal.
-        Hover a row to copy it.
+        Each line shows the amount and, beneath it, the plain number to type into the portal. Hover
+        a row to copy it.
       </p>
 
       <div className="grid gap-4 xl:grid-cols-2">
@@ -218,11 +241,18 @@ export const QuarterlyReturn = ({ period, user }: Props) => {
             <CardDescription>Income / Revenue</CardDescription>
           </CardHeader>
           <CardContent>
-            <FigureRow label="Interest on loans and advances — micro lenders" value={data.income.interestOnLoans} />
+            <FigureRow
+              label="Interest on loans and advances — micro lenders"
+              value={data.income.interestOnLoans}
+            />
             <FigureRow label="Default interest" value={data.income.defaultInterest} />
             <FigureRow label="Bad debts recovered" value={data.income.badDebtsRecovered} />
             <FigureRow label="Other income" value={data.income.otherIncome} />
-            <FigureRow label="Sub total (Other income — Part D3)" value={data.income.total} strong />
+            <FigureRow
+              label="Sub total (Other income — Part D3)"
+              value={data.income.total}
+              strong
+            />
           </CardContent>
         </Card>
 
@@ -235,7 +265,11 @@ export const QuarterlyReturn = ({ period, user }: Props) => {
             <FigureRow label="NAMFISA levy" value={data.liabilities.namfisaLevy} />
             <FigureRow label="Stamp duty" value={data.liabilities.stampDuty} />
             {data.liabilities.other.map((row) => (
-              <FigureRow key={row.key} label={row.label.replace(/ payable$/i, '')} value={row.value} />
+              <FigureRow
+                key={row.key}
+                label={row.label.replace(/ payable$/i, '')}
+                value={row.value}
+              />
             ))}
             <FigureRow label="Total current liabilities" value={data.liabilities.total} strong />
           </CardContent>
@@ -248,30 +282,71 @@ export const QuarterlyReturn = ({ period, user }: Props) => {
           <CardDescription>Loan book, disbursements, fees, repayments and ageing</CardDescription>
         </CardHeader>
         <CardContent>
-          <FigureRow label="Total value of loan book at beginning of reporting period" value={f.openingBookValue} />
+          <FigureRow
+            label="Total value of loan book at beginning of reporting period"
+            value={f.openingBookValue}
+          />
           <FigureRow label="Loan disbursement breakdown" value={f.disbursedTotal} strong />
           {f.disbursementsByTerm
             .filter((bucket) => bucket.value > 0)
             .map((bucket) => (
-              <FigureRow key={bucket.key} label={`Length of period from ${bucket.label}`} value={bucket.value} indent />
+              <FigureRow
+                key={bucket.key}
+                label={`Length of period from ${bucket.label}`}
+                value={bucket.value}
+                indent
+              />
             ))}
-          <FigureRow label="Other fees charged to borrowers during the quarter" value={f.feesCharged.total} strong />
+          <FigureRow
+            label="Other fees charged to borrowers during the quarter"
+            value={f.feesCharged.total}
+            strong
+          />
           <FigureRow label="NAMFISA levies" value={f.feesCharged.namfisaLevies} indent />
           <FigureRow label="Stamp duties" value={f.feesCharged.stampDuties} indent />
           <FigureRow label="Insurance" value={f.feesCharged.insurance} indent />
           <FigureRow label="Other fees" value={f.feesCharged.otherFees} indent />
-          <FigureRow label="Interest charged on loans outstanding at the end of quarter" value={f.interestOnOutstanding} />
-          <FigureRow label="Total value of repayment received in reporting period" value={f.repayments.total} strong />
+          <FigureRow
+            label="Interest charged on loans outstanding at the end of quarter"
+            value={f.interestOnOutstanding}
+          />
+          <FigureRow
+            label="Total value of repayment received in reporting period"
+            value={f.repayments.total}
+            strong
+          />
           <FigureRow label="Repayment by payroll deduction" value={f.repayments.payroll} indent />
           <FigureRow label="Repayment by debit orders" value={f.repayments.debitOrder} indent />
           <FigureRow label="Repayment by cash collection" value={f.repayments.cash} indent />
           <FigureRow label="Other repayment method" value={f.repayments.other} indent />
-          <FigureRow label="Provision for bad debts, beginning of period" value={f.badDebts.openingProvision} />
-          <FigureRow label="Loans written off during the period" value={f.badDebts.writtenOffInPeriod} indent />
-          <FigureRow label="Provision for bad debts during the period" value={f.badDebts.provisionRaised} indent />
-          <FigureRow label="Provision for bad debts, end of period" value={f.badDebts.closingProvision} strong />
-          <FigureRow label="Value of loans rescheduled during the period" value={f.rescheduledValue} />
-          <FigureRow label="Total value of loan book at end of reporting period" value={f.closingBookValue} strong />
+          <FigureRow
+            label="Provision for bad debts, beginning of period"
+            value={f.badDebts.openingProvision}
+          />
+          <FigureRow
+            label="Loans written off during the period"
+            value={f.badDebts.writtenOffInPeriod}
+            indent
+          />
+          <FigureRow
+            label="Provision for bad debts during the period"
+            value={f.badDebts.provisionRaised}
+            indent
+          />
+          <FigureRow
+            label="Provision for bad debts, end of period"
+            value={f.badDebts.closingProvision}
+            strong
+          />
+          <FigureRow
+            label="Value of loans rescheduled during the period"
+            value={f.rescheduledValue}
+          />
+          <FigureRow
+            label="Total value of loan book at end of reporting period"
+            value={f.closingBookValue}
+            strong
+          />
           {f.ageing.map((bucket) => (
             <FigureRow key={bucket.key} label={bucket.label} value={bucket.value} indent />
           ))}
@@ -305,20 +380,53 @@ export const QuarterlyReturn = ({ period, user }: Props) => {
         </CardHeader>
         <CardContent>
           <FigureRow label="Number of complaints lodged" value={n.complaints.lodged} kind="count" />
-          <FigureRow label="Resolved in favour of the regulated entity" value={n.complaints.forEntity} kind="count" indent />
-          <FigureRow label="Resolved in favour of the complainant" value={n.complaints.forComplainant} kind="count" indent />
-          <FigureRow label="Unresolved complaints" value={n.complaints.unresolved} kind="count" indent />
-          <FigureRow label="Number of debtors outstanding" value={n.debtorsOutstanding} kind="count" />
-          <FigureRow label="Total number of loans disbursed during the period" value={n.loansDisbursed} kind="count" />
+          <FigureRow
+            label="Resolved in favour of the regulated entity"
+            value={n.complaints.forEntity}
+            kind="count"
+            indent
+          />
+          <FigureRow
+            label="Resolved in favour of the complainant"
+            value={n.complaints.forComplainant}
+            kind="count"
+            indent
+          />
+          <FigureRow
+            label="Unresolved complaints"
+            value={n.complaints.unresolved}
+            kind="count"
+            indent
+          />
+          <FigureRow
+            label="Number of debtors outstanding"
+            value={n.debtorsOutstanding}
+            kind="count"
+          />
+          <FigureRow
+            label="Total number of loans disbursed during the period"
+            value={n.loansDisbursed}
+            kind="count"
+          />
           <FigureRow
             label="Total number of clients in book at last day of reporting period"
             value={n.activeClients}
             kind="count"
             hint="Distinct borrowers with a loan still on the book at period end."
           />
-          <FigureRow label="Number of loans outstanding" value={n.loansOutstanding.total} kind="count" strong />
+          <FigureRow
+            label="Number of loans outstanding"
+            value={n.loansOutstanding.total}
+            kind="count"
+            strong
+          />
           <FigureRow label="Current loans" value={n.loansOutstanding.current} kind="count" indent />
-          <FigureRow label="Loans in arrears" value={n.loansOutstanding.arrears} kind="count" indent />
+          <FigureRow
+            label="Loans in arrears"
+            value={n.loansOutstanding.arrears}
+            kind="count"
+            indent
+          />
           {n.disbursementsByTerm
             .filter((bucket) => bucket.value > 0)
             .map((bucket) => (
@@ -356,15 +464,29 @@ export const QuarterlyReturn = ({ period, user }: Props) => {
           <CardTitle>Part 7.3 — Non-financial information</CardTitle>
         </CardHeader>
         <CardContent>
-          <FigureRow label="Number of loans by purpose" value={n.loansDisbursed} kind="count" strong />
+          <FigureRow
+            label="Number of loans by purpose"
+            value={n.loansDisbursed}
+            kind="count"
+            strong
+          />
           {n.loansByPurpose.map((row) => (
             <FigureRow key={row.key} label={row.label} value={row.value} kind="count" indent />
           ))}
-          <FigureRow label="Number of loans per collection method" value={n.loansDisbursed} kind="count" strong />
+          <FigureRow
+            label="Number of loans per collection method"
+            value={n.loansDisbursed}
+            kind="count"
+            strong
+          />
           {n.loansByCollectionMethod.map((row) => (
             <FigureRow key={row.key} label={row.label} value={row.value} kind="count" indent />
           ))}
-          <FigureRow label="Number of loans written off as bad debt" value={n.writtenOffCount} kind="count" />
+          <FigureRow
+            label="Number of loans written off as bad debt"
+            value={n.writtenOffCount}
+            kind="count"
+          />
           <FigureRow label="Number of loans rescheduled" value={n.rescheduledCount} kind="count" />
           <FigureRow label="Secured loans" value={n.security.secured} kind="count" />
           <FigureRow label="Unsecured loans" value={n.security.unsecured} kind="count" />
@@ -384,7 +506,11 @@ export const QuarterlyReturn = ({ period, user }: Props) => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <FigureRow label="Rebuilt from payment history (reported)" value={data.reconciliation.derived} strong />
+            <FigureRow
+              label="Rebuilt from payment history (reported)"
+              value={data.reconciliation.derived}
+              strong
+            />
             <FigureRow label="Sum of stored loan balances" value={data.reconciliation.stored} />
             <FigureRow label="Difference" value={data.reconciliation.variance} />
             <p className="pt-2 text-xs text-muted-foreground">

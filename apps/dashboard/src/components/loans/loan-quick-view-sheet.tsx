@@ -122,7 +122,10 @@ export const LoanQuickViewSheet = ({
                 <ActivityTimeline events={data.activity} />
               </div>
 
-              <Link href={`/loans/${data.id}`} className={buttonVariants({ variant: 'outline', className: 'w-full' })}>
+              <Link
+                href={`/loans/${data.id}`}
+                className={buttonVariants({ variant: 'outline', className: 'w-full' })}
+              >
                 Open full loan
                 <ArrowUpRight />
               </Link>

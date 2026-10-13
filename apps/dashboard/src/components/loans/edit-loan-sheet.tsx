@@ -104,9 +104,11 @@ export const EditLoanSheet = ({ loan, open, onOpenChange, onSaved }: Props) => {
   // original, recompute from the tenant's fee rates. Left untouched at the
   // original amount so a stored/custom levy is preserved.
   const watchedAmount = watch('amount');
+
   useEffect(() => {
     if (!feeSettings || hasPayments) return;
     const amountCents = toCents(Number(watchedAmount) || 0);
+
     if (amountCents === loan.principal) return;
     setValue('namfisaLevy', fromCents(Math.round(amountCents * feeSettings.namfisaLevyRate)));
   }, [watchedAmount, feeSettings, hasPayments, loan.principal, setValue]);
@@ -169,14 +171,41 @@ export const EditLoanSheet = ({ loan, open, onOpenChange, onSaved }: Props) => {
 
           <div className="space-y-4 border-t pt-4">
             <div className="grid gap-4 sm:grid-cols-3">
-              <FormField label="Bank charges (N$)" htmlFor="bankCharges" error={errors.bankCharges?.message}>
-                <Input id="bankCharges" type="number" inputMode="numeric" {...register('bankCharges')} />
+              <FormField
+                label="Bank charges (N$)"
+                htmlFor="bankCharges"
+                error={errors.bankCharges?.message}
+              >
+                <Input
+                  id="bankCharges"
+                  type="number"
+                  inputMode="numeric"
+                  {...register('bankCharges')}
+                />
               </FormField>
-              <FormField label="NAMFISA levy (N$)" htmlFor="namfisaLevy" error={errors.namfisaLevy?.message}>
-                <Input id="namfisaLevy" type="number" inputMode="numeric" {...register('namfisaLevy')} />
+              <FormField
+                label="NAMFISA levy (N$)"
+                htmlFor="namfisaLevy"
+                error={errors.namfisaLevy?.message}
+              >
+                <Input
+                  id="namfisaLevy"
+                  type="number"
+                  inputMode="numeric"
+                  {...register('namfisaLevy')}
+                />
               </FormField>
-              <FormField label="Stamp duty (N$)" htmlFor="stampDuty" error={errors.stampDuty?.message}>
-                <Input id="stampDuty" type="number" inputMode="numeric" {...register('stampDuty')} />
+              <FormField
+                label="Stamp duty (N$)"
+                htmlFor="stampDuty"
+                error={errors.stampDuty?.message}
+              >
+                <Input
+                  id="stampDuty"
+                  type="number"
+                  inputMode="numeric"
+                  {...register('stampDuty')}
+                />
               </FormField>
             </div>
           </div>
@@ -185,8 +214,8 @@ export const EditLoanSheet = ({ loan, open, onOpenChange, onSaved }: Props) => {
             <p className="text-sm font-medium">Financial terms</p>
             {hasPayments ? (
               <p className="rounded-md bg-muted px-3 py-2 text-xs text-muted-foreground">
-                This loan has payments, so the amount, term and rate are locked. To change them, cancel
-                or write off the loan and re-create it.
+                This loan has payments, so the amount, term and rate are locked. To change them,
+                cancel or write off the loan and re-create it.
               </p>
             ) : (
               <p className="text-xs text-muted-foreground">
@@ -203,7 +232,11 @@ export const EditLoanSheet = ({ loan, open, onOpenChange, onSaved }: Props) => {
                   {...register('amount')}
                 />
               </FormField>
-              <FormField label="Term (months)" htmlFor="termMonths" error={errors.termMonths?.message}>
+              <FormField
+                label="Term (months)"
+                htmlFor="termMonths"
+                error={errors.termMonths?.message}
+              >
                 <Input
                   id="termMonths"
                   type="number"
@@ -234,7 +267,12 @@ export const EditLoanSheet = ({ loan, open, onOpenChange, onSaved }: Props) => {
               {isSubmitting ? <Loader2 className="animate-spin" /> : null}
               Save changes
             </Button>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
           </SheetFooter>

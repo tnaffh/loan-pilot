@@ -21,6 +21,7 @@ export const AuditLog = ({ entries }: { entries: AuditEntry[] }) => {
   if (entries.length === 0) {
     return <p className="text-sm text-muted-foreground">No changes recorded yet.</p>;
   }
+
   return (
     <ol className="space-y-4">
       {entries.map((entry) => (

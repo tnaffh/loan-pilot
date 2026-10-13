@@ -25,6 +25,7 @@ describe('AuditService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [AuditService, { provide: PrismaService, useValue: prismaMock }],
     }).compile();
+
     service = moduleRef.get(AuditService);
   });
 
@@ -34,6 +35,7 @@ describe('AuditService', () => {
       { name: 'New', id: '111', city: 'Windhoek' },
       ['name', 'id', 'city'],
     );
+
     expect(changes).toEqual([{ field: 'name', from: 'Old', to: 'New' }]);
   });
 

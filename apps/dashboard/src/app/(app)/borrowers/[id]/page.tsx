@@ -14,7 +14,14 @@ import {
   Pencil,
   Wallet,
 } from 'lucide-react';
-import { LoanStatus, can, formatNad, isLoanOverdue, isOpenLoanStatus, isUnverifiedId } from '@loan-pilot/domain';
+import {
+  LoanStatus,
+  can,
+  formatNad,
+  isLoanOverdue,
+  isOpenLoanStatus,
+  isUnverifiedId,
+} from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -76,11 +83,18 @@ const BorrowerDetailPage = () => {
   // under its own name ("Statement of Account - <name> - <date>.pdf").
   const downloadStatement = async () => {
     setDownloadingStatement(true);
+
     try {
-      await downloadFile(`/borrowers/${data.id}/statement-letter`, 'Statement of Account.pdf', token);
+      await downloadFile(
+        `/borrowers/${data.id}/statement-letter`,
+        'Statement of Account.pdf',
+        token,
+      );
     } catch (downloadError) {
       toast.error(
-        downloadError instanceof ApiError ? downloadError.message : 'Could not download the statement',
+        downloadError instanceof ApiError
+          ? downloadError.message
+          : 'Could not download the statement',
       );
     } finally {
       setDownloadingStatement(false);
@@ -91,6 +105,7 @@ const BorrowerDetailPage = () => {
     const open = data.loans.filter((loan) => isOpenLoanStatus(loan.status));
     const outstanding = open.reduce((sum, loan) => sum + loan.balance, 0);
     const lifetime = data.loans.reduce((sum, loan) => sum + loan.principal, 0);
+
     return { active: open.length, outstanding, lifetime, total: data.loans.length };
   })();
 
@@ -218,9 +233,13 @@ const BorrowerDetailPage = () => {
                   <TableCell>
                     <TypeChip type={loan.type} />
                   </TableCell>
-                  <TableCell className="text-right tabular-nums">{formatNad(loan.principal)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatNad(loan.principal)}
+                  </TableCell>
                   <TableCell className="text-right tabular-nums">{formatNad(loan.total)}</TableCell>
-                  <TableCell className="text-right tabular-nums">{formatNad(loan.balance)}</TableCell>
+                  <TableCell className="text-right tabular-nums">
+                    {formatNad(loan.balance)}
+                  </TableCell>
                   <TableCell>{formatDate(loan.disbursedAt)}</TableCell>
                   <TableCell>
                     <StatusBadge value={isLoanOverdue(loan) ? LoanStatus.Arrears : loan.status} />

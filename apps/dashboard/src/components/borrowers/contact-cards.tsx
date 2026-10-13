@@ -66,6 +66,7 @@ export const ContactCards = ({
 
   const activate = async (path: string, id: string) => {
     setActivating(id);
+
     try {
       await apiFetch(path, { method: 'PATCH', body: {}, token });
       onChanged();
@@ -115,9 +116,16 @@ export const ContactCards = ({
                       variant="ghost"
                       size="sm"
                       disabled={activating !== null}
-                      onClick={() => activate(`/borrowers/${borrowerId}/addresses/${address.id}/activate`, address.id)}
+                      onClick={() =>
+                        activate(
+                          `/borrowers/${borrowerId}/addresses/${address.id}/activate`,
+                          address.id,
+                        )
+                      }
                     >
-                      {activating === address.id ? <Loader2 className="size-4 animate-spin" /> : null}
+                      {activating === address.id ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : null}
                       Make active
                     </Button>
                   )}
@@ -177,10 +185,15 @@ export const ContactCards = ({
                       size="sm"
                       disabled={activating !== null}
                       onClick={() =>
-                        activate(`/borrowers/${borrowerId}/bank-accounts/${account.id}/activate`, account.id)
+                        activate(
+                          `/borrowers/${borrowerId}/bank-accounts/${account.id}/activate`,
+                          account.id,
+                        )
                       }
                     >
-                      {activating === account.id ? <Loader2 className="size-4 animate-spin" /> : null}
+                      {activating === account.id ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : null}
                       Make active
                     </Button>
                   )}
@@ -244,7 +257,13 @@ const ADDRESS_ADD_DEFAULTS: CreateBorrowerAddressInput = {
   country: 'Namibia',
 };
 
-const AddressDialog = ({ open, onOpenChange, borrowerId, address, onSaved }: AddressDialogProps) => {
+const AddressDialog = ({
+  open,
+  onOpenChange,
+  borrowerId,
+  address,
+  onSaved,
+}: AddressDialogProps) => {
   const { token } = useAuth();
   const editing = address !== null;
   const {
@@ -284,9 +303,14 @@ const AddressDialog = ({ open, onOpenChange, borrowerId, address, onSaved }: Add
         });
         toast.success('Address updated');
       } else {
-        await apiFetch(`/borrowers/${borrowerId}/addresses`, { method: 'POST', body: values, token });
+        await apiFetch(`/borrowers/${borrowerId}/addresses`, {
+          method: 'POST',
+          body: values,
+          token,
+        });
         toast.success('Address added & set active');
       }
+
       onOpenChange(false);
       onSaved();
     } catch (error) {
@@ -319,7 +343,12 @@ const AddressDialog = ({ open, onOpenChange, borrowerId, address, onSaved }: Add
             </FormField>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
@@ -348,7 +377,13 @@ const BANK_ADD_DEFAULTS: CreateBorrowerBankAccountInput = {
   accountType: 'Savings',
 };
 
-const BankAccountDialog = ({ open, onOpenChange, borrowerId, account, onSaved }: BankAccountDialogProps) => {
+const BankAccountDialog = ({
+  open,
+  onOpenChange,
+  borrowerId,
+  account,
+  onSaved,
+}: BankAccountDialogProps) => {
   const { token } = useAuth();
   const editing = account !== null;
   const {
@@ -389,9 +424,14 @@ const BankAccountDialog = ({ open, onOpenChange, borrowerId, account, onSaved }:
         });
         toast.success('Bank account updated');
       } else {
-        await apiFetch(`/borrowers/${borrowerId}/bank-accounts`, { method: 'POST', body: values, token });
+        await apiFetch(`/borrowers/${borrowerId}/bank-accounts`, {
+          method: 'POST',
+          body: values,
+          token,
+        });
         toast.success('Bank account added & set active');
       }
+
       onOpenChange(false);
       onSaved();
     } catch (error) {
@@ -410,10 +450,18 @@ const BankAccountDialog = ({ open, onOpenChange, borrowerId, account, onSaved }:
             <FormField label="Bank name" htmlFor="b-bank" error={errors.bankName?.message}>
               <Input id="b-bank" {...register('bankName')} />
             </FormField>
-            <FormField label="Account holder" htmlFor="b-holder" error={errors.accountHolderName?.message}>
+            <FormField
+              label="Account holder"
+              htmlFor="b-holder"
+              error={errors.accountHolderName?.message}
+            >
               <Input id="b-holder" {...register('accountHolderName')} />
             </FormField>
-            <FormField label="Account number" htmlFor="b-number" error={errors.accountNumber?.message}>
+            <FormField
+              label="Account number"
+              htmlFor="b-number"
+              error={errors.accountNumber?.message}
+            >
               <Input id="b-number" inputMode="numeric" {...register('accountNumber')} />
             </FormField>
             <FormField label="Account type" htmlFor="b-type" error={errors.accountType?.message}>
@@ -444,7 +492,12 @@ const BankAccountDialog = ({ open, onOpenChange, borrowerId, account, onSaved }:
             </FormField>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>

@@ -68,6 +68,7 @@ export class AuthController {
     @Headers('x-tenant') tenantSlug?: string,
   ): Promise<void> {
     const tenant = await this.tenants.resolveForPublicRequest(tenantSlug);
+
     await this.otp.request(tenant, body.phone);
   }
 
@@ -80,6 +81,7 @@ export class AuthController {
     @Headers('x-tenant') tenantSlug?: string,
   ): Promise<LoginResponse> {
     const tenant = await this.tenants.resolveForPublicRequest(tenantSlug);
+
     return this.otp.verify(tenant.id, body.phone, body.code);
   }
 
@@ -104,11 +106,15 @@ export class AuthController {
     @Res() res: Response,
   ): Promise<void> {
     const dashboard = this.dashboardUrl();
+
     if (!req.user) {
       res.redirect(`${dashboard}/login?error=oauth`);
+
       return;
     }
+
     const result = await this.auth.handleOAuth(req.user);
+
     if (result.ok) {
       res.redirect(`${dashboard}/auth/callback?token=${result.token}`);
     } else {
@@ -149,6 +155,7 @@ export class AuthController {
     @Body(new ZodValidationPipe(forgotPasswordSchema)) body: ForgotPasswordInput,
   ): Promise<{ ok: true }> {
     await this.auth.forgotPassword(body.email);
+
     return { ok: true };
   }
 

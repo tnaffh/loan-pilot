@@ -195,7 +195,10 @@ const LoansPage = () => {
       .reduce((sum, loan) => sum + loan.balance, 0);
     const active = rows.filter((loan) => loan.status === LoanStatus.Active).length;
     const arrears = rows.filter(isOverdue).length;
-    const avg = rows.length ? Math.round(rows.reduce((s, l) => s + l.principal, 0) / rows.length) : 0;
+    const avg = rows.length
+      ? Math.round(rows.reduce((s, l) => s + l.principal, 0) / rows.length)
+      : 0;
+
     return { book, active, arrears, avg };
   }, [rows]);
 
@@ -208,7 +211,9 @@ const LoansPage = () => {
       <PageHeader
         title="Loans"
         description={
-          data ? `${data.length} loans · ${formatNad(outstanding)} outstanding` : 'The full loan book'
+          data
+            ? `${data.length} loans · ${formatNad(outstanding)} outstanding`
+            : 'The full loan book'
         }
         action={
           <Button onClick={() => command.openNewLoan()}>
@@ -245,7 +250,11 @@ const LoansPage = () => {
           }
           toolbar={
             <div className="flex flex-wrap items-center gap-2">
-              <FilterSegments value={statusFilter} onChange={setStatusFilter} options={STATUS_OPTIONS} />
+              <FilterSegments
+                value={statusFilter}
+                onChange={setStatusFilter}
+                options={STATUS_OPTIONS}
+              />
               <MonthFilter months={months} value={activeMonth} onChange={setMonth} />
               <DateRangeFilter value={range} onChange={setRange} />
             </div>

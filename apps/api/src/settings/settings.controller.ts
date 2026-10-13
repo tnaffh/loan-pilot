@@ -145,6 +145,7 @@ export class SettingsController {
     if (!file) {
       throw new BadRequestException('A file is required');
     }
+
     return this.settings.uploadLogo(requireTenantId(user), file);
   }
 
@@ -204,6 +205,7 @@ export class SettingsController {
     if (!file) {
       throw new BadRequestException('A file is required');
     }
+
     return this.settings.uploadStamp(requireTenantId(user), file);
   }
 

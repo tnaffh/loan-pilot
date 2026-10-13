@@ -67,7 +67,12 @@ export const WriteOffDialog = ({ open, onOpenChange, loanId, loanLabel }: Props)
             <Textarea id="reason" rows={3} {...register('reason')} />
           </FormField>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
             <Button type="submit" variant="destructive" disabled={isSubmitting}>

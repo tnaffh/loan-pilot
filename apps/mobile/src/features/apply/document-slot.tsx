@@ -29,11 +29,15 @@ export const pickDocument = async (source: Source): Promise<UploadFile | null> =
       copyToCacheDirectory: true,
     });
     const asset = result.canceled ? null : result.assets[0];
+
     if (!asset) return null;
+
     if (tooLarge(asset.size)) {
       Alert.alert('File too large', 'Please choose a file smaller than 10 MB.');
+
       return null;
     }
+
     return { uri: asset.uri, name: asset.name, type: asset.mimeType ?? 'application/pdf' };
   }
 
@@ -41,14 +45,17 @@ export const pickDocument = async (source: Source): Promise<UploadFile | null> =
   // needs no permission; only the camera does.
   if (source === 'camera') {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
+
     if (!permission.granted) {
       Alert.alert(
         'Camera access needed',
         'Allow camera access in Settings to photograph your documents.',
       );
+
       return null;
     }
   }
+
   const options: ImagePicker.ImagePickerOptions = {
     mediaTypes: ['images'],
     quality: 0.7,
@@ -61,11 +68,15 @@ export const pickDocument = async (source: Source): Promise<UploadFile | null> =
       ? await ImagePicker.launchCameraAsync(options)
       : await ImagePicker.launchImageLibraryAsync(options);
   const asset = result.canceled ? null : result.assets[0];
+
   if (!asset) return null;
+
   if (tooLarge(asset.fileSize)) {
     Alert.alert('Photo too large', 'Please retake the photo at a lower resolution.');
+
     return null;
   }
+
   return asUploadImage(asset.uri, asset.fileName);
 };
 
@@ -76,6 +87,7 @@ export const pickDocument = async (source: Source): Promise<UploadFile | null> =
 const asUploadImage = (uri: string, originalName: string | null | undefined): UploadFile => {
   const png = /\.png$/i.test(uri);
   const base = (originalName ?? `photo-${Date.now()}`).replace(/\.[^.]+$/, '');
+
   return { uri, name: `${base}.${png ? 'png' : 'jpg'}`, type: png ? 'image/png' : 'image/jpeg' };
 };
 
@@ -98,11 +110,13 @@ export const SourceSheet = ({
     // Let the sheet finish closing before a native picker presents over it.
     await new Promise((resolve) => setTimeout(resolve, 350));
     const file = await pickDocument(source);
+
     if (file) {
       void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       onPick(file);
     }
   };
+
   return (
     <Sheet open={open} onClose={onClose} title={title}>
       <ListRow

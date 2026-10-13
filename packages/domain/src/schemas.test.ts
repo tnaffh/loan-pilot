@@ -20,8 +20,11 @@ describe('borrower email validation', () => {
         accountType: 'Savings',
       },
     };
+
     expect(createBorrowerSchema.safeParse({ ...base, email: '' }).success).toBe(false);
-    expect(createBorrowerSchema.safeParse({ ...base, email: 'selma@example.na' }).success).toBe(true);
+    expect(createBorrowerSchema.safeParse({ ...base, email: 'selma@example.na' }).success).toBe(
+      true,
+    );
   });
 
   it('allows an empty email on update (correcting imported records)', () => {
@@ -66,7 +69,9 @@ describe('createApplicationSchema — collateral', () => {
   });
 
   it('requires the collateral details for a collateral loan', () => {
-    expect(createApplicationSchema.safeParse({ ...base, loanType: 'collateral' }).success).toBe(false);
+    expect(createApplicationSchema.safeParse({ ...base, loanType: 'collateral' }).success).toBe(
+      false,
+    );
     const result = createApplicationSchema.safeParse({
       ...base,
       loanType: 'collateral',
@@ -78,6 +83,7 @@ describe('createApplicationSchema — collateral', () => {
         estimatedValue: 85000,
       },
     });
+
     expect(result.success).toBe(true);
   });
 

@@ -48,6 +48,7 @@ describe('OtpService', () => {
         { provide: ConfigService, useValue: configMock },
       ],
     }).compile();
+
     service = moduleRef.get(OtpService);
   });
 
@@ -68,8 +69,10 @@ describe('OtpService', () => {
       expect(smsMock.send).toHaveBeenCalledWith(PHONE, expect.any(String));
       const body = String(smsMock.send.mock.calls[0]?.[1]);
       const code = /(\d{6})/.exec(body)?.[1] ?? '';
+
       expect(code).toMatch(/^\d{6}$/);
       const created = prismaMock.phoneOtp.create.mock.calls[0][0].data;
+
       expect(created.phone).toBe(PHONE);
       expect(created.codeHash).toBe(hashOf(code));
       expect(JSON.stringify(created)).not.toContain(code);

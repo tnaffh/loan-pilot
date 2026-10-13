@@ -16,9 +16,11 @@ export const uploadsDir = (() => {
   // directory is read-only (only /tmp is writable), so creating it eagerly when
   // documents live in GCS/S3 would crash the API on boot.
   const driver = (process.env.STORAGE_DRIVER ?? 'local').toLowerCase();
+
   if (driver === 'local' && !existsSync(dir)) {
     mkdirSync(dir, { recursive: true });
   }
+
   return dir;
 })();
 

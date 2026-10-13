@@ -3,13 +3,16 @@
 /** Returns a new Date shifted forward by the given number of calendar months. */
 export const addMonths = (date: Date, months: number): Date => {
   const next = new Date(date);
+
   next.setMonth(next.getMonth() + months);
+
   return next;
 };
 
 /** Whole days from `from` to `to`, clamped to zero when `to` is not after `from`. */
 export const daysBetween = (from: Date, to: Date): number => {
   const msPerDay = 86_400_000;
+
   return Math.max(0, Math.floor((to.getTime() - from.getTime()) / msPerDay));
 };
 
@@ -22,8 +25,9 @@ export const completeMonthsBetween = (from: Date, to: Date): number => {
   if (to.getTime() <= from.getTime()) {
     return 0;
   }
-  const months =
-    (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth());
+
+  const months = (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth());
   const anniversaryNotReached = to.getDate() < from.getDate();
+
   return Math.max(0, months - (anniversaryNotReached ? 1 : 0));
 };

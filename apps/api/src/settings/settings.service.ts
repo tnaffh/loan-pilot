@@ -80,12 +80,14 @@ export class SettingsService {
   /** Fetch the tenant's fee settings, creating the default row on first access. */
   async getFeeSettings(tenantId: string): Promise<TenantSettings> {
     const existing = await this.prisma.tenantSettings.findUnique({ where: { tenantId } });
+
     return existing ?? this.prisma.tenantSettings.create({ data: { tenantId } });
   }
 
   /** Fee settings in the domain shape (cents + fractions) used by loan pricing. */
   async resolveFeeSettings(tenantId: string): Promise<FeeSettings> {
     const s = await this.getFeeSettings(tenantId);
+
     return {
       namfisaLevyRate: s.namfisaLevyRate,
       stampDutyCents: s.stampDuty,
@@ -106,6 +108,7 @@ export class SettingsService {
         ? { monthlyRate: Math.min(Math.max(input.monthlyRate, 0), MAX_MONTHLY_RATE) }
         : {}),
     };
+
     return this.prisma.tenantSettings.upsert({
       where: { tenantId },
       update: data,
@@ -129,6 +132,7 @@ export class SettingsService {
         this.resolveImage(s.principalOfficerInitials),
         this.resolveImage(s.companyStamp),
       ]);
+
     return {
       name: tenant?.name ?? null,
       town: tenant?.town ?? null,
@@ -161,6 +165,7 @@ export class SettingsService {
       this.storage.tryRead(s.principalOfficerInitials, 'principal officer initials'),
       this.storage.tryRead(s.companyStamp, 'company stamp'),
     ]);
+
     return {
       officerName: s.principalOfficerName,
       officerSignaturePng,
@@ -180,6 +185,7 @@ export class SettingsService {
       contentType: 'image/png',
       originalName: `${field}.png`,
     });
+
     return this.setSigningImage(tenantId, field, key);
   }
 
@@ -191,11 +197,13 @@ export class SettingsService {
     if (!EMBEDDABLE_IMAGE_TYPES.has(file.mimetype)) {
       throw new BadRequestException('The stamp must be a PNG or JPG image');
     }
+
     const { key } = await this.storage.save({
       buffer: file.buffer,
       contentType: file.mimetype,
       originalName: file.originalname,
     });
+
     return this.setSigningImage(tenantId, 'companyStamp', key);
   }
 
@@ -214,6 +222,7 @@ export class SettingsService {
       update: { [field]: key },
       create: { tenantId, [field]: key },
     });
+
     return this.getLenderIdentity(tenantId);
   }
 
@@ -234,6 +243,7 @@ export class SettingsService {
       website: input.website || null,
       principalOfficerName: input.principalOfficerName || null,
     };
+
     await this.prisma.tenantSettings.upsert({
       where: { tenantId },
       update: data,
@@ -241,11 +251,15 @@ export class SettingsService {
     });
     // Update the tenant's display name (only when provided) and town.
     const tenantData: { name?: string; town?: string | null } = {};
+
     if (input.name) tenantData.name = input.name;
+
     if (input.town !== undefined) tenantData.town = input.town || null;
+
     if (Object.keys(tenantData).length > 0) {
       await this.prisma.tenant.update({ where: { id: tenantId }, data: tenantData });
     }
+
     return this.getLenderIdentity(tenantId);
   }
 
@@ -259,20 +273,25 @@ export class SettingsService {
       contentType: file.mimetype,
       originalName: file.originalname,
     });
+
     await this.prisma.tenant.update({ where: { id: tenantId }, data: { logoUrl: key } });
+
     return { logoUrl: await this.resolveImage(key) };
   }
 
   /** Resolve a stored image key to an openable URL; pass through external URLs. */
   private async resolveImage(value: string | null): Promise<string | null> {
     if (!value) return null;
+
     if (/^https?:\/\//i.test(value)) return value;
+
     return this.storage.safeAccessUrl(value);
   }
 
   /** Set the lender's opening/bank balance. `openingBalance` arrives in major N$. */
   updateOpeningBalance(tenantId: string, openingBalance: number): Promise<TenantSettings> {
     const data = { openingBalance: toCents(openingBalance) };
+
     return this.prisma.tenantSettings.upsert({
       where: { tenantId },
       update: data,
@@ -290,6 +309,7 @@ export class SettingsService {
       bankBalance: toCents(input.bankBalance),
       bankBalanceAt: new Date(input.bankBalanceAt),
     };
+
     return this.prisma.tenantSettings.upsert({
       where: { tenantId },
       update: data,
@@ -312,6 +332,7 @@ export class SettingsService {
           data: { isDefault: false },
         });
       }
+
       return tx.loanProduct.create({
         data: {
           tenantId,
@@ -332,21 +353,30 @@ export class SettingsService {
   ): Promise<LoanProduct> {
     return this.prisma.$transaction(async (tx) => {
       const product = await tx.loanProduct.findFirst({ where: { id, tenantId } });
+
       if (!product) {
         throw new NotFoundException('Product not found');
       }
+
       if (input.isDefault) {
         await tx.loanProduct.updateMany({
           where: { tenantId, isDefault: true, id: { not: id } },
           data: { isDefault: false },
         });
       }
+
       const data: Prisma.LoanProductUpdateInput = {};
+
       if (input.name !== undefined) data.name = input.name;
+
       if (input.loanType !== undefined) data.loanType = input.loanType ?? null;
+
       if (input.interestRate !== undefined) data.interestRate = input.interestRate;
+
       if (input.active !== undefined) data.active = input.active;
+
       if (input.isDefault !== undefined) data.isDefault = input.isDefault;
+
       return tx.loanProduct.update({ where: { id }, data });
     });
   }
@@ -356,15 +386,19 @@ export class SettingsService {
       where: { id, tenantId },
       include: { _count: { select: { loans: true } } },
     });
+
     if (!product) {
       throw new NotFoundException('Product not found');
     }
+
     if (product._count.loans > 0) {
       throw new BadRequestException(
         'This product has loans priced from it — deactivate it instead of deleting',
       );
     }
+
     await this.prisma.loanProduct.delete({ where: { id } });
+
     return { ok: true };
   }
 
@@ -382,14 +416,18 @@ export class SettingsService {
       const product = await this.prisma.loanProduct.findFirst({
         where: { id: productId, tenantId },
       });
+
       if (!product) {
         throw new NotFoundException('Selected product not found');
       }
+
       if (!product.active) {
         throw new BadRequestException('Selected product is inactive');
       }
+
       return product;
     }
+
     return this.prisma.loanProduct.findFirst({
       where: {
         tenantId,
@@ -413,9 +451,11 @@ export class SettingsService {
     });
 
     const byYear = new Map<number, LevyYear>();
+
     for (const loan of loans) {
       const year = (loan.disbursedAt ?? loan.createdAt).getFullYear();
       const bucket = byYear.get(year) ?? { year, loanCount: 0, levyCents: 0, stampDutyCents: 0 };
+
       bucket.loanCount += 1;
       bucket.levyCents += loan.namfisaLevy;
       bucket.stampDutyCents += loan.stampDuty;
@@ -423,6 +463,7 @@ export class SettingsService {
     }
 
     const years = [...byYear.values()].sort((a, b) => b.year - a.year);
+
     return {
       years,
       totalLevyCents: years.reduce((sum, y) => sum + y.levyCents, 0),

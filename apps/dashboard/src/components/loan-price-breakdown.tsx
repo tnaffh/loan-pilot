@@ -79,17 +79,9 @@ export const LoanPriceBreakdown = ({ loan }: { readonly loan: LoanDetail }) => {
         {insurance > 0 ? <Row label="Insurance" value={insurance} /> : null}
         <Row label="Amount financed" value={amountFinanced} emphasis divider />
 
-        <Row
-          label="Finance charge"
-          hint={`${ratePercent}% in month 1`}
-          value={monthOneCharge}
-        />
+        <Row label="Finance charge" hint={`${ratePercent}% in month 1`} value={monthOneCharge} />
         {termGrowth > 0 ? (
-          <Row
-            label="Growth"
-            hint={`months 2–${loan.termMonths}`}
-            value={termGrowth}
-          />
+          <Row label="Growth" hint={`months 2–${loan.termMonths}`} value={termGrowth} />
         ) : null}
         {loan.bankCharges > 0 ? <Row label="Bank charges" value={loan.bankCharges} /> : null}
         <Row

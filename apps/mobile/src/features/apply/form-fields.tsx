@@ -48,6 +48,7 @@ export const FormText = ({ name, numeric, ...props }: FormTextProps) => {
       onChangeText={(next) => {
         if (numeric) {
           const digits = next.replace(/\D/g, '');
+
           field.onChange(digits === '' ? 0 : Number(digits));
         } else {
           field.onChange(next);
@@ -78,6 +79,7 @@ export const FormSelect = <T extends string | number>({
   const { control } = useFormContext<CreateApplicationInput>();
   const { field, fieldState } = useController({ control, name });
   const current = options.find((option) => option.value === field.value)?.value;
+
   return (
     <SelectField
       label={label}
@@ -100,6 +102,7 @@ export const FormSelect = <T extends string | number>({
 export const FormCheckbox = ({ name, children }: { name: Name; children: string }) => {
   const { control } = useFormContext<CreateApplicationInput>();
   const { field, fieldState } = useController({ control, name });
+
   return (
     <Checkbox
       checked={field.value === true}

@@ -212,6 +212,7 @@ export const createApplicationSchema = z
     // When the ID is a Namibian national ID, its encoded birth date must agree
     // with the supplied date of birth. Passports carry no such data, so skip.
     const parsed = parseNamibianId(value.idNumber);
+
     if (parsed.isNamibianId && parsed.dateOfBirth && parsed.dateOfBirth !== value.dateOfBirth) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -219,6 +220,7 @@ export const createApplicationSchema = z
         message: 'Date of birth does not match the ID number',
       });
     }
+
     // The accepted terms version must match the current wording; a mismatch means
     // the applicant read stale terms (e.g. a cached form) and must re-read.
     if (value.tcVersion !== TERMS_VERSION) {
@@ -228,10 +230,12 @@ export const createApplicationSchema = z
         message: 'The terms have been updated — please re-read and agree',
       });
     }
+
     // Collateral loans must describe the pledged asset. (Photos are gated in the
     // form, outside zod, like the required supporting-document uploads.)
     if (value.loanType === LoanType.Collateral) {
       const collateral = value.collateral;
+
       if (!collateral?.item) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -239,6 +243,7 @@ export const createApplicationSchema = z
           message: 'Describe what is being put up as collateral',
         });
       }
+
       if (!collateral?.identifier) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -246,6 +251,7 @@ export const createApplicationSchema = z
           message: 'A serial number, registration or other identifier is required',
         });
       }
+
       if (!collateral?.description) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -253,6 +259,7 @@ export const createApplicationSchema = z
           message: 'A brief description is required',
         });
       }
+
       if (!collateral?.condition) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
@@ -402,6 +409,7 @@ export type UpdateBorrowerInput = z.infer<typeof updateBorrowerSchema>;
 const ordinalDay = (n: number): string => {
   const suffix = ['th', 'st', 'nd', 'rd'];
   const v = n % 100;
+
   return `${n}${suffix[(v - 20) % 10] ?? suffix[v] ?? suffix[0]}`;
 };
 

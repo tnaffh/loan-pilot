@@ -154,8 +154,7 @@ export const toAgreementData = (
     borrower.addresses.find((a) => a.label === 'Residential') ??
     borrower.addresses[0];
   const postal = borrower.addresses.find((a) => a.label === 'Postal');
-  const bank =
-    borrower.bankAccounts.find((a) => a.isActive) ?? borrower.bankAccounts[0] ?? null;
+  const bank = borrower.bankAccounts.find((a) => a.isActive) ?? borrower.bankAccounts[0] ?? null;
 
   const disbursedAt = loan.disbursedAt ?? null;
   const firstItem = loan.schedule[0] ?? null;
@@ -171,12 +170,16 @@ export const toAgreementData = (
       { label: 'Stamp duty', cents: loan.stampDuty },
       { label: 'Insurance', cents: loan.insurance },
       { label: 'NAMFISA levy', cents: loan.namfisaLevy },
-      { label: `Finance charge (${formatPct(loan.interestRate)} of principal debt)`, cents: loan.financeCharge },
+      {
+        label: `Finance charge (${formatPct(loan.interestRate)} of principal debt)`,
+        cents: loan.financeCharge,
+      },
       { label: 'Bank charges', cents: loan.bankCharges },
     ] as const
   )
     .filter((item) => item.cents > 0)
     .map((item) => ({ label: item.label, amount: formatNad(item.cents), kind: 'item' as const }));
+
   breakdown.push({ label: 'Total repayable', amount: formatNad(loan.total), kind: 'total' });
 
   // Default (penalty) interest accrued to date — only present when the loan is
@@ -190,6 +193,7 @@ export const toAgreementData = (
     generatedAt,
     penaltyMonthlyRate,
   );
+
   if (arrears.defaultInterestCents > 0) {
     breakdown.push({
       label: 'Default interest accrued to date',

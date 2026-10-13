@@ -129,6 +129,7 @@ describe('LoansService', () => {
     });
 
     const data = loanCreate.mock.calls[0][0].data;
+
     expect(data.principal).toBe(800000);
     expect(data.financeCharge).toBe(240000); // 30% payday charge
     expect(data.total).toBe(1040000);
@@ -174,6 +175,7 @@ describe('LoansService', () => {
       }),
     );
     const data = loanUpdate.mock.calls[0][0].data;
+
     expect(data.balance).toBe(520000);
     expect(data.instalmentsPaid).toBe(1);
     expect(data.status).toBe(LoanStatus.Active);
@@ -196,6 +198,7 @@ describe('LoansService', () => {
     await service.recordRepayment('tenant_1', 'loan_1', {});
 
     const data = loanUpdate.mock.calls[0][0].data;
+
     expect(data.balance).toBe(0);
     expect(data.status).toBe(LoanStatus.Settled);
     expect(data.nextDueAt).toBeNull();
@@ -219,6 +222,7 @@ describe('LoansService', () => {
     await service.recordRepayment('tenant_1', 'loan_1', {});
 
     const data = loanUpdate.mock.calls[0][0].data;
+
     expect(data.status).toBe(LoanStatus.Arrears);
     expect(data.daysLate).toBeGreaterThanOrEqual(9);
   });
@@ -261,6 +265,7 @@ describe('LoansService', () => {
       expect.objectContaining({ data: expect.objectContaining({ status: RepaymentStatus.Paid }) }),
     );
     const data = loanUpdate.mock.calls[0][0].data;
+
     expect(data.balance).toBe(0);
     expect(data.status).toBe(LoanStatus.Settled);
     expect(data.instalmentsPaid).toBe(2);
@@ -293,6 +298,7 @@ describe('LoansService', () => {
     await service.writeOff('tenant_1', 'loan_1', { reason: 'Borrower unreachable' });
 
     const data = loanUpdate.mock.calls[0][0].data;
+
     expect(data.status).toBe(LoanStatus.WrittenOff);
     expect(data.writeOffReason).toBe('Borrower unreachable');
     expect(data.closedAt).toBeInstanceOf(Date);
@@ -321,6 +327,7 @@ describe('LoansService', () => {
       expect.objectContaining({ data: { status: RepaymentStatus.Waived } }),
     );
     const data = loanUpdate.mock.calls[0][0].data;
+
     expect(data.status).toBe(LoanStatus.Settled);
     expect(data.balance).toBe(0);
     expect(data.waived).toBe(2_418);
@@ -336,6 +343,7 @@ describe('LoansService', () => {
 
   it('converts a written-off loan into settled-with-waiver, keeping the date it left the book', async () => {
     const writtenOffAt = new Date('2026-09-25T00:00:00.000Z');
+
     loanFindFirst.mockResolvedValue({
       id: 'loan_1',
       tenantId: 'tenant_1',
@@ -351,6 +359,7 @@ describe('LoansService', () => {
     await service.waive('tenant_1', waiveActor, 'loan_1', { reason: 'Loading error' });
 
     const data = loanUpdate.mock.calls[0][0].data;
+
     expect(data.status).toBe(LoanStatus.Settled);
     expect(data.waived).toBe(2_418);
     expect(data.writeOffReason).toBeNull();
@@ -441,6 +450,7 @@ describe('LoansService', () => {
 
     expect(scheduleItemDeleteMany).toHaveBeenCalledWith({ where: { loanId: 'loan_1' } });
     const data = loanUpdate.mock.calls[0][0].data;
+
     expect(data.principal).toBe(200000); // N$ 2,000
     expect(data.termMonths).toBe(2);
     expect(data.total).toBe(260000); // + 30%
@@ -480,6 +490,7 @@ describe('LoansService', () => {
     await service.update('tenant_1', actor, 'loan_1', { note: 'corrected', collateral: 'Toyota' });
 
     const data = loanUpdate.mock.calls[0][0].data;
+
     expect(data.note).toBe('corrected');
     expect(data.collateral).toBe('Toyota');
     expect(scheduleItemDeleteMany).not.toHaveBeenCalled();
@@ -493,6 +504,7 @@ describe('LoansService', () => {
     await service.cancel('tenant_1', actor, 'loan_1', { reason: 'Duplicate import' });
 
     const data = loanUpdate.mock.calls[0][0].data;
+
     expect(data.status).toBe(LoanStatus.Cancelled);
     expect(data.balance).toBe(0);
     expect(data.cancelReason).toBe('Duplicate import');
@@ -528,6 +540,7 @@ describe('LoansService', () => {
     });
 
     const data = loanCreate.mock.calls[0][0].data;
+
     expect(data.total).toBe(1092000); // 8000 ×1.30 ×1.05
     expect(data.schedule.create).toHaveLength(2);
   });
@@ -540,6 +553,7 @@ describe('LoansService', () => {
     await service.update('tenant_1', actor, 'loan_1', { namfisaLevy: 50 });
 
     const data = loanUpdate.mock.calls[0][0].data;
+
     expect(data.namfisaLevy).toBe(5000);
     expect(data.total).toBeUndefined();
     expect(scheduleItemDeleteMany).not.toHaveBeenCalled();
@@ -547,6 +561,7 @@ describe('LoansService', () => {
 
   it('derives default interest and a payoff on a loan with an overdue instalment', async () => {
     const overdue = new Date();
+
     overdue.setDate(overdue.getDate() - 65); // ≥ 1 complete month late
     settingsMock.resolveFeeSettings.mockResolvedValueOnce(feeSettings(0.05));
     loanFindFirst.mockResolvedValue({
@@ -589,6 +604,7 @@ describe('LoansService', () => {
     });
 
     const amount = paymentCreate.mock.calls[0][0].data.amount;
+
     expect(amount).toBeGreaterThan(130000); // balance + default interest
     expect(loanUpdate.mock.calls[0][0].data.balance).toBe(0);
   });

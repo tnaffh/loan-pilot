@@ -58,8 +58,9 @@ export const CancelDialog = ({ open, onOpenChange, loanId, loanLabel }: Props) =
         <DialogHeader>
           <DialogTitle>Cancel loan</DialogTitle>
           <DialogDescription>
-            Void {loanLabel ? `${loanLabel}` : 'this loan'} — for loans created in error or that fell
-            through. Only possible while no payments have been recorded. Give a reason for the record.
+            Void {loanLabel ? `${loanLabel}` : 'this loan'} — for loans created in error or that
+            fell through. Only possible while no payments have been recorded. Give a reason for the
+            record.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={onSubmit} className="space-y-4" noValidate>
@@ -67,7 +68,12 @@ export const CancelDialog = ({ open, onOpenChange, loanId, loanLabel }: Props) =
             <Textarea id="reason" rows={3} {...register('reason')} />
           </FormField>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
               Keep loan
             </Button>
             <Button type="submit" variant="destructive" disabled={isSubmitting}>

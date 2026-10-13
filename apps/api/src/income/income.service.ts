@@ -27,6 +27,7 @@ export class IncomeService {
       _sum: { amount: true },
       _count: true,
     });
+
     return { total: agg._sum.amount ?? 0, count: agg._count };
   }
 

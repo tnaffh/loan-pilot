@@ -57,16 +57,19 @@ const sampleData = (over: Partial<StatementLetterData> = {}): StatementLetterDat
 describe('renderStatementLetterPdf', () => {
   it('renders a signed statement with the drawn stamp', async () => {
     const pdf = await renderStatementLetterPdf(sampleData());
+
     expect(pdf.length).toBeGreaterThan(1000);
     expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
   });
 
   it('renders with a custom stamp image and no open accounts', async () => {
     const data = sampleData({ stampPng: TINY_PNG, officerSignaturePng: null });
+
     data.statement.loans = [];
     data.statement.totals = { ...data.statement.totals, outstanding: 0, openLoans: 0 };
     data.statement.hasOutstanding = false;
     const pdf = await renderStatementLetterPdf(data);
+
     expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
   });
 });

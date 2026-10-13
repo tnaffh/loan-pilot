@@ -91,6 +91,7 @@ const sampleData = (png: Buffer | null, stampPng: Buffer | null = null): Agreeme
 describe('renderAgreementPdf', () => {
   it('produces a multi-page PDF with the embedded signatures, initials and drawn stamp', async () => {
     const pdf = await renderAgreementPdf(sampleData(TINY_PNG));
+
     expect(pdf.length).toBeGreaterThan(1000);
     expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
     // The terms always start a new page, so the initials strip has pages to sit on.
@@ -99,11 +100,13 @@ describe('renderAgreementPdf', () => {
 
   it('renders without any captured or configured images (legacy/imported loan)', async () => {
     const pdf = await renderAgreementPdf(sampleData(null));
+
     expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
   });
 
   it('places a custom stamp image when one is uploaded', async () => {
     const pdf = await renderAgreementPdf(sampleData(TINY_PNG, TINY_PNG));
+
     expect(pdf.subarray(0, 5).toString('latin1')).toBe('%PDF-');
   });
 });

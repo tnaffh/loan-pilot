@@ -83,26 +83,35 @@ export const navForUser = (user: SessionUser): NavGroup[] => {
   if (isPlatform(user.role)) {
     return PLATFORM_NAV;
   }
+
   if (user.role === UserRole.Borrower) {
     return BORROWER_NAV;
   }
+
   const adminItems: NavItem[] = [];
+
   if (can(user, 'finance:read')) {
     adminItems.push({ href: '/expenses', label: 'Finance', icon: Wallet });
     // Reports expose the lender's capital position, so they follow the same
     // gate as the rest of Finance rather than `reports:read` alone.
     adminItems.push({ href: '/reports', label: 'Reports', icon: FileBarChart });
   }
+
   if (can(user, 'users:manage')) {
     adminItems.push({ href: '/users', label: 'Users', icon: ShieldCheck });
   }
+
   if (can(user, 'roles:manage')) {
     adminItems.push({ href: '/roles', label: 'Roles', icon: KeyRound });
   }
+
   if (can(user, 'settings:read')) {
     adminItems.push({ href: '/settings', label: 'Settings', icon: Settings });
   }
-  return adminItems.length > 0 ? [...LENDER_NAV, { label: 'Admin', items: adminItems }] : LENDER_NAV;
+
+  return adminItems.length > 0
+    ? [...LENDER_NAV, { label: 'Admin', items: adminItems }]
+    : LENDER_NAV;
 };
 
 const TITLES: { prefix: string; title: string }[] = [
@@ -126,5 +135,6 @@ export const titleForPath = (pathname: string): string => {
   const match = TITLES.find((entry) =>
     entry.prefix === '/' ? pathname === '/' : pathname.startsWith(entry.prefix),
   );
+
   return match?.title ?? 'Overview';
 };

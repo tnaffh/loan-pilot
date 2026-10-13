@@ -17,14 +17,17 @@ const compact = (value: string): string => value.replace(/[\s.\-()]/g, '');
 /** Parse a `YYYY-MM-DD` string into its parts, or null when malformed. */
 const parseIsoDate = (iso: string): { year: number; month: number; day: number } | null => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso.trim());
+
   if (!match) {
     return null;
   }
+
   const year = Number(match[1]);
   const month = Number(match[2]);
   const day = Number(match[3]);
   // Round-trip through a Date to reject impossible days (e.g. 2026-02-31).
   const probe = new Date(Date.UTC(year, month - 1, day));
+
   if (
     probe.getUTCFullYear() !== year ||
     probe.getUTCMonth() !== month - 1 ||
@@ -32,6 +35,7 @@ const parseIsoDate = (iso: string): { year: number; month: number; day: number }
   ) {
     return null;
   }
+
   return { year, month, day };
 };
 
@@ -50,6 +54,7 @@ export interface NamibianIdResult {
  */
 export const parseNamibianId = (value: string, today: Date = new Date()): NamibianIdResult => {
   const digits = compact(value);
+
   if (!/^\d{11}$/.test(digits)) {
     return { isNamibianId: false };
   }
@@ -57,6 +62,7 @@ export const parseNamibianId = (value: string, today: Date = new Date()): Namibi
   const yy = Number(digits.slice(0, 2));
   const month = Number(digits.slice(2, 4));
   const day = Number(digits.slice(4, 6));
+
   if (month < 1 || month > 12 || day < 1 || day > 31) {
     return { isNamibianId: false };
   }
@@ -65,9 +71,11 @@ export const parseNamibianId = (value: string, today: Date = new Date()): Namibi
   const candidate = 2000 + yy;
   const year = candidate > thisYear ? 1900 + yy : candidate;
   const iso = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+
   if (!parseIsoDate(iso)) {
     return { isNamibianId: false };
   }
+
   return { isNamibianId: true, dateOfBirth: iso };
 };
 
@@ -80,9 +88,11 @@ export const isNamibianId = (value: string): boolean => parseNamibianId(value).i
  */
 export const isPlausibleId = (value: string): boolean => {
   const compacted = compact(value);
+
   if (isNamibianId(value)) {
     return true;
   }
+
   return /^[A-Za-z0-9]{6,15}$/.test(compacted);
 };
 
@@ -115,12 +125,15 @@ export const normalizePhone = (value: string): string => compact(value);
  */
 export const phoneKey = (value: string): string | null => {
   const digits = normalizePhone(value).replace(/^\+/, '').replace(/^00/, '');
+
   if (!/^\d+$/.test(digits)) {
     return null;
   }
+
   if (digits.startsWith('0')) {
     return `+264${digits.slice(1)}`;
   }
+
   return `+${digits}`;
 };
 
@@ -143,19 +156,24 @@ export const isPngDataUrl = (value: string): boolean =>
 /** Whole years between a `YYYY-MM-DD` birth date and `on`; null when unparseable. */
 export const ageOnDate = (dateOfBirth: string, on: Date = new Date()): number | null => {
   const parts = parseIsoDate(dateOfBirth);
+
   if (!parts) {
     return null;
   }
+
   let age = on.getFullYear() - parts.year;
   const monthDelta = on.getMonth() + 1 - parts.month;
+
   if (monthDelta < 0 || (monthDelta === 0 && on.getDate() < parts.day)) {
     age -= 1;
   }
+
   return age;
 };
 
 /** True when the birth date is real, not in the future, and at least 18 years ago. */
 export const isAdult = (dateOfBirth: string, on: Date = new Date()): boolean => {
   const age = ageOnDate(dateOfBirth, on);
+
   return age !== null && age >= MINIMUM_LOAN_AGE && age < 120;
 };

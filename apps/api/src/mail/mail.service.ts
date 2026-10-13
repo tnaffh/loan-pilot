@@ -24,6 +24,7 @@ export class MailService {
 
   constructor(config: ConfigService) {
     const apiKey = config.get<string>('RESEND_API_KEY');
+
     this.from = config.get<string>('MAIL_FROM') ?? 'LoanPilot <onboarding@resend.dev>';
     this.client = apiKey ? new Resend(apiKey) : null;
   }
@@ -125,8 +126,10 @@ export class MailService {
           attachments ? ` (+${attachments.length} attachment)` : ''
         } — set RESEND_API_KEY to send`,
       );
+
       return;
     }
+
     const { error } = await this.client.emails.send({
       from: this.from,
       to,
@@ -136,6 +139,7 @@ export class MailService {
         ? { attachments: attachments.map((a) => ({ filename: a.filename, content: a.content })) }
         : {}),
     });
+
     if (error) {
       // Don't fail the request — the caller surfaces the link as a fallback.
       this.logger.error(`Resend failed for ${to}: ${error.message}`);

@@ -167,6 +167,7 @@ export const MonthlyReport = ({ month }: Props) => {
 
   const download = async (kind: 'pdf' | 'xlsx') => {
     setBusy(kind);
+
     try {
       await downloadFile(
         `/reports/monthly/${month}/${kind}`,
@@ -222,6 +223,7 @@ export const MonthlyReport = ({ month }: Props) => {
   const stats = useMemo((): StatCardProps[] | null => {
     if (!data) return null;
     const { summary } = data;
+
     return [
       {
         label: 'Total capital',
@@ -262,6 +264,7 @@ export const MonthlyReport = ({ month }: Props) => {
   if (error) {
     return <p className="text-sm text-destructive">{error}</p>;
   }
+
   if (!data || !stats) {
     return loading ? <Skeleton className="h-96 w-full rounded-xl" /> : null;
   }
@@ -278,15 +281,33 @@ export const MonthlyReport = ({ month }: Props) => {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button size="sm" variant="outline" onClick={exportCsv} disabled={data.loans.length === 0}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={exportCsv}
+            disabled={data.loans.length === 0}
+          >
             <FileSpreadsheet className="size-4" /> CSV
           </Button>
-          <Button size="sm" variant="outline" onClick={() => download('xlsx')} disabled={busy !== null}>
-            {busy === 'xlsx' ? <Loader2 className="size-4 animate-spin" /> : <FileSpreadsheet className="size-4" />}
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => download('xlsx')}
+            disabled={busy !== null}
+          >
+            {busy === 'xlsx' ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <FileSpreadsheet className="size-4" />
+            )}
             Excel
           </Button>
           <Button size="sm" onClick={() => download('pdf')} disabled={busy !== null}>
-            {busy === 'pdf' ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
+            {busy === 'pdf' ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Download className="size-4" />
+            )}
             PDF
           </Button>
         </div>
@@ -367,7 +388,9 @@ export const MonthlyReport = ({ month }: Props) => {
                 {summary.collectionsByMethod.map((row) => (
                   <TableRow key={row.key}>
                     <TableCell>{row.label}</TableCell>
-                    <TableCell className="text-right tabular-nums">{formatNad(row.value)}</TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {formatNad(row.value)}
+                    </TableCell>
                   </TableRow>
                 ))}
                 <TableRow className="font-semibold">

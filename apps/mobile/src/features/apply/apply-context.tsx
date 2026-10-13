@@ -106,6 +106,7 @@ export const ApplyProvider = ({ seed, children }: { seed: QuoteSeed; children: R
       ...(seed.term ? { termMonths: Number(seed.term) } : {}),
       ...(isLoanType(seed.type) ? { loanType: seed.type } : {}),
     };
+
     return { ...DEFAULTS, ...draft, ...fromQuote, tcVersion: TERMS_VERSION };
   });
 
@@ -122,19 +123,23 @@ export const ApplyProvider = ({ seed, children }: { seed: QuoteSeed; children: R
 
   // Autosave answers (debounced) so an app kill doesn't lose them.
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     const subscription = form.watch((values) => {
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => saveDraft(values), 600);
     });
+
     return () => {
       subscription.unsubscribe();
+
       if (saveTimer.current) clearTimeout(saveTimer.current);
     };
   }, [form]);
 
   const submit = async (values: CreateApplicationInput) => {
     setProgress(0.05);
+
     try {
       const application = await api<ApplicationResult>('/applications', {
         method: 'POST',
@@ -143,6 +148,7 @@ export const ApplyProvider = ({ seed, children }: { seed: QuoteSeed; children: R
       const files: { kind: DocumentKind; file: UploadFile }[] = [
         ...APPLICATION_DOCUMENT_SLOTS.flatMap(({ kind }) => {
           const file = documents[kind];
+
           return file ? [{ kind, file }] : [];
         }),
         ...collateralPhotos.map((file) => ({ kind: DocumentKind.CollateralPhoto, file })),
@@ -159,10 +165,12 @@ export const ApplyProvider = ({ seed, children }: { seed: QuoteSeed; children: R
           )
             .then(() => true)
             .catch(() => false);
+
           return [...done, ok];
         },
         Promise.resolve([]),
       );
+
       clearDraft();
       setOutcome({
         ...application,
@@ -196,6 +204,8 @@ export const ApplyProvider = ({ seed, children }: { seed: QuoteSeed; children: R
 
 export const useApply = (): ApplyContextValue => {
   const context = useContext(ApplyContext);
+
   if (!context) throw new Error('useApply must be used inside ApplyProvider');
+
   return context;
 };

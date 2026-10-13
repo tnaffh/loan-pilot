@@ -41,7 +41,12 @@ const RootLayout = ({ children }: Readonly<{ children: React.ReactNode }>) => {
       className={cn('h-full antialiased', GeistSans.variable, GeistMono.variable)}
     >
       <body className="min-h-full font-sans">
-        <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem
+          disableTransitionOnChange
+        >
           <AuthProvider>
             <TenantThemeProvider>{children}</TenantThemeProvider>
           </AuthProvider>

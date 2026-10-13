@@ -40,14 +40,18 @@ const rootsOf = (step: number): Set<string> =>
  */
 const schemaMessages = (values: CreateApplicationInput, step: number): string[] => {
   const result = createApplicationSchema.safeParse(values);
+
   if (result.success) return [];
   const roots = rootsOf(step);
   // One message per field: an empty ID fails both its length and format checks.
   const byField = new Map<string, string>();
+
   for (const issue of result.error.issues) {
     const path = issue.path.join('.');
+
     if (roots.has(String(issue.path[0])) && !byField.has(path)) byField.set(path, issue.message);
   }
+
   return [...new Set(byField.values())];
 };
 
@@ -57,14 +61,18 @@ const stepMessages = (errors: FieldErrors<CreateApplicationInput>, step: number)
   const messages = new Set<string>();
   const visit = (node: unknown): void => {
     if (!node || typeof node !== 'object') return;
+
     if ('message' in node && typeof node.message === 'string') messages.add(node.message);
+
     for (const [key, child] of Object.entries(node)) {
       if (key !== 'message' && key !== 'type' && key !== 'ref') visit(child);
     }
   };
+
   for (const [key, child] of Object.entries(errors)) {
     if (roots.has(key)) visit(child);
   }
+
   return [...messages];
 };
 
@@ -74,6 +82,7 @@ const stepOfFirstError = (errors: FieldErrors<CreateApplicationInput>): number =
   const index = APPLICATION_STEP_FIELDS.findIndex((fields) =>
     fields.some((field) => roots.has(field.split('.')[0] ?? field)),
   );
+
   return index === -1 ? LAST : index;
 };
 
@@ -90,14 +99,18 @@ const ApplyStep = () => {
   const documentsReady = (): boolean => {
     const loanType = form.getValues('loanType');
     const errors: Partial<Record<DocumentKind, string>> = {};
+
     for (const slot of APPLICATION_DOCUMENT_SLOTS) {
       if (isDocumentSlotRequired(slot, loanType) && !documents[slot.kind]) {
         errors[slot.kind] = 'This document is required';
       }
     }
+
     setDocumentErrors(errors);
     const photosMissing = loanType === LoanType.Collateral && collateralPhotos.length === 0;
+
     if (photosMissing) setBlocked(['Add at least one photo of the collateral (step 1)']);
+
     return Object.keys(errors).length === 0 && !photosMissing;
   };
 
@@ -109,10 +122,13 @@ const ApplyStep = () => {
   const next = async () => {
     const valid = await form.trigger([...(APPLICATION_STEP_FIELDS[step] ?? [])]);
     const docsOk = step === 3 ? documentsReady() : true;
+
     if (!valid || !docsOk) {
       fail(valid ? ['Attach the required documents'] : schemaMessages(form.getValues(), step));
+
       return;
     }
+
     setBlocked([]);
     router.push({ pathname: '/apply/[step]', params: { step: String(step + 1) } });
   };
@@ -121,8 +137,10 @@ const ApplyStep = () => {
     async (values) => {
       if (!documentsReady()) {
         fail(['Attach the required documents (step 4)']);
+
         return;
       }
+
       try {
         await submit(values);
         void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
@@ -133,17 +151,21 @@ const ApplyStep = () => {
           error instanceof ApiError
             ? [error.message, ...error.issues.map((issue) => issue.message)].join('\n')
             : 'We could not submit your application. Please try again.';
+
         Alert.alert('Application not sent', detail);
       }
     },
     (errors) => {
       const target = stepOfFirstError(errors);
+
       if (target < step) {
         Alert.alert('A few details need fixing', stepMessages(errors, target).join('\n'), [
           { text: 'Go to step', onPress: () => router.dismiss(step - target) },
         ]);
+
         return;
       }
+
       fail(stepMessages(errors, target));
     },
   );

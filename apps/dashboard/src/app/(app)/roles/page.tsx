@@ -4,12 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Copy, KeyRound, Loader2, Lock, Pencil, Plus, Trash2 } from 'lucide-react';
-import {
-  PERMISSION_GROUPS,
-  PERMISSION_LABELS,
-  can,
-  type Permission,
-} from '@loan-pilot/domain';
+import { PERMISSION_GROUPS, PERMISSION_LABELS, can, type Permission } from '@loan-pilot/domain';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -64,6 +59,7 @@ const RoleSheet = ({
   // Sync form state whenever a different target is opened.
   const [syncKey, setSyncKey] = useState<string | null>(null);
   const key = target === 'new' ? 'new' : (role?.id ?? null);
+
   if (target !== null && key !== syncKey) {
     setSyncKey(key);
     setName(role?.name ?? '');
@@ -73,11 +69,13 @@ const RoleSheet = ({
   const toggle = (permission: Permission, checked: boolean) => {
     setPermissions((current) => {
       const next = new Set(current);
+
       if (checked) {
         next.add(permission);
       } else {
         next.delete(permission);
       }
+
       return next;
     });
   };
@@ -85,16 +83,21 @@ const RoleSheet = ({
   const save = async () => {
     if (!name.trim()) {
       toast.error('A role name is required');
+
       return;
     }
+
     setBusy(true);
+
     try {
       const body = { name: name.trim(), permissions: [...permissions] };
+
       if (role) {
         await apiFetch(`/roles/${role.id}`, { method: 'PATCH', body, token });
       } else {
         await apiFetch('/roles', { method: 'POST', body, token });
       }
+
       toast.success(role ? 'Role updated' : 'Role created');
       onClose();
       onSaved();
@@ -130,7 +133,9 @@ const RoleSheet = ({
           <div className="space-y-4">
             {PERMISSION_GROUPS.map((group) => (
               <div key={group.label}>
-                <div className="mb-1.5 text-xs font-medium text-muted-foreground">{group.label}</div>
+                <div className="mb-1.5 text-xs font-medium text-muted-foreground">
+                  {group.label}
+                </div>
                 <div className="space-y-2">
                   {group.permissions.map((permission) => (
                     <label
@@ -193,6 +198,7 @@ const RolesPage = () => {
 
   const clone = async (role: RoleRow) => {
     setCloning(role.id);
+
     try {
       await apiFetch(`/roles/${role.id}/clone`, { method: 'POST', token });
       toast.success(`Cloned ${role.name}`);
@@ -207,6 +213,7 @@ const RolesPage = () => {
   const confirmRemove = async () => {
     if (!removing) return;
     setDeleting(true);
+
     try {
       await apiFetch(`/roles/${removing.id}`, { method: 'DELETE', token });
       toast.success('Role deleted');
@@ -300,7 +307,10 @@ const RolesPage = () => {
 
       <RoleSheet target={target} onClose={() => setTarget(null)} onSaved={refresh} />
 
-      <AlertDialog open={removing !== null} onOpenChange={(open) => (open ? null : setRemoving(null))}>
+      <AlertDialog
+        open={removing !== null}
+        onOpenChange={(open) => (open ? null : setRemoving(null))}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete role</AlertDialogTitle>

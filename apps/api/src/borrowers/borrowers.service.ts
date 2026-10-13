@@ -169,8 +169,10 @@ const isDuplicateKeyError = (error: unknown): boolean =>
 const duplicateConstraint = (error: unknown): string => {
   if (typeof error !== 'object' || error === null || !('meta' in error)) return '';
   const meta = error.meta;
+
   if (typeof meta !== 'object' || meta === null || !('target' in meta)) return '';
   const target = meta.target;
+
   return Array.isArray(target) ? target.join(',') : String(target ?? '');
 };
 
@@ -210,9 +212,11 @@ export class BorrowersService {
         bankAccounts: { orderBy: [{ isActive: 'desc' }, { createdAt: 'desc' }] },
       },
     });
+
     if (!borrower) {
       throw new NotFoundException('Borrower not found');
     }
+
     return {
       ...borrower,
       audit: await this.audit.listFor(tenantId, 'borrower', id),
@@ -237,9 +241,11 @@ export class BorrowersService {
         addresses: { where: { isActive: true }, take: 1 },
       },
     });
+
     if (!borrower) {
       throw new NotFoundException('Borrower not found');
     }
+
     const { monthlyRate } = await this.settings.resolveFeeSettings(tenantId);
 
     const now = new Date();
@@ -254,6 +260,7 @@ export class BorrowersService {
         now,
         monthlyRate,
       ).defaultInterestCents;
+
       return {
         id: loan.id,
         type: loan.type,
@@ -271,6 +278,7 @@ export class BorrowersService {
     const outstanding = loans.reduce((sum, loan) => sum + loan.payoff, 0);
 
     const address = borrower.addresses[0];
+
     return {
       generatedAt: now,
       reference: `${borrower.id.slice(-6).toUpperCase()}/${now.toISOString().slice(0, 10)}`,
@@ -327,6 +335,7 @@ export class BorrowersService {
       officerSignaturePng: signing.officerSignaturePng,
       stampPng: signing.stampPng,
     });
+
     return {
       pdf,
       fileName: documentFileName(
@@ -361,12 +370,14 @@ export class BorrowersService {
       if (isDuplicateKeyError(error)) {
         throw new ConflictException(borrowerDuplicateMessage(error));
       }
+
       throw error;
     }
   }
 
   private async ensureBorrower(tenantId: string, id: string): Promise<void> {
     const borrower = await this.prisma.borrower.findFirst({ where: { id, tenantId } });
+
     if (!borrower) {
       throw new NotFoundException('Borrower not found');
     }
@@ -379,11 +390,13 @@ export class BorrowersService {
     input: CreateBorrowerAddressInput,
   ): Promise<BorrowerAddress> {
     await this.ensureBorrower(tenantId, borrowerId);
+
     return this.prisma.$transaction(async (tx) => {
       await tx.borrowerAddress.updateMany({
         where: { borrowerId, isActive: true },
         data: { isActive: false },
       });
+
       return tx.borrowerAddress.create({
         data: { borrowerId, ...addressData(input), isActive: true },
       });
@@ -396,15 +409,19 @@ export class BorrowersService {
     addressId: string,
   ): Promise<BorrowerAddress> {
     await this.ensureBorrower(tenantId, borrowerId);
+
     return this.prisma.$transaction(async (tx) => {
       const address = await tx.borrowerAddress.findFirst({ where: { id: addressId, borrowerId } });
+
       if (!address) {
         throw new NotFoundException('Address not found');
       }
+
       await tx.borrowerAddress.updateMany({
         where: { borrowerId, isActive: true },
         data: { isActive: false },
       });
+
       return tx.borrowerAddress.update({ where: { id: addressId }, data: { isActive: true } });
     });
   }
@@ -416,11 +433,13 @@ export class BorrowersService {
     input: CreateBorrowerBankAccountInput,
   ): Promise<BorrowerBankAccount> {
     await this.ensureBorrower(tenantId, borrowerId);
+
     return this.prisma.$transaction(async (tx) => {
       await tx.borrowerBankAccount.updateMany({
         where: { borrowerId, isActive: true },
         data: { isActive: false },
       });
+
       return tx.borrowerBankAccount.create({
         data: { borrowerId, ...bankAccountData(input), isActive: true },
       });
@@ -433,17 +452,21 @@ export class BorrowersService {
     accountId: string,
   ): Promise<BorrowerBankAccount> {
     await this.ensureBorrower(tenantId, borrowerId);
+
     return this.prisma.$transaction(async (tx) => {
       const account = await tx.borrowerBankAccount.findFirst({
         where: { id: accountId, borrowerId },
       });
+
       if (!account) {
         throw new NotFoundException('Bank account not found');
       }
+
       await tx.borrowerBankAccount.updateMany({
         where: { borrowerId, isActive: true },
         data: { isActive: false },
       });
+
       return tx.borrowerBankAccount.update({ where: { id: accountId }, data: { isActive: true } });
     });
   }
@@ -455,37 +478,49 @@ export class BorrowersService {
     input: UpdateBorrowerInput,
   ): Promise<Borrower> {
     const existing = await this.prisma.borrower.findFirst({ where: { id, tenantId } });
+
     if (!existing) {
       throw new NotFoundException('Borrower not found');
     }
 
     const { monthlyIncome, since, gender, payDay, status, collexiaClientNo, ...rest } = input;
     const data: Prisma.BorrowerUpdateInput = { ...rest };
+
     if (monthlyIncome !== undefined) data.monthlyIncome = toCents(monthlyIncome);
+
     if (since) data.since = new Date(since);
+
     if (gender !== undefined) data.gender = gender || null;
+
     if (payDay !== undefined) data.payDay = payDay || null;
+
     if (collexiaClientNo !== undefined) data.collexiaClientNo = collexiaClientNo || null;
+
     if (status) data.status = status;
+
     if (rest.phone !== undefined) data.phoneKey = phoneKey(rest.phone);
 
     let updated: Borrower;
+
     try {
       updated = await this.prisma.borrower.update({ where: { id }, data });
     } catch (error) {
       if (isDuplicateKeyError(error)) {
         throw new ConflictException(borrowerDuplicateMessage(error));
       }
+
       throw error;
     }
 
     const before = borrowerAuditMap(existing);
+
     await this.audit.record(tenantId, actor, {
       entity: 'borrower',
       entityId: id,
       action: 'updated',
       changes: this.audit.diff(before, borrowerAuditMap(updated), Object.keys(before)),
     });
+
     return updated;
   }
 
@@ -501,25 +536,35 @@ export class BorrowersService {
     const existing = await this.prisma.borrowerAddress.findFirst({
       where: { id: addressId, borrowerId },
     });
+
     if (!existing) {
       throw new NotFoundException('Address not found');
     }
+
     const data: Prisma.BorrowerAddressUpdateInput = {};
+
     if (input.label !== undefined) data.label = input.label || null;
+
     if (input.street !== undefined) data.street = input.street;
+
     if (input.suburb !== undefined) data.suburb = input.suburb || null;
+
     if (input.city !== undefined) data.city = input.city;
+
     if (input.region !== undefined) data.region = input.region || null;
+
     if (input.country !== undefined) data.country = input.country;
 
     const updated = await this.prisma.borrowerAddress.update({ where: { id: addressId }, data });
     const before = addressAuditMap(existing);
+
     await this.audit.record(tenantId, actor, {
       entity: 'borrower',
       entityId: borrowerId,
       action: 'address_updated',
       changes: this.audit.diff(before, addressAuditMap(updated), Object.keys(before)),
     });
+
     return updated;
   }
 
@@ -535,15 +580,23 @@ export class BorrowersService {
     const existing = await this.prisma.borrowerBankAccount.findFirst({
       where: { id: accountId, borrowerId },
     });
+
     if (!existing) {
       throw new NotFoundException('Bank account not found');
     }
+
     const data: Prisma.BorrowerBankAccountUpdateInput = {};
+
     if (input.bankName !== undefined) data.bankName = input.bankName;
+
     if (input.accountNumber !== undefined) data.accountNumber = input.accountNumber;
+
     if (input.branchName !== undefined) data.branchName = input.branchName || null;
+
     if (input.branchCode !== undefined) data.branchCode = input.branchCode || null;
+
     if (input.accountHolderName !== undefined) data.accountHolderName = input.accountHolderName;
+
     if (input.accountType !== undefined) data.accountType = input.accountType;
 
     const updated = await this.prisma.borrowerBankAccount.update({
@@ -551,12 +604,14 @@ export class BorrowersService {
       data,
     });
     const before = bankAuditMap(existing);
+
     await this.audit.record(tenantId, actor, {
       entity: 'borrower',
       entityId: borrowerId,
       action: 'bank_updated',
       changes: this.audit.diff(before, bankAuditMap(updated), Object.keys(before)),
     });
+
     return updated;
   }
 
@@ -574,6 +629,7 @@ export class BorrowersService {
     if (survivorId === duplicateId) {
       throw new BadRequestException('Cannot merge a borrower into itself');
     }
+
     const survivor = await this.prisma.borrower.findFirst({
       where: { id: survivorId, tenantId },
       include: { user: { select: { id: true } } },
@@ -582,9 +638,11 @@ export class BorrowersService {
       where: { id: duplicateId, tenantId },
       include: { user: { select: { id: true } }, _count: { select: { loans: true } } },
     });
+
     if (!survivor || !duplicate) {
       throw new NotFoundException('Borrower not found');
     }
+
     // User.borrowerId is unique — two portal logins can't both point at the survivor.
     if (survivor.user && duplicate.user) {
       throw new BadRequestException(
@@ -607,12 +665,14 @@ export class BorrowersService {
         where: { borrowerId: duplicateId },
         data: { borrowerId: survivorId, isActive: false },
       });
+
       if (duplicate.user) {
         await tx.user.update({
           where: { id: duplicate.user.id },
           data: { borrowerId: survivorId },
         });
       }
+
       await tx.auditEvent.updateMany({
         where: { tenantId, entity: 'borrower', entityId: duplicateId },
         data: { entityId: survivorId },
@@ -644,9 +704,11 @@ export class BorrowersService {
   /** Likely duplicates of a borrower within the tenant: same phone or same name. */
   async duplicateSuggestions(tenantId: string, id: string): Promise<BorrowerWithLoanCount[]> {
     const target = await this.prisma.borrower.findFirst({ where: { id, tenantId } });
+
     if (!target) {
       throw new NotFoundException('Borrower not found');
     }
+
     const candidates = await this.prisma.borrower.findMany({
       where: {
         tenantId,
@@ -661,6 +723,7 @@ export class BorrowersService {
       take: 25,
     });
     const targetName = nameKey(target.firstName, target.lastName);
+
     return candidates
       .filter((c) => c.phone === target.phone || nameKey(c.firstName, c.lastName) === targetName)
       .slice(0, 5);

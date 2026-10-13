@@ -17,13 +17,7 @@ import {
 } from 'lucide-react';
 import { CollexiaStatus, LoanStatus, can, formatNad, fromCents } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StatCard } from '@/components/stat-card';
 import { Badge } from '@/components/ui/badge';
@@ -44,8 +38,11 @@ import type { ApplicationRow, LenderSeries, LoanRow, OverviewStats } from '@/lib
 
 const greeting = (): string => {
   const hour = new Date().getHours();
+
   if (hour < 12) return 'Good morning';
+
   if (hour < 18) return 'Good afternoon';
+
   return 'Good evening';
 };
 
@@ -61,11 +58,7 @@ const LoadingState = () => (
   </StatGrid>
 );
 
-const LenderOverview = ({
-  stats,
-}: {
-  stats: Extract<OverviewStats, { kind: 'lender' }>;
-}) => {
+const LenderOverview = ({ stats }: { stats: Extract<OverviewStats, { kind: 'lender' }> }) => {
   const router = useRouter();
   const command = useCommand();
   const { user } = useAuth();
@@ -84,6 +77,7 @@ const LenderOverview = ({
       if (a.status !== b.status) {
         return a.status === LoanStatus.Arrears ? -1 : 1;
       }
+
       return (a.nextDueAt ?? '').localeCompare(b.nextDueAt ?? '');
     })
     .slice(0, 5);
@@ -142,6 +136,7 @@ const LenderOverview = ({
       loan.nextDueAt ? formatDate(loan.nextDueAt) : '',
       loan.daysLate,
     ]);
+
     downloadCsv(
       `loan-book-${new Date().toISOString().slice(0, 10)}.csv`,
       [
@@ -339,7 +334,9 @@ const LenderOverview = ({
           </CardHeader>
           <CardContent className="px-2">
             {needsAttention.length === 0 ? (
-              <p className="px-4 py-6 text-sm text-muted-foreground">Nothing outstanding right now.</p>
+              <p className="px-4 py-6 text-sm text-muted-foreground">
+                Nothing outstanding right now.
+              </p>
             ) : (
               <ul>
                 {needsAttention.map((loan) => (
@@ -349,7 +346,9 @@ const LenderOverview = ({
                       onClick={() => command.openLoanQuickView(loan.id)}
                       className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-muted"
                     >
-                      <InitialsAvatar name={`${loan.borrower.firstName} ${loan.borrower.lastName}`} />
+                      <InitialsAvatar
+                        name={`${loan.borrower.firstName} ${loan.borrower.lastName}`}
+                      />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-medium">
                           {loan.borrower.firstName} {loan.borrower.lastName}
@@ -396,9 +395,7 @@ const LenderOverview = ({
                       onClick={() => command.openReview(application.id)}
                       className="flex w-full items-center gap-3 rounded-lg px-2 py-2.5 text-left hover:bg-muted"
                     >
-                      <InitialsAvatar
-                        name={`${application.firstName} ${application.lastName}`}
-                      />
+                      <InitialsAvatar name={`${application.firstName} ${application.lastName}`} />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-medium">
                           {application.firstName} {application.lastName}
@@ -420,11 +417,7 @@ const LenderOverview = ({
   );
 };
 
-const PlatformOverview = ({
-  stats,
-}: {
-  stats: Extract<OverviewStats, { kind: 'platform' }>;
-}) => (
+const PlatformOverview = ({ stats }: { stats: Extract<OverviewStats, { kind: 'platform' }> }) => (
   <div className="space-y-6">
     <div>
       <h2 className="font-heading text-3xl font-semibold tracking-tight">Platform overview</h2>
@@ -446,12 +439,7 @@ const PlatformOverview = ({
         icon={Banknote}
         tone="brand"
       />
-      <StatCard
-        label="Borrowers"
-        value={String(stats.totalBorrowers)}
-        icon={Users}
-        tone="amber"
-      />
+      <StatCard label="Borrowers" value={String(stats.totalBorrowers)} icon={Users} tone="amber" />
     </StatGrid>
   </div>
 );
@@ -471,9 +459,11 @@ const OverviewPage = () => {
   if (data.kind === 'lender') {
     return <LenderOverview stats={data} />;
   }
+
   if (data.kind === 'platform') {
     return <PlatformOverview stats={data} />;
   }
+
   return <BorrowerHome />;
 };
 

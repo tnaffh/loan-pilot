@@ -249,6 +249,7 @@ export const LoanStep = () => {
 /** Format typed digits as YYYY-MM-DD so a date of birth needs no picker. */
 const maskDate = (text: string): string => {
   const digits = text.replace(/\D/g, '').slice(0, 8);
+
   return [digits.slice(0, 4), digits.slice(4, 6), digits.slice(6, 8)].filter(Boolean).join('-');
 };
 
@@ -261,6 +262,7 @@ export const PersonalStep = () => {
   // A Namibian ID encodes the date of birth — fill it in for the applicant.
   useEffect(() => {
     const parsed = parseNamibianId(idNumber ?? '');
+
     if (parsed.isNamibianId && parsed.dateOfBirth && !getValues('dateOfBirth')) {
       setValue('dateOfBirth', parsed.dateOfBirth, { shouldValidate: true });
     }
@@ -345,6 +347,7 @@ export const PersonalStep = () => {
         checked={postalSame !== false}
         onChange={(checked) => {
           setValue('postalSameAsResidential', checked);
+
           // Drop any entered postal address so it can't linger half-filled.
           if (checked) setValue('postalAddress', undefined);
         }}

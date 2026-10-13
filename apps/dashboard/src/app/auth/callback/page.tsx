@@ -12,10 +12,13 @@ const Callback = () => {
 
   useEffect(() => {
     const token = params.get('token');
+
     if (!token) {
       router.replace('/login?error=oauth');
+
       return;
     }
+
     loginWithToken(token)
       .then(() => router.replace('/'))
       .catch(() => router.replace('/login?error=oauth'));

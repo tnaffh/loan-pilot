@@ -46,11 +46,14 @@ export class DocumentsController {
     if (!file) {
       throw new BadRequestException('A file is required');
     }
+
     if (!DOCUMENT_KINDS.has(kind)) {
       throw new BadRequestException('Invalid document kind');
     }
+
     const tenant = await this.tenants.resolveForPublicRequest(tenantSlug);
     const document = await this.documents.createForApplication(tenant.id, id, kind, file);
+
     return {
       id: document.id,
       kind: document.kind,

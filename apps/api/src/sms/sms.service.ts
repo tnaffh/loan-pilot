@@ -30,10 +30,13 @@ export class SmsService {
 
   constructor(config: ConfigService) {
     const requested = config.get<string>('SMS_PROVIDER') ?? 'log';
+
     this.provider = new LogSmsProvider();
+
     if (requested !== 'log') {
       this.logger.warn(`SMS_PROVIDER "${requested}" is not implemented; logging messages instead.`);
     }
+
     if (config.get<string>('NODE_ENV') === 'production' && this.provider.name === 'log') {
       this.logger.warn(
         'No SMS vendor configured in production: borrower sign-in codes are only written to the log.',

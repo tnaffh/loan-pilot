@@ -8,6 +8,7 @@ import Constants from 'expo-constants';
  */
 const devApiUrl = (): string => {
   const host = Constants.expoConfig?.hostUri?.split(':')[0];
+
   return host ? `http://${host}:4000/api` : 'http://localhost:4000/api';
 };
 

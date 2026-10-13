@@ -31,8 +31,10 @@ export const documentFileName = (kind: string, subject: string, date: Date, ext 
  */
 export const attachmentDisposition = (fileName: string): string => {
   const ascii = fileName.replace(/[^\x20-\x7e]/g, '_').replace(/"/g, "'");
-  const encoded = encodeURIComponent(fileName).replace(/['()*]/g, (c) =>
-    `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
+  const encoded = encodeURIComponent(fileName).replace(
+    /['()*]/g,
+    (c) => `%${c.charCodeAt(0).toString(16).toUpperCase()}`,
   );
+
   return `attachment; filename="${ascii}"; filename*=UTF-8''${encoded}`;
 };

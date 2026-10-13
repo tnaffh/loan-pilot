@@ -146,6 +146,7 @@ describe('ApplicationsService', () => {
 
     expect(create).toHaveBeenCalledTimes(1);
     const data = create.mock.calls[0][0].data;
+
     expect(data.amount).toBe(500000); // N$ 5,000 in cents
     expect(data.quotedTotal).toBe(650000); // 30% finance charge
     expect(data.quotedInstalment).toBe(650000);
@@ -158,6 +159,7 @@ describe('ApplicationsService', () => {
     await service.create('tenant_1', baseInput);
 
     const kinds = documentCreate.mock.calls.map((call) => call[0].data.kind);
+
     expect(kinds).toEqual(['signature', 'initials']);
     expect(applicationUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -188,6 +190,7 @@ describe('ApplicationsService', () => {
     await service.create('tenant_1', { ...baseInput, amount: 15000, monthlyIncome: 9000 });
 
     const data = create.mock.calls[0][0].data;
+
     expect(data.affordability).toBe('fail');
   });
 
@@ -233,6 +236,7 @@ describe('ApplicationsService', () => {
       }),
     );
     const loanData = loanCreate.mock.calls[0][0].data;
+
     expect(loanData.borrower.connect.id).toBe('bor_new');
     expect(loanData.total).toBe(780000); // N$ 7,800 (30% charge on N$ 6,000)
     expect(loanData.instalment).toBe(390000);

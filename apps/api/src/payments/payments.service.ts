@@ -45,6 +45,7 @@ export class PaymentsService {
     const loan = await this.prisma.loan.findFirst({
       where: { id: input.loanId, tenantId },
     });
+
     if (!loan) {
       throw new NotFoundException('Loan not found');
     }
@@ -63,6 +64,7 @@ export class PaymentsService {
     });
 
     await this.recomputeLoan(loan.id);
+
     return payment;
   }
 
@@ -79,9 +81,11 @@ export class PaymentsService {
    */
   private async recomputeLoan(loanId: string): Promise<void> {
     const loan = await this.prisma.loan.findUnique({ where: { id: loanId } });
+
     if (!loan) {
       return;
     }
+
     const [payments, schedule] = await Promise.all([
       this.prisma.payment.findMany({
         where: { loanId },

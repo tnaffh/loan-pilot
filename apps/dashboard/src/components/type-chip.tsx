@@ -12,6 +12,7 @@ const META: Record<LoanType, { label: string; icon: LucideIcon }> = {
 export const TypeChip = ({ type }: { type: LoanType }) => {
   const meta = META[type];
   const Icon = meta?.icon;
+
   return (
     <Badge variant="outline" className="font-normal">
       {Icon ? <Icon /> : null}

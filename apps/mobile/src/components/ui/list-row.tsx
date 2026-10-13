@@ -24,6 +24,7 @@ export const ListRow = ({
   chevron?: boolean;
 }) => {
   const colors = useColors();
+
   return (
     <Pressable
       disabled={!onPress}

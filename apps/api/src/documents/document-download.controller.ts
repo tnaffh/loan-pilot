@@ -37,16 +37,15 @@ export class DocumentDownloadController {
     @CurrentUser() user: SessionUser,
     @Param('id') id: string,
   ): Promise<StreamableFile> {
-    const { document, buffer, mimeType } = await this.documents.download(
-      requireTenantId(user),
-      id,
-    );
+    const { document, buffer, mimeType } = await this.documents.download(requireTenantId(user), id);
     const required: Permission = AGREEMENT_KINDS.has(document.kind)
       ? 'agreements:read'
       : 'borrowers:read';
+
     if (!hasPermission(user, required)) {
       throw new ForbiddenException('You do not have permission to download this document');
     }
+
     return new StreamableFile(buffer, {
       type: mimeType,
       disposition: attachmentDisposition(document.fileName),

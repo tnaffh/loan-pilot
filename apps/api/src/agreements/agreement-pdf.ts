@@ -18,6 +18,7 @@ export const renderAgreementPdf = (data: AgreementData): Promise<Buffer> =>
   new Promise((resolve, reject) => {
     const doc = new PDFDocument(AGREEMENT_PAGE_OPTIONS);
     const chunks: Buffer[] = [];
+
     doc.on('data', (chunk: Buffer) => chunks.push(chunk));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
@@ -69,7 +70,9 @@ export const renderAgreementPdf = (data: AgreementData): Promise<Buffer> =>
 
     if (data.borrower.references.length > 0) {
       sectionHeading('References');
-      fieldGrid(data.borrower.references.map((reference) => [reference.name, reference.phone] as const));
+      fieldGrid(
+        data.borrower.references.map((reference) => [reference.name, reference.phone] as const),
+      );
     }
 
     // ── Loan terms ───────────────────────────────────────────────────────
@@ -95,6 +98,7 @@ export const renderAgreementPdf = (data: AgreementData): Promise<Buffer> =>
       ensureSpace(24);
       const isTotal = line.kind === 'total';
       const y = doc.y;
+
       if (isTotal) {
         doc
           .moveTo(M, y - 1)
@@ -103,11 +107,17 @@ export const renderAgreementPdf = (data: AgreementData): Promise<Buffer> =>
           .strokeColor(COLORS.rule)
           .stroke();
       }
+
       const font = isTotal ? 'Helvetica-Bold' : 'Helvetica';
       const size = isTotal ? 10 : 9;
       const labelColor = line.kind === 'extra' ? COLORS.muted : COLORS.ink;
-      const amountColor = isTotal ? COLORS.accent : line.kind === 'extra' ? COLORS.muted : COLORS.ink;
+      const amountColor = isTotal
+        ? COLORS.accent
+        : line.kind === 'extra'
+          ? COLORS.muted
+          : COLORS.ink;
       const top = y + (isTotal ? 6 : 3);
+
       doc
         .font(font)
         .fontSize(size)

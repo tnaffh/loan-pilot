@@ -28,12 +28,7 @@ import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
 import { bumpRevalidation } from '@/lib/revalidate';
 import { formatDate } from '@/lib/format';
-import type {
-  ExpenseRow,
-  IncomeRow,
-  InvestmentRow,
-  OverviewStats,
-} from '@/lib/types';
+import type { ExpenseRow, IncomeRow, InvestmentRow, OverviewStats } from '@/lib/types';
 
 const today = (): string => new Date().toISOString().slice(0, 10);
 
@@ -45,9 +40,24 @@ const ENTRY_CONFIG: Record<
   { title: string; labelField: string; endpoint: string; dateField: string }
 > = {
   income: { title: 'income', labelField: 'Category', endpoint: '/income', dateField: 'incurredAt' },
-  expense: { title: 'expense', labelField: 'Category', endpoint: '/expenses', dateField: 'incurredAt' },
-  drawing: { title: 'drawing', labelField: 'Category', endpoint: '/expenses', dateField: 'incurredAt' },
-  capital: { title: 'capital injection', labelField: 'Name', endpoint: '/investments', dateField: 'contributedAt' },
+  expense: {
+    title: 'expense',
+    labelField: 'Category',
+    endpoint: '/expenses',
+    dateField: 'incurredAt',
+  },
+  drawing: {
+    title: 'drawing',
+    labelField: 'Category',
+    endpoint: '/expenses',
+    dateField: 'incurredAt',
+  },
+  capital: {
+    title: 'capital injection',
+    labelField: 'Name',
+    endpoint: '/investments',
+    dateField: 'contributedAt',
+  },
 };
 
 const EntryDialog = ({
@@ -81,6 +91,7 @@ const EntryDialog = ({
   const save = async () => {
     if (!kind || !config) return;
     setBusy(true);
+
     try {
       const body: Record<string, unknown> = {
         amount: Number(amount),
@@ -88,9 +99,12 @@ const EntryDialog = ({
         note: note || undefined,
         [config.dateField]: date || undefined,
       };
+
       if (kind === 'capital') body.name = label;
       else body.category = label;
+
       if (kind === 'expense') body.kind = ExpenseKind.Expense;
+
       if (kind === 'drawing') body.kind = ExpenseKind.Drawing;
 
       await apiFetch(config.endpoint, { method: 'POST', body, token });
@@ -178,10 +192,12 @@ const OpeningBalanceDialog = ({
     setSeeded(true);
     setValue(fromCents(current).toString());
   }
+
   if (!open && seeded) setSeeded(false);
 
   const save = async () => {
     setBusy(true);
+
     try {
       await apiFetch('/settings/opening-balance', {
         method: 'PATCH',
@@ -204,8 +220,8 @@ const OpeningBalanceDialog = ({
         <DialogHeader>
           <DialogTitle>Opening / bank balance</DialogTitle>
           <DialogDescription>
-            The cash already in the bank before recorded flows, so the available balance matches your
-            actual account. In N$.
+            The cash already in the bank before recorded flows, so the available balance matches
+            your actual account. In N$.
           </DialogDescription>
         </DialogHeader>
         <FormField label="Opening balance (N$)" htmlFor="opening">
@@ -238,25 +254,54 @@ const expenseColumns = (label: string): ColumnDef<ExpenseRow | IncomeRow>[] => [
     accessorKey: 'category',
     cell: ({ row }) => <span className="font-medium">{row.original.category}</span>,
   },
-  { id: 'period', header: 'Period', accessorKey: 'period', cell: ({ row }) => row.original.period ?? '—' },
-  { id: 'date', header: 'Date', accessorKey: 'incurredAt', cell: ({ row }) => formatDate(row.original.incurredAt) },
+  {
+    id: 'period',
+    header: 'Period',
+    accessorKey: 'period',
+    cell: ({ row }) => row.original.period ?? '—',
+  },
+  {
+    id: 'date',
+    header: 'Date',
+    accessorKey: 'incurredAt',
+    cell: ({ row }) => formatDate(row.original.incurredAt),
+  },
   {
     id: 'amount',
     header: () => <div className="text-right">Amount</div>,
     accessorKey: 'amount',
-    cell: ({ row }) => <div className="text-right tabular-nums">{formatNad(row.original.amount)}</div>,
+    cell: ({ row }) => (
+      <div className="text-right tabular-nums">{formatNad(row.original.amount)}</div>
+    ),
   },
 ];
 
 const capitalColumns: ColumnDef<InvestmentRow>[] = [
-  { id: 'name', header: 'Name', accessorKey: 'name', cell: ({ row }) => <span className="font-medium">{row.original.name}</span> },
-  { id: 'period', header: 'Period', accessorKey: 'period', cell: ({ row }) => row.original.period ?? '—' },
-  { id: 'date', header: 'Date', accessorKey: 'contributedAt', cell: ({ row }) => formatDate(row.original.contributedAt) },
+  {
+    id: 'name',
+    header: 'Name',
+    accessorKey: 'name',
+    cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+  },
+  {
+    id: 'period',
+    header: 'Period',
+    accessorKey: 'period',
+    cell: ({ row }) => row.original.period ?? '—',
+  },
+  {
+    id: 'date',
+    header: 'Date',
+    accessorKey: 'contributedAt',
+    cell: ({ row }) => formatDate(row.original.contributedAt),
+  },
   {
     id: 'amount',
     header: () => <div className="text-right">Amount</div>,
     accessorKey: 'amount',
-    cell: ({ row }) => <div className="text-right tabular-nums">{formatNad(row.original.amount)}</div>,
+    cell: ({ row }) => (
+      <div className="text-right tabular-nums">{formatNad(row.original.amount)}</div>
+    ),
   },
 ];
 
@@ -329,9 +374,23 @@ const FinancePage = () => {
               tone={(lender.availableBalance ?? 0) >= 0 ? 'green' : 'red'}
               hint="Cash available to lend"
             />
-            <StatCard label="Income + capital in" value={formatNad((lender.income ?? 0) + (lender.invested ?? 0))} icon={ArrowUpCircle} tone="green" />
-            <StatCard label="Expenses" value={formatNad(lender.expenses ?? 0)} icon={ArrowDownCircle} tone="amber" />
-            <StatCard label="Owner drawings" value={formatNad(lender.drawings ?? 0)} icon={ArrowDownCircle} />
+            <StatCard
+              label="Income + capital in"
+              value={formatNad((lender.income ?? 0) + (lender.invested ?? 0))}
+              icon={ArrowUpCircle}
+              tone="green"
+            />
+            <StatCard
+              label="Expenses"
+              value={formatNad(lender.expenses ?? 0)}
+              icon={ArrowDownCircle}
+              tone="amber"
+            />
+            <StatCard
+              label="Owner drawings"
+              value={formatNad(lender.drawings ?? 0)}
+              icon={ArrowDownCircle}
+            />
           </div>
           {admin ? (
             <Button
@@ -358,16 +417,32 @@ const FinancePage = () => {
             <TabsTrigger value="reconcile">Reconcile</TabsTrigger>
           </TabsList>
           <TabsContent value="income" className="mt-4">
-            <DataTable columns={expenseColumns('Category')} data={income ?? []} searchPlaceholder="Search income…" />
+            <DataTable
+              columns={expenseColumns('Category')}
+              data={income ?? []}
+              searchPlaceholder="Search income…"
+            />
           </TabsContent>
           <TabsContent value="expenses" className="mt-4">
-            <DataTable columns={expenseColumns('Category')} data={operating} searchPlaceholder="Search expenses…" />
+            <DataTable
+              columns={expenseColumns('Category')}
+              data={operating}
+              searchPlaceholder="Search expenses…"
+            />
           </TabsContent>
           <TabsContent value="drawings" className="mt-4">
-            <DataTable columns={expenseColumns('Category')} data={drawings} searchPlaceholder="Search drawings…" />
+            <DataTable
+              columns={expenseColumns('Category')}
+              data={drawings}
+              searchPlaceholder="Search drawings…"
+            />
           </TabsContent>
           <TabsContent value="capital" className="mt-4">
-            <DataTable columns={capitalColumns} data={capital ?? []} searchPlaceholder="Search capital…" />
+            <DataTable
+              columns={capitalColumns}
+              data={capital ?? []}
+              searchPlaceholder="Search capital…"
+            />
           </TabsContent>
           <TabsContent value="reconcile" className="mt-4">
             {lender ? (

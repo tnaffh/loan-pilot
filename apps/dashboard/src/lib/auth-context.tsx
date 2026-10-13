@@ -32,9 +32,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     const stored = readStoredToken();
+
     if (!stored) {
       return;
     }
+
     fetchMe(stored)
       .then((session) => {
         setToken(stored);
@@ -57,7 +59,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const login = useCallback(
     async (input: LoginInput) => {
       const response = await loginRequest(input);
+
       setSession(response.accessToken, response.user);
+
       return response.user;
     },
     [setSession],
@@ -66,7 +70,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const loginWithToken = useCallback(
     async (nextToken: string) => {
       const session = await fetchMe(nextToken);
+
       setSession(nextToken, session);
+
       return session;
     },
     [setSession],
@@ -89,8 +95,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
 export const useAuth = (): AuthContextValue => {
   const context = useContext(AuthContext);
+
   if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
+
   return context;
 };

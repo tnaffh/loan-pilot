@@ -7,9 +7,11 @@ import { TERMS_AND_CONDITIONS } from '@loan-pilot/domain';
  */
 const Clause = ({ text }: { text: string }) => {
   const numbered = /^(\d+(?:\.\d+)*\.)\s+([\s\S]*)$/.exec(text);
+
   if (numbered) {
     const depth = numbered[1]?.match(/\./g)?.length ?? 1;
     const indent = depth >= 3 ? 'pl-8' : depth === 2 ? 'pl-4' : '';
+
     return (
       <p className={`flex gap-2 leading-relaxed text-muted-foreground ${indent}`}>
         <span className="shrink-0 font-medium text-foreground/70">{numbered[1]}</span>
@@ -19,6 +21,7 @@ const Clause = ({ text }: { text: string }) => {
   }
 
   const step = /^(Step\s+[IVX]+)\s*[:.]?\s*([\s\S]*)$/.exec(text);
+
   if (step) {
     return (
       <p className="leading-relaxed text-muted-foreground">

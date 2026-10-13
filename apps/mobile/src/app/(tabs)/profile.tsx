@@ -66,6 +66,7 @@ const ProfileScreen = () => {
         <View className="flex-row gap-1 rounded-lg bg-muted p-1" accessibilityRole="radiogroup">
           {MODES.map(({ mode: option, label, icon: Icon }) => {
             const on = option === mode;
+
             return (
               <Pressable
                 key={option}

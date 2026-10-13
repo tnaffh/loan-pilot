@@ -50,6 +50,7 @@ const QuickAction = ({
       </Tooltip>
     );
   }
+
   return href ? <Link href={href}>{inner}</Link> : inner;
 };
 
@@ -59,7 +60,9 @@ export const BorrowerHome = () => {
 
   const firstName = user?.name.split(' ')[0] ?? 'there';
   const activeLoan =
-    loans?.find((loan) => loan.status === LoanStatus.Active || loan.status === LoanStatus.Arrears) ??
+    loans?.find(
+      (loan) => loan.status === LoanStatus.Active || loan.status === LoanStatus.Arrears,
+    ) ??
     loans?.[0] ??
     null;
 
@@ -96,7 +99,9 @@ export const BorrowerHome = () => {
     <div className="space-y-6">
       <div>
         <h2 className="font-heading text-2xl font-semibold tracking-tight">Hello, {firstName}</h2>
-        <p className="mt-1 text-sm text-muted-foreground">Here&apos;s where your loan stands today.</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Here&apos;s where your loan stands today.
+        </p>
       </div>
 
       <div className="relative overflow-hidden rounded-2xl bg-primary p-6 text-primary-foreground sm:p-8">
@@ -135,8 +140,18 @@ export const BorrowerHome = () => {
 
       <div className="grid grid-cols-3 gap-3">
         <QuickAction icon={Wallet} label="Make a payment" href={`/loans/${activeLoan.id}`} />
-        <QuickAction icon={Check} label="Settle early" disabled hint="Contact your lender to settle early" />
-        <QuickAction icon={Download} label="Statements" disabled hint="Statements are coming soon" />
+        <QuickAction
+          icon={Check}
+          label="Settle early"
+          disabled
+          hint="Contact your lender to settle early"
+        />
+        <QuickAction
+          icon={Download}
+          label="Statements"
+          disabled
+          hint="Statements are coming soon"
+        />
       </div>
 
       <Tabs defaultValue="overview">
@@ -177,9 +192,13 @@ export const BorrowerHome = () => {
                       </span>
                       <div className="flex-1">
                         <div className="text-sm font-medium">Instalment {item.number} received</div>
-                        <div className="text-xs text-muted-foreground">{formatDate(item.paidAt)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDate(item.paidAt)}
+                        </div>
                       </div>
-                      <div className="text-sm font-medium tabular-nums">{formatNad(item.amount)}</div>
+                      <div className="text-sm font-medium tabular-nums">
+                        {formatNad(item.amount)}
+                      </div>
                     </div>
                   ))}
                 <div className="flex items-center gap-3">
@@ -192,7 +211,9 @@ export const BorrowerHome = () => {
                       {formatDate(activeLoan.disbursedAt)}
                     </div>
                   </div>
-                  <div className="text-sm font-medium tabular-nums">{formatNad(activeLoan.principal)}</div>
+                  <div className="text-sm font-medium tabular-nums">
+                    {formatNad(activeLoan.principal)}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -209,6 +230,7 @@ export const BorrowerHome = () => {
               ) : (
                 schedule.map((item) => {
                   const paid = isInstalmentSettled(item.status);
+
                   return (
                     <div
                       key={item.id}
@@ -224,9 +246,13 @@ export const BorrowerHome = () => {
                       </span>
                       <div className="flex-1">
                         <div className="text-sm font-medium">Instalment {item.number}</div>
-                        <div className="text-xs text-muted-foreground">{formatDate(item.dueAt)}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDate(item.dueAt)}
+                        </div>
                       </div>
-                      <div className="text-sm font-medium tabular-nums">{formatNad(item.amount)}</div>
+                      <div className="text-sm font-medium tabular-nums">
+                        {formatNad(item.amount)}
+                      </div>
                       <StatusBadge value={item.status} />
                     </div>
                   );

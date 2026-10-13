@@ -38,12 +38,14 @@ export const LoanAgreementCard = ({ loanId, loanUpdatedAt, user, token, hasSigna
   const load = async () => {
     try {
       const latest = await apiFetch<AgreementView>(`/loans/${loanId}/agreement`, { token });
+
       setAgreement(latest);
     } catch (error) {
       // 404 simply means no agreement has been generated yet.
       if (!(error instanceof ApiError) || error.status !== 404) {
         toast.error(error instanceof ApiError ? error.message : 'Could not load the agreement');
       }
+
       setAgreement(null);
     } finally {
       setLoading(false);
@@ -55,19 +57,23 @@ export const LoanAgreementCard = ({ loanId, loanUpdatedAt, user, token, hasSigna
     // A const guard (not `let`, per project convention) to ignore a late
     // response after the loan changed or the card unmounted.
     const state = { active: true };
+
     void (async () => {
       try {
         const latest = await apiFetch<AgreementView>(`/loans/${loanId}/agreement`, { token });
+
         if (state.active) setAgreement(latest);
       } catch (error) {
         if (!(error instanceof ApiError) || error.status !== 404) {
           toast.error(error instanceof ApiError ? error.message : 'Could not load the agreement');
         }
+
         if (state.active) setAgreement(null);
       } finally {
         if (state.active) setLoading(false);
       }
     })();
+
     return () => {
       state.active = false;
     };
@@ -78,12 +84,14 @@ export const LoanAgreementCard = ({ loanId, loanUpdatedAt, user, token, hasSigna
 
   const generate = async () => {
     setBusy('generate');
+
     try {
       const view = await apiFetch<AgreementView>(`/loans/${loanId}/agreement`, {
         method: 'POST',
         body: {},
         token,
       });
+
       setAgreement(view);
       toast.success('Agreement generated');
     } catch (error) {
@@ -95,6 +103,7 @@ export const LoanAgreementCard = ({ loanId, loanUpdatedAt, user, token, hasSigna
 
   const email = async () => {
     setBusy('email');
+
     try {
       await apiFetch(`/loans/${loanId}/agreement/email`, { method: 'POST', body: {}, token });
       toast.success('A copy was emailed to the borrower');
@@ -108,6 +117,7 @@ export const LoanAgreementCard = ({ loanId, loanUpdatedAt, user, token, hasSigna
   const download = async () => {
     if (!agreement) return;
     setBusy('download');
+
     try {
       await downloadDocument(agreement, token);
     } catch (error) {
@@ -119,6 +129,7 @@ export const LoanAgreementCard = ({ loanId, loanUpdatedAt, user, token, hasSigna
 
   const uploadScan = async (file: File) => {
     setBusy('upload');
+
     try {
       await uploadDocument(
         `/loans/${loanId}/agreement/upload`,
@@ -210,6 +221,7 @@ export const LoanAgreementCard = ({ loanId, loanUpdatedAt, user, token, hasSigna
               className="hidden"
               onChange={(event) => {
                 const file = event.target.files?.[0];
+
                 if (file) uploadScan(file);
                 event.target.value = '';
               }}
@@ -217,8 +229,8 @@ export const LoanAgreementCard = ({ loanId, loanUpdatedAt, user, token, hasSigna
           </div>
         ) : null}
         <p className="text-xs text-muted-foreground">
-          Editing the loan (amount, term, rate, fees or dates) regenerates this agreement and
-          emails the borrower the updated copy.
+          Editing the loan (amount, term, rate, fees or dates) regenerates this agreement and emails
+          the borrower the updated copy.
         </p>
       </CardContent>
     </Card>

@@ -58,6 +58,7 @@ export class AuthService {
       tenantId: sessionUser.tenantId,
       tenantSlug: sessionUser.tenantSlug,
     };
+
     return { accessToken: await this.jwt.signAsync(payload), user: sessionUser };
   }
 
@@ -70,13 +71,17 @@ export class AuthService {
       where: { email: input.email.toLowerCase() },
       include: USER_SESSION_INCLUDE,
     });
+
     if (!user || !user.passwordHash || !(await compare(input.password, user.passwordHash))) {
       throw new UnauthorizedException('Invalid email or password');
     }
+
     if (user.status === UserStatus.Disabled) {
       throw new UnauthorizedException('This account has been disabled');
     }
+
     await this.prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+
     return this.issue(user);
   }
 
@@ -91,6 +96,7 @@ export class AuthService {
       .map((domain) => domain.trim().toLowerCase())
       .filter(Boolean);
     const domain = profile.email.split('@')[1] ?? '';
+
     if (allowed.length > 0 && !allowed.includes(domain)) {
       return { ok: false, error: 'domain_not_allowed' };
     }
@@ -99,9 +105,11 @@ export class AuthService {
       where: { email: profile.email },
       include: USER_SESSION_INCLUDE,
     });
+
     if (!user) {
       return { ok: false, error: 'not_invited' };
     }
+
     if (user.status === UserStatus.Disabled) {
       return { ok: false, error: 'account_disabled' };
     }
@@ -132,6 +140,7 @@ export class AuthService {
       include: USER_SESSION_INCLUDE,
     });
     const { accessToken } = await this.issue(refreshed);
+
     return { ok: true, token: accessToken };
   }
 
@@ -139,6 +148,7 @@ export class AuthService {
 
   async invitePreview(token: string): Promise<{ email: string; name: string }> {
     const user = await this.requireValidToken('invite', token);
+
     return { email: user.email ?? '', name: user.name };
   }
 
@@ -155,6 +165,7 @@ export class AuthService {
       },
       include: USER_SESSION_INCLUDE,
     });
+
     return this.issue(updated);
   }
 
@@ -162,12 +173,15 @@ export class AuthService {
 
   async changePassword(userId: string, input: ChangePasswordInput): Promise<void> {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
+
     if (!user) {
       throw new UnauthorizedException();
     }
+
     if (!user.passwordHash || !(await compare(input.currentPassword, user.passwordHash))) {
       throw new BadRequestException('Your current password is incorrect');
     }
+
     await this.prisma.user.update({
       where: { id: userId },
       data: { passwordHash: await hash(input.newPassword, BCRYPT_ROUNDS) },
@@ -177,10 +191,13 @@ export class AuthService {
   /** Always resolves (no account enumeration); emails a reset link when the user exists. */
   async forgotPassword(email: string): Promise<void> {
     const user = await this.prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+
     if (!user?.email || user.status === UserStatus.Disabled) {
       return;
     }
+
     const token = newToken();
+
     await this.prisma.user.update({
       where: { id: user.id },
       data: {
@@ -192,6 +209,7 @@ export class AuthService {
       /\/+$/,
       '',
     );
+
     await this.mail.sendPasswordReset(
       user.email,
       user.name,
@@ -201,6 +219,7 @@ export class AuthService {
 
   async resetPreview(token: string): Promise<{ email: string }> {
     const user = await this.requireValidToken('reset', token);
+
     return { email: user.email ?? '' };
   }
 
@@ -217,6 +236,7 @@ export class AuthService {
       },
       include: USER_SESSION_INCLUDE,
     });
+
     return this.issue(updated);
   }
 
@@ -228,9 +248,11 @@ export class AuthService {
         ? { inviteTokenHash: tokenHash, inviteExpiresAt: { gt: new Date() } }
         : { resetTokenHash: tokenHash, resetExpiresAt: { gt: new Date() } };
     const user = await this.prisma.user.findFirst({ where });
+
     if (!user) {
       throw new BadRequestException('This link is invalid or has expired');
     }
+
     return user;
   }
 }

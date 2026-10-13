@@ -51,6 +51,7 @@ export const CollateralAgreementCard = ({
       if (!(error instanceof ApiError) || error.status !== 404) {
         toast.error(error instanceof ApiError ? error.message : 'Could not load the agreement');
       }
+
       setAgreement(null);
     } finally {
       setLoading(false);
@@ -60,19 +61,23 @@ export const CollateralAgreementCard = ({
   useEffect(() => {
     if (!canRead) return;
     const state = { active: true };
+
     void (async () => {
       try {
         const latest = await apiFetch<AgreementView>(BASE(loanId), { token });
+
         if (state.active) setAgreement(latest);
       } catch (error) {
         if (!(error instanceof ApiError) || error.status !== 404) {
           toast.error(error instanceof ApiError ? error.message : 'Could not load the agreement');
         }
+
         if (state.active) setAgreement(null);
       } finally {
         if (state.active) setLoading(false);
       }
     })();
+
     return () => {
       state.active = false;
     };
@@ -83,8 +88,10 @@ export const CollateralAgreementCard = ({
 
   const generate = async () => {
     setBusy('generate');
+
     try {
       const view = await apiFetch<AgreementView>(BASE(loanId), { method: 'POST', body: {}, token });
+
       setAgreement(view);
       toast.success('Collateral agreement generated');
     } catch (error) {
@@ -96,6 +103,7 @@ export const CollateralAgreementCard = ({
 
   const email = async () => {
     setBusy('email');
+
     try {
       await apiFetch(`${BASE(loanId)}/email`, { method: 'POST', body: {}, token });
       toast.success('A copy was emailed to the borrower');
@@ -109,6 +117,7 @@ export const CollateralAgreementCard = ({
   const download = async () => {
     if (!agreement) return;
     setBusy('download');
+
     try {
       await downloadDocument(agreement, token);
     } catch (error) {
@@ -120,8 +129,13 @@ export const CollateralAgreementCard = ({
 
   const uploadScan = async (file: File) => {
     setBusy('upload');
+
     try {
-      await uploadDocument(`${BASE(loanId)}/upload`, { kind: 'collateral_agreement', file }, { token });
+      await uploadDocument(
+        `${BASE(loanId)}/upload`,
+        { kind: 'collateral_agreement', file },
+        { token },
+      );
       toast.success('Signed collateral agreement uploaded');
       await load();
     } catch (error) {
@@ -207,6 +221,7 @@ export const CollateralAgreementCard = ({
               className="hidden"
               onChange={(event) => {
                 const file = event.target.files?.[0];
+
                 if (file) uploadScan(file);
                 event.target.value = '';
               }}

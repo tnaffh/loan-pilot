@@ -76,7 +76,14 @@ const DEFAULTS: Partial<CreateApplicationInput> = {
   employerPhone: '',
   employerAddress: '',
   employeeNo: '',
-  address: { label: 'Residential', street: '', suburb: '', city: '', region: '', country: 'Namibia' },
+  address: {
+    label: 'Residential',
+    street: '',
+    suburb: '',
+    city: '',
+    region: '',
+    country: 'Namibia',
+  },
   postalSameAsResidential: true,
   // Undefined while hidden so the optional postal address isn't validated as an
   // empty object; populated only when "same as residential" is unticked.
@@ -140,8 +147,10 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
 
   // Clear staged files when the sheet (re)opens, without a setState-in-effect.
   const [docsOpen, setDocsOpen] = useState(false);
+
   if (open !== docsOpen) {
     setDocsOpen(open);
+
     if (open) {
       setDocs({});
       setCollateralPhotos([]);
@@ -150,52 +159,57 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
 
   const onSubmit = handleSubmit(
     async (values) => {
-    try {
-      const created = await apiFetch<{ id: string }>('/applications/internal', {
-        method: 'POST',
-        body: values,
-        token,
-      });
-      // Upload any attached documents + collateral photos to the new
-      // application. The endpoint resolves the tenant from the x-tenant header.
-      const uploads = [
-        ...Object.entries(docs).map(([kind, file]) =>
-          uploadDocument(
-            `/applications/${created.id}/documents`,
-            { kind, file },
-            { tenant: user?.tenantSlug },
+      try {
+        const created = await apiFetch<{ id: string }>('/applications/internal', {
+          method: 'POST',
+          body: values,
+          token,
+        });
+        // Upload any attached documents + collateral photos to the new
+        // application. The endpoint resolves the tenant from the x-tenant header.
+        const uploads = [
+          ...Object.entries(docs).map(([kind, file]) =>
+            uploadDocument(
+              `/applications/${created.id}/documents`,
+              { kind, file },
+              { tenant: user?.tenantSlug },
+            ),
           ),
-        ),
-        ...collateralPhotos.map((file) =>
-          uploadDocument(
-            `/applications/${created.id}/documents`,
-            { kind: DocumentKind.CollateralPhoto, file },
-            { tenant: user?.tenantSlug },
+          ...collateralPhotos.map((file) =>
+            uploadDocument(
+              `/applications/${created.id}/documents`,
+              { kind: DocumentKind.CollateralPhoto, file },
+              { tenant: user?.tenantSlug },
+            ),
           ),
-        ),
-      ];
-      if (uploads.length > 0) {
-        const results = await Promise.allSettled(uploads);
-        const failed = results.filter((r) => r.status === 'rejected').length;
-        if (failed > 0) {
-          toast.warning(`${failed} document(s) failed to upload — add them from the borrower later.`);
+        ];
+
+        if (uploads.length > 0) {
+          const results = await Promise.allSettled(uploads);
+          const failed = results.filter((r) => r.status === 'rejected').length;
+
+          if (failed > 0) {
+            toast.warning(
+              `${failed} document(s) failed to upload — add them from the borrower later.`,
+            );
+          }
+        }
+
+        toast.success('Application captured', { description: 'Affordability assessed.' });
+        bumpRevalidation();
+        onOpenChange(false);
+      } catch (error) {
+        if (error instanceof ApiError) {
+          error.issues.forEach((issue) => {
+            if (isApplicationField(issue.path)) {
+              setError(issue.path, { message: issue.message });
+            }
+          });
+          toast.error(error.message);
+        } else {
+          toast.error('Something went wrong');
         }
       }
-      toast.success('Application captured', { description: 'Affordability assessed.' });
-      bumpRevalidation();
-      onOpenChange(false);
-    } catch (error) {
-      if (error instanceof ApiError) {
-        error.issues.forEach((issue) => {
-          if (isApplicationField(issue.path)) {
-            setError(issue.path, { message: issue.message });
-          }
-        });
-        toast.error(error.message);
-      } else {
-        toast.error('Something went wrong');
-      }
-    }
     },
     (formErrors) => {
       // Surface client-side validation blocks (e.g. a missing signature or T&C
@@ -205,15 +219,18 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
       const visit = (node: unknown): void => {
         if (!node || typeof node !== 'object') return;
         const record = node as Record<string, unknown>;
+
         if (typeof record.message === 'string' && !seen.has(record.message)) {
           seen.add(record.message);
           messages.push(record.message);
         }
+
         for (const key of Object.keys(record)) {
           if (key === 'message' || key === 'type' || key === 'ref') continue;
           visit(record[key]);
         }
       };
+
       visit(formErrors);
       toast.error('Please fix the highlighted fields', {
         description: messages.length ? messages.join(' · ') : undefined,
@@ -258,8 +275,17 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
               <FormField label="Amount (N$)" htmlFor="amount" error={errors.amount?.message}>
                 <Input id="amount" type="number" inputMode="numeric" {...register('amount')} />
               </FormField>
-              <FormField label="Term (months)" htmlFor="termMonths" error={errors.termMonths?.message}>
-                <Input id="termMonths" type="number" inputMode="numeric" {...register('termMonths')} />
+              <FormField
+                label="Term (months)"
+                htmlFor="termMonths"
+                error={errors.termMonths?.message}
+              >
+                <Input
+                  id="termMonths"
+                  type="number"
+                  inputMode="numeric"
+                  {...register('termMonths')}
+                />
               </FormField>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -360,7 +386,11 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
               >
                 <Input id="idNumber" inputMode="numeric" {...register('idNumber')} />
               </FormField>
-              <FormField label="Date of birth" htmlFor="dateOfBirth" error={errors.dateOfBirth?.message}>
+              <FormField
+                label="Date of birth"
+                htmlFor="dateOfBirth"
+                error={errors.dateOfBirth?.message}
+              >
                 <Controller
                   control={control}
                   name="dateOfBirth"
@@ -413,7 +443,11 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
               >
                 <Input id="addr-street" {...register('address.street')} />
               </FormField>
-              <FormField label="City / town" htmlFor="addr-city" error={errors.address?.city?.message}>
+              <FormField
+                label="City / town"
+                htmlFor="addr-city"
+                error={errors.address?.city?.message}
+              >
                 <Input id="addr-city" {...register('address.city')} />
               </FormField>
               <FormField label="Suburb" htmlFor="addr-suburb" optional>
@@ -439,7 +473,11 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
                   )}
                 />
               </FormField>
-              <FormField label="Country" htmlFor="addr-country" error={errors.address?.country?.message}>
+              <FormField
+                label="Country"
+                htmlFor="addr-country"
+                error={errors.address?.country?.message}
+              >
                 <Input id="addr-country" {...register('address.country')} />
               </FormField>
             </div>
@@ -452,6 +490,7 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
                     checked={field.value ?? false}
                     onCheckedChange={(checked) => {
                       field.onChange(checked === true);
+
                       if (checked === true) setValue('postalAddress', undefined);
                     }}
                   />
@@ -538,7 +577,12 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
                 htmlFor="monthlyIncome"
                 error={errors.monthlyIncome?.message}
               >
-                <Input id="monthlyIncome" type="number" inputMode="numeric" {...register('monthlyIncome')} />
+                <Input
+                  id="monthlyIncome"
+                  type="number"
+                  inputMode="numeric"
+                  {...register('monthlyIncome')}
+                />
               </FormField>
               <FormField label="Employer" htmlFor="employer" error={errors.employer?.message}>
                 <Input id="employer" {...register('employer')} />
@@ -547,7 +591,12 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
                 <Input id="occupation" {...register('occupation')} />
               </FormField>
               <FormField label="Employer telephone" htmlFor="employerPhone" optional>
-                <Input id="employerPhone" type="tel" inputMode="tel" {...register('employerPhone')} />
+                <Input
+                  id="employerPhone"
+                  type="tel"
+                  inputMode="tel"
+                  {...register('employerPhone')}
+                />
               </FormField>
               <FormField label="Payslip / employee no." htmlFor="employeeNo" optional>
                 <Input id="employeeNo" {...register('employeeNo')} />
@@ -566,7 +615,11 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
           <div className="space-y-4">
             <SectionTitle>Bank account</SectionTitle>
             <div className="grid gap-4 sm:grid-cols-2">
-              <FormField label="Bank name" htmlFor="bankName" error={errors.bankAccount?.bankName?.message}>
+              <FormField
+                label="Bank name"
+                htmlFor="bankName"
+                error={errors.bankAccount?.bankName?.message}
+              >
                 <Input id="bankName" {...register('bankAccount.bankName')} />
               </FormField>
               <FormField
@@ -581,7 +634,11 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
                 htmlFor="bankNumber"
                 error={errors.bankAccount?.accountNumber?.message}
               >
-                <Input id="bankNumber" inputMode="numeric" {...register('bankAccount.accountNumber')} />
+                <Input
+                  id="bankNumber"
+                  inputMode="numeric"
+                  {...register('bankAccount.accountNumber')}
+                />
               </FormField>
               <FormField
                 label="Account type"
@@ -625,7 +682,10 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
                   htmlFor={`ref-${index}-name`}
                   error={errors.references?.[index]?.name?.message}
                 >
-                  <Input id={`ref-${index}-name`} {...register(`references.${index}.name` as const)} />
+                  <Input
+                    id={`ref-${index}-name`}
+                    {...register(`references.${index}.name` as const)}
+                  />
                 </FormField>
                 <FormField
                   label="Phone"
@@ -681,10 +741,13 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
                     accept="application/pdf,image/jpeg,image/png"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
+
                       setDocs((current) => {
                         const next = { ...current };
+
                         if (file) next[kind] = file;
                         else delete next[kind];
+
                         return next;
                       });
                     }}
@@ -764,7 +827,12 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
               {isSubmitting ? <Loader2 className="animate-spin" /> : null}
               Submit application
             </Button>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
+            >
               Cancel
             </Button>
           </SheetFooter>

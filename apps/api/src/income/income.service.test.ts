@@ -13,6 +13,7 @@ describe('IncomeService', () => {
     const moduleRef = await Test.createTestingModule({
       providers: [IncomeService, { provide: PrismaService, useValue: prismaMock }],
     }).compile();
+
     service = moduleRef.get(IncomeService);
   });
 

@@ -59,12 +59,14 @@ const fitFontSize = (
   characterSpacing = 0,
 ): number => {
   const state = { size: max };
+
   while (
     state.size > min &&
     doc.fontSize(state.size).widthOfString(text, { characterSpacing }) > width
   ) {
     state.size -= 0.5;
   }
+
   return state.size;
 };
 
@@ -116,27 +118,41 @@ export const drawCompanyStamp = (
   doc.strokeColor(COLORS.accent).fillColor(COLORS.accent).strokeOpacity(0.85).fillOpacity(0.85);
   // Double border.
   doc.lineWidth(1.6).roundedRect(sx, sy, w, h, 8).stroke();
-  doc.lineWidth(0.5).roundedRect(sx + 3, sy + 3, w - 6, h - 6, 6).stroke();
+  doc
+    .lineWidth(0.5)
+    .roundedRect(sx + 3, sy + 3, w - 6, h - 6, 6)
+    .stroke();
 
   // Lender name across the top, shrunk to fit on one line (spacing included).
   const name = opts.lender.name.toUpperCase();
   const nameSpacing = 0.8;
+
   doc.font('Helvetica-Bold');
   const nameSize = fitFontSize(doc, name, innerW - 4, 8, 5, nameSpacing);
+
   doc.fontSize(nameSize).text(name, sx + inner, sy + 7, {
     width: innerW,
     align: 'center',
     characterSpacing: nameSpacing,
     lineBreak: false,
   });
-  doc.lineWidth(0.5).moveTo(sx + inner, sy + 18).lineTo(sx + w - inner, sy + 18).stroke();
+  doc
+    .lineWidth(0.5)
+    .moveTo(sx + inner, sy + 18)
+    .lineTo(sx + w - inner, sy + 18)
+    .stroke();
 
   // The date in a dater box.
   const dateText = stampDate(opts.date);
   const dateSpacing = 1;
+
   doc.font('Helvetica-Bold').fontSize(9.5);
   const dateW = doc.widthOfString(dateText, { characterSpacing: dateSpacing }) + 14;
-  doc.lineWidth(0.6).rect(cx - dateW / 2, sy + 21.5, dateW, 14).stroke();
+
+  doc
+    .lineWidth(0.6)
+    .rect(cx - dateW / 2, sy + 21.5, dateW, 14)
+    .stroke();
   doc.text(dateText, sx, sy + 24.5, {
     width: w,
     align: 'center',
@@ -148,6 +164,7 @@ export const drawCompanyStamp = (
   doc.font('Helvetica');
   lines.slice(0, 3).forEach((line, i) => {
     const size = fitFontSize(doc, line, innerW, 5.5, 4.5);
+
     doc.fontSize(size).text(line, sx + inner, sy + 39.5 + i * 7, {
       width: innerW,
       align: 'center',
@@ -172,12 +189,15 @@ export const drawLenderSignature = (
   opts: LenderSignatureOptions,
 ): number => {
   const lineY = top + SIGNATURE_IMAGE_H + 4;
+
   if (opts.officerSignaturePng) {
     // Leave room beside the signature for a custom stamp; the drawn stamp
     // overlays the signature like a real one, so it needs none.
     const sigW = opts.stampPng ? width - CUSTOM_STAMP_W - 6 : width;
+
     placeImage(doc, opts.officerSignaturePng, x, top, [sigW, SIGNATURE_IMAGE_H]);
   }
+
   if (opts.stampPng) {
     placeImage(
       doc,
@@ -192,7 +212,13 @@ export const drawLenderSignature = (
     // Reaches ~26pt above `top`, so callers leave that much clear above.
     drawCompanyStamp(doc, x + width / 2, top + 12, opts);
   }
-  doc.moveTo(x, lineY).lineTo(x + width, lineY).lineWidth(0.75).strokeColor(COLORS.ink).stroke();
+
+  doc
+    .moveTo(x, lineY)
+    .lineTo(x + width, lineY)
+    .lineWidth(0.75)
+    .strokeColor(COLORS.ink)
+    .stroke();
   doc
     .font('Helvetica-Bold')
     .fontSize(8.5)
@@ -209,6 +235,7 @@ export const drawLenderSignature = (
       { width, lineBreak: false },
     );
   doc.text(`Date: ${opts.date}`, x, lineY + 28, { width, lineBreak: false });
+
   return lineY + 40;
 };
 
@@ -236,6 +263,7 @@ export const drawInitialsStrip = (
   const top = doc.page.height - 86;
   const lenderX = right - boxW;
   const borrowerX = lenderX - gap - boxW;
+
   doc
     .font('Helvetica-Oblique')
     .fontSize(6.5)
@@ -251,9 +279,11 @@ export const drawInitialsStrip = (
     ] as const
   ).forEach(([x, png, label]) => {
     doc.roundedRect(x, top, boxW, boxH, 3).lineWidth(0.6).strokeColor(COLORS.rule).stroke();
+
     if (png) {
       placeImage(doc, png, x + 3, top + 3, [boxW - 6, boxH - 6], 'center');
     }
+
     doc
       .font('Helvetica-Bold')
       .fontSize(5.5)

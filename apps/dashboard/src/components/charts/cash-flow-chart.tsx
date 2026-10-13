@@ -39,13 +39,7 @@ export const CashFlowChart = ({ data }: { data: MonthlyPoint[] }) => {
           ))}
         </defs>
         <CartesianGrid vertical={false} />
-        <XAxis
-          dataKey="label"
-          tickLine={false}
-          axisLine={false}
-          tickMargin={8}
-          minTickGap={24}
-        />
+        <XAxis dataKey="label" tickLine={false} axisLine={false} tickMargin={8} minTickGap={24} />
         <YAxis hide domain={[0, 'auto']} />
         <ChartTooltip
           cursor={false}
