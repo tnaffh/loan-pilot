@@ -1,6 +1,11 @@
 import type {
   ActivityEvent,
   AffordabilityResult,
+  AiModelInfo,
+  AiProvider,
+  AiRecommendation,
+  AiReviewReport,
+  AiReviewStatus,
   ApplicationStatus,
   CollexiaStatus,
   EmploymentType,
@@ -362,3 +367,42 @@ export type OverviewStats =
       nextDueAt: string | null;
       nextInstalment: number | null;
     };
+
+/** One AI document review (GET/POST …/ai-reviews). `report` is set once completed. */
+export interface AiReviewView {
+  id: string;
+  status: AiReviewStatus;
+  provider: string;
+  model: string;
+  recommendation: AiRecommendation | null;
+  score: number | null;
+  report: AiReviewReport | null;
+  error: string | null;
+  documentCount: number;
+  costUsd: number | null;
+  requestedByName: string;
+  startedAt: string;
+  completedAt: string | null;
+}
+
+/** GET /settings/ai — provider keys are never returned, only their last four characters. */
+export interface AiProviderSettings {
+  provider: AiProvider;
+  label: string;
+  vendor: string;
+  available: boolean;
+  models: AiModelInfo[];
+  defaultModel: string;
+  keyPlaceholder: string;
+  keysUrl: string;
+  configured: boolean;
+  keyHint: string | null;
+  model: string | null;
+  updatedAt: string | null;
+  updatedByName: string | null;
+}
+
+export interface AiSettings {
+  activeProvider: AiProvider | null;
+  providers: AiProviderSettings[];
+}

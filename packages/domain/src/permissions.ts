@@ -12,6 +12,7 @@
  *   finance:*        expenses / income / investments + levies report
  *   settings:write   fee, opening-balance, and product mutations
  *   reports:read     lender series + financial detail on the overview
+ *   ai:review        run a paid AI document review on an application/borrower
  */
 export const PERMISSIONS = [
   'loans:read',
@@ -35,6 +36,7 @@ export const PERMISSIONS = [
   'agreements:generate',
   'users:manage',
   'roles:manage',
+  'ai:review',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -68,6 +70,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   'agreements:generate': 'Generate, upload & email loan agreements',
   'users:manage': 'Manage team members',
   'roles:manage': 'Manage roles & permissions',
+  'ai:review': 'Run AI document reviews (billed per review)',
 };
 
 export interface PermissionGroup {
@@ -88,6 +91,7 @@ export const PERMISSION_GROUPS: PermissionGroup[] = [
   { label: 'Settings', permissions: ['settings:read', 'settings:write'] },
   { label: 'Reports', permissions: ['reports:read', 'reports:write'] },
   { label: 'Agreements', permissions: ['agreements:read', 'agreements:generate'] },
+  { label: 'AI review', permissions: ['ai:review'] },
   { label: 'Administration', permissions: ['users:manage', 'roles:manage'] },
 ];
 

@@ -109,6 +109,19 @@ enum InvoiceStatus {
   pending
 }
 
+enum AiReviewStatus {
+  running
+  completed
+  failed
+}
+
+enum AiRecommendation {
+  approve
+  approve_with_conditions
+  refer
+  decline
+}
+
 enum EmploymentType {
   permanently_employed
   civil_servant
@@ -146,6 +159,8 @@ model Tenant {
   roles        Role[]
   returns      RegulatoryReturn[]
   phoneOtps    PhoneOtp[]
+  aiCredentials AiProviderCredential[]
+  aiReviews     AiReview[]
 }
 
 /**
@@ -194,6 +209,9 @@ model TenantSettings {
   principalOfficerSignature String?
   principalOfficerInitials  String?
   companyStamp              String?
+  // The AI provider used for document reviews (an AiProvider value from
+  // @loan-pilot/domain); null = AI review is off. Must have a credential row.
+  aiProvider      String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -374,6 +392,7 @@ model Borrower {
   bankAccounts BorrowerBankAccount[]
   references   BorrowerReference[]
   documents    Document[]
+  aiReviews    AiReview[]
 
   @@unique([tenantId, idNumber])
   @@unique([tenantId, collexiaClientNo])
@@ -607,6 +626,7 @@ model LoanApplication {
 
   references ApplicationReference[]
   documents  Document[]
+  aiReviews  AiReview[]
 
   @@index([tenantId])
   @@index([tenantId, phoneKey])
@@ -762,4 +782,61 @@ model Income {
 
   @@unique([tenantId, externalRef])
   @@index([tenantId])
+}
+
+/**
+ * A lender's API credentials for one AI provider. The key is encrypted at rest
+ * (AES-256-GCM, see SecretBox) and never returned by the API — only its last
+ * four characters, so an administrator can tell which key is loaded.
+ */
+model AiProviderCredential {
+  id            String   @id @default(cuid())
+  tenantId      String
+  tenant        Tenant   @relation(fields: [tenantId], references: [id])
+  // An AiProvider value from @loan-pilot/domain (validated in the service).
+  provider      String
+  apiKeyCipher  String
+  apiKeyHint    String
+  model         String
+  // Denormalised so the trail survives the actor being deleted.
+  updatedByName String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([tenantId, provider])
+}
+
+/**
+ * One AI document review of an application or a borrower, started by a loan
+ * officer (never automatically — each one is billed by the provider). Runs in
+ * the background: created `running`, then `completed` with the report or
+ * `failed` with the error. `report` holds an AiReviewReport (money in cents).
+ */
+model AiReview {
+  id              String            @id @default(cuid())
+  tenantId        String
+  tenant          Tenant            @relation(fields: [tenantId], references: [id])
+  applicationId   String?
+  application     LoanApplication?  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  borrowerId      String?
+  borrower        Borrower?         @relation(fields: [borrowerId], references: [id], onDelete: Cascade)
+  status          AiReviewStatus    @default(running)
+  provider        String
+  model           String
+  recommendation  AiRecommendation?
+  score           Int?
+  report          Json?
+  error           String?
+  documentCount   Int               @default(0)
+  inputTokens     Int?
+  outputTokens    Int?
+  // Estimated from token usage and the model's list price; null when unknown.
+  costUsd         Float?
+  requestedById   String?
+  requestedByName String
+  startedAt       DateTime          @default(now())
+  completedAt     DateTime?
+
+  @@index([tenantId, applicationId])
+  @@index([tenantId, borrowerId])
 }

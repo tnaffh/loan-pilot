@@ -677,6 +677,11 @@ export class BorrowersService {
         where: { tenantId, entity: 'borrower', entityId: duplicateId },
         data: { entityId: survivorId },
       });
+      // AI reviews were paid for — keep them with the surviving profile.
+      await tx.aiReview.updateMany({
+        where: { tenantId, borrowerId: duplicateId },
+        data: { borrowerId: survivorId },
+      });
       await tx.borrower.delete({ where: { id: duplicateId } });
       await this.audit.record(
         tenantId,

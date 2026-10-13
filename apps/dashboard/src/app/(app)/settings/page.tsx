@@ -42,6 +42,7 @@ import { SignaturePad, type SignatureVariant } from '@/components/ui/signature-p
 import { API_URL, ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
+import { AiSettingsCard } from '@/components/settings/ai-settings-card';
 
 // ----- shared shapes (mirror the API payloads) ------------------------------
 
@@ -975,7 +976,7 @@ const SettingsPage = () => (
   <div>
     <PageHeader
       title="Settings"
-      description="Levies and fees, rate plans, business details, and how documents are signed"
+      description="Levies and fees, rate plans, business details, how documents are signed, and AI review"
     />
     <Tabs defaultValue="fees">
       <TabsList>
@@ -983,6 +984,7 @@ const SettingsPage = () => (
         <TabsTrigger value="products">Rate plans</TabsTrigger>
         <TabsTrigger value="identity">Business details</TabsTrigger>
         <TabsTrigger value="signing">Signing &amp; stamp</TabsTrigger>
+        <TabsTrigger value="ai">AI review</TabsTrigger>
       </TabsList>
       <TabsContent value="fees" className="mt-4">
         <FeeSettingsCard />
@@ -995,6 +997,9 @@ const SettingsPage = () => (
       </TabsContent>
       <TabsContent value="signing" className="mt-4">
         <SigningCard />
+      </TabsContent>
+      <TabsContent value="ai" className="mt-4">
+        <AiSettingsCard />
       </TabsContent>
     </Tabs>
   </div>

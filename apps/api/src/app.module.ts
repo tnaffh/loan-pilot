@@ -19,6 +19,7 @@ import { DocumentsModule } from './documents/documents.module';
 import { SettingsModule } from './settings/settings.module';
 import { AgreementsModule } from './agreements/agreements.module';
 import { ReportsModule } from './reports/reports.module';
+import { AiModule } from './ai/ai.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { ReportsModule } from './reports/reports.module';
     SettingsModule,
     AgreementsModule,
     ReportsModule,
+    AiModule,
   ],
 })
 export class AppModule {}

@@ -26,6 +26,7 @@ describe('BorrowersService', () => {
   const bankUpdateMany = jest.fn();
   const userUpdate = jest.fn();
   const auditUpdateMany = jest.fn();
+  const aiReviewUpdateMany = jest.fn();
   const borrowerDelete = jest.fn();
   const txMock = {
     loan: { updateMany: loanUpdateMany },
@@ -33,6 +34,7 @@ describe('BorrowersService', () => {
     borrowerBankAccount: { updateMany: bankUpdateMany },
     user: { update: userUpdate },
     auditEvent: { updateMany: auditUpdateMany },
+    aiReview: { updateMany: aiReviewUpdateMany },
     borrower: { delete: borrowerDelete },
   };
   const tenantFindUnique = jest.fn();
@@ -274,6 +276,10 @@ describe('BorrowersService', () => {
     expect(auditUpdateMany).toHaveBeenCalledWith({
       where: { tenantId: 'tenant_1', entity: 'borrower', entityId: 'dup_1' },
       data: { entityId: 'bor_1' },
+    });
+    expect(aiReviewUpdateMany).toHaveBeenCalledWith({
+      where: { tenantId: 'tenant_1', borrowerId: 'dup_1' },
+      data: { borrowerId: 'bor_1' },
     });
     expect(borrowerDelete).toHaveBeenCalledWith({ where: { id: 'dup_1' } });
     expect(userUpdate).not.toHaveBeenCalled();

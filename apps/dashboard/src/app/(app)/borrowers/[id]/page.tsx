@@ -45,6 +45,7 @@ import { BorrowerDocuments } from '@/components/borrowers/borrower-documents';
 import { EditBorrowerSheet } from '@/components/borrowers/edit-borrower-sheet';
 import { MergeBorrowerDialog } from '@/components/borrowers/merge-borrower-dialog';
 import { AuditLog } from '@/components/audit-log';
+import { AiReviewPanel } from '@/components/ai/ai-review-panel';
 import { ApiError, downloadFile } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
@@ -205,6 +206,12 @@ const BorrowerDetailPage = () => {
         documents={data.documents}
         canEdit={canEdit}
         onChanged={refresh}
+      />
+
+      <AiReviewPanel
+        basePath={`/borrowers/${data.id}`}
+        subjectLabel="this borrower's profile"
+        variant="card"
       />
 
       <Card>

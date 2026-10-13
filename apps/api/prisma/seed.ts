@@ -112,6 +112,8 @@ const seedSystemRoles = async (tenantId: string): Promise<{ adminId: string; sta
 
 const main = async (): Promise<void> => {
   // Clean slate for a deterministic dev seed.
+  await prisma.aiReview.deleteMany();
+  await prisma.aiProviderCredential.deleteMany();
   await prisma.repaymentScheduleItem.deleteMany();
   await prisma.applicationReference.deleteMany();
   await prisma.borrowerReference.deleteMany();

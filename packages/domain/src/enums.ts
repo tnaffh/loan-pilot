@@ -146,3 +146,22 @@ export enum DocumentKind {
   // A generated (or wet-signed, uploaded) collateral/pledge agreement PDF.
   CollateralAgreement = 'collateral_agreement',
 }
+
+/** Lifecycle of one AI document review (it runs in the background once started). */
+export enum AiReviewStatus {
+  Running = 'running',
+  Completed = 'completed',
+  Failed = 'failed',
+}
+
+/**
+ * The outcome an AI review recommends. Ordered from most to least favourable —
+ * see `AI_RECOMMENDATION_ORDER` — so the domain can cap an AI suggestion that a
+ * hard rule (affordability, unverifiable income) does not allow.
+ */
+export enum AiRecommendation {
+  Approve = 'approve',
+  ApproveWithConditions = 'approve_with_conditions',
+  Refer = 'refer',
+  Decline = 'decline',
+}

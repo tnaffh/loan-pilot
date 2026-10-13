@@ -19,6 +19,7 @@ import { StatusBadge } from '@/components/status-badge';
 import { TypeChip } from '@/components/type-chip';
 import { Kv } from '@/components/kv';
 import { ActivityTimeline } from '@/components/activity-timeline';
+import { AiReviewPanel } from '@/components/ai/ai-review-panel';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
@@ -74,7 +75,7 @@ export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Pr
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="flex w-full flex-col overflow-y-auto sm:max-w-lg">
+      <SheetContent className="flex w-full flex-col overflow-y-auto data-[side=right]:sm:max-w-2xl">
         {!data ? (
           <>
             <SheetHeader>
@@ -255,6 +256,11 @@ export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Pr
                   </ul>
                 )}
               </div>
+
+              <AiReviewPanel
+                basePath={`/applications/${data.id}`}
+                subjectLabel="this application"
+              />
 
               <div>
                 <div className="mb-2 text-xs font-medium text-muted-foreground">Activity</div>
