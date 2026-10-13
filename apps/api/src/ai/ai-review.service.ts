@@ -1,4 +1,10 @@
-import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  type OnApplicationBootstrap,
+} from '@nestjs/common';
 import type { AiReview, Document, Loan, Prisma } from '@prisma/client';
 import {
   APPLICATION_DOCUMENT_SLOTS,
@@ -54,8 +60,14 @@ const VIEW_SELECT = {
   completedAt: true,
 } satisfies Prisma.AiReviewSelect;
 
-/** A review still "running" after this long was lost (e.g. a server restart). */
+/**
+ * A review still "running" after this long was lost. Longer than the slowest a
+ * provider call may take (see the client timeout and retries in each provider).
+ */
 const STALE_AFTER_MS = 20 * 60 * 1000;
+
+const INTERRUPTED =
+  'The review was interrupted because the server restarted (e.g. during a deploy). Run it again.';
 const HISTORY_LIMIT = 10;
 
 /** Supporting documents worth reading, in the order the reviewer should see them. */
@@ -107,7 +119,7 @@ const asJson = (value: unknown): Prisma.InputJsonValue =>
   JSON.parse(JSON.stringify(value));
 
 @Injectable()
-export class AiReviewService {
+export class AiReviewService implements OnApplicationBootstrap {
   private readonly logger = new Logger(AiReviewService.name);
 
   constructor(
@@ -115,6 +127,24 @@ export class AiReviewService {
     private readonly storage: StorageService,
     private readonly aiSettings: AiSettingsService,
   ) {}
+
+  /**
+   * Reviews run inside this process, so any review still "running" when the API
+   * starts was cut off by the restart (a deploy, a crash) and will never finish.
+   * Fail them now so the officer sees why and can run again straight away,
+   * instead of waiting out {@link STALE_AFTER_MS}. Assumes one API instance —
+   * true for the docker-compose deploy; revisit before running replicas.
+   */
+  async onApplicationBootstrap(): Promise<void> {
+    const { count } = await this.prisma.aiReview.updateMany({
+      where: { status: AiReviewStatus.Running },
+      data: { status: AiReviewStatus.Failed, error: INTERRUPTED, completedAt: new Date() },
+    });
+
+    if (count > 0) {
+      this.logger.warn(`Marked ${count} AI review(s) interrupted by the restart as failed`);
+    }
+  }
 
   // ── Reads ──────────────────────────────────────────────────────────────
 

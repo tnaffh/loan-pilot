@@ -178,6 +178,20 @@ describe('AiReviewService', () => {
     service = moduleRef.get(AiReviewService);
   });
 
+  it('fails reviews cut off by a restart when the API starts', async () => {
+    prismaMock.aiReview.updateMany.mockResolvedValueOnce({ count: 1 });
+
+    await service.onApplicationBootstrap();
+
+    expect(prismaMock.aiReview.updateMany).toHaveBeenCalledWith({
+      where: { status: AiReviewStatus.Running },
+      data: expect.objectContaining({
+        status: AiReviewStatus.Failed,
+        error: expect.stringContaining('server restarted'),
+      }),
+    });
+  });
+
   it('refuses to start a second review while one is running', async () => {
     jest.spyOn(service, 'execute').mockResolvedValue();
     prismaMock.aiReview.findFirst.mockResolvedValueOnce({ id: 'running' });

@@ -110,8 +110,10 @@ export class AnthropicProvider implements AiProviderClient {
   };
 
   private client(apiKey: string): Anthropic {
-    // Reviews run in the background, so a long ceiling is fine; retries cover 429/5xx.
-    return new Anthropic({ apiKey, maxRetries: 2, timeout: 15 * 60 * 1000 });
+    // A review normally takes 1–3 minutes. One retry covers a 429/5xx; the worst
+    // case (2 × 8 min) stays inside the 20-minute window after which a review that
+    // never reported back is treated as lost (AiReviewService STALE_AFTER_MS).
+    return new Anthropic({ apiKey, maxRetries: 1, timeout: 8 * 60 * 1000 });
   }
 
   async review({
