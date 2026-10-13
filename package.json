@@ -2,7 +2,7 @@
   "name": "loan-pilot",
   "private": true,
   "version": "0.0.0",
-  "description": "LoanPilot \u2014 multi-tenant micro-lending platform (API, web, dashboard, mobile)",
+  "description": "LoanPilot — multi-tenant micro-lending platform (API, web, dashboard, mobile)",
   "packageManager": "pnpm@10.4.1",
   "engines": {
     "node": ">=20"
@@ -15,8 +15,8 @@
     "test": "turbo run test",
     "db:up": "docker compose up -d postgres",
     "db:down": "docker compose down",
-    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,mjs,cjs,md,json}\" --ignore-path .gitignore",
-    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mjs,cjs,md,json}\" --ignore-path .gitignore"
+    "format": "prettier --write \"**/*.{ts,tsx,js,jsx,mjs,cjs,md,json}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,mjs,cjs,md,json}\""
   },
   "devDependencies": {
     "prettier": "^3.4.2",

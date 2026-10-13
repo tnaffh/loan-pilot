@@ -2,11 +2,12 @@ import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
+import stylistic from './stylistic.mjs';
 
 /**
  * Shared base ESLint flat config for all LoanPilot packages.
  * Encodes the project conventions: prefer arrow functions, no `let`,
- * and discourage unsafe `as` type assertions.
+ * discourage unsafe `as` type assertions, and pad statements with blank lines.
  */
 export default tseslint.config(
   { ignores: ['dist/**', '.next/**', 'out/**', 'build/**', 'coverage/**', 'node_modules/**'] },
@@ -40,5 +41,6 @@ export default tseslint.config(
       ],
     },
   },
+  ...stylistic,
   prettier,
 );
