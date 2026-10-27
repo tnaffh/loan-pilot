@@ -6,6 +6,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Camera, FileText, FolderOpen, ImageIcon, Plus, X } from 'lucide-react-native';
 import { Image } from '@/components/styled';
 import { Badge, ListRow, Sheet, Text } from '@/components/ui';
+import { MAX_FILES_PER_DOCUMENT_SLOT } from '@loan-pilot/domain';
 import type { UploadFile } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { useColors } from '@/lib/theme';
@@ -143,76 +144,106 @@ export const SourceSheet = ({
   );
 };
 
-/** One supporting-document slot: empty → add; filled → thumbnail with replace/remove. */
+/** A picked file: thumbnail (photos) or document icon, its name, and remove. */
+const FileRow = ({ file, onRemove }: { file: UploadFile; onRemove: () => void }) => {
+  const colors = useColors();
+  const isImage = file.type.startsWith('image/');
+
+  return (
+    <View className="flex-row items-center gap-3 rounded-xl border border-border bg-card p-2.5">
+      <View className="size-11 items-center justify-center overflow-hidden rounded-lg bg-secondary">
+        {isImage ? (
+          <Image source={{ uri: file.uri }} className="size-11" contentFit="cover" />
+        ) : (
+          <FileText size={20} color={colors.secondaryForeground} />
+        )}
+      </View>
+      <Text variant="small" numberOfLines={1} className="flex-1">
+        {file.name}
+      </Text>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={`Remove ${file.name}`}
+        hitSlop={10}
+        onPress={onRemove}
+        className="size-8 items-center justify-center rounded-full bg-muted"
+      >
+        <X size={16} color={colors.mutedForeground} />
+      </Pressable>
+    </View>
+  );
+};
+
+/**
+ * One supporting-document slot holding one or more files — a statement often
+ * comes as one PDF per month, an ID as front and back photos.
+ */
 export const DocumentSlot = ({
   label,
   required,
-  file,
+  files,
   error,
-  onChange,
+  onAdd,
+  onRemove,
 }: {
   label: string;
   required: boolean;
-  file: UploadFile | undefined;
+  files: UploadFile[];
   error?: string;
-  onChange: (file: UploadFile | null) => void;
+  onAdd: (file: UploadFile) => void;
+  onRemove: (index: number) => void;
 }) => {
   const colors = useColors();
   const [open, setOpen] = useState(false);
-  const isImage = file?.type.startsWith('image/');
+  const canAdd = files.length < MAX_FILES_PER_DOCUMENT_SLOT;
 
   return (
     <View className="gap-1.5">
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={file ? `Replace ${label}` : `Add ${label}`}
-        onPress={() => setOpen(true)}
-        className={cn(
-          'flex-row items-center gap-3.5 rounded-xl border bg-card p-3',
-          file ? 'border-border' : 'border-dashed border-input',
-          error && 'border-destructive',
-        )}
-      >
-        <View className="size-14 items-center justify-center overflow-hidden rounded-lg bg-secondary">
-          {file && isImage ? (
-            <Image source={{ uri: file.uri }} className="size-14" contentFit="cover" />
-          ) : file ? (
-            <FileText size={24} color={colors.secondaryForeground} />
-          ) : (
-            <Plus size={22} color={colors.secondaryForeground} />
-          )}
-        </View>
-        <View className="flex-1 gap-1">
+      {files.length > 0 ? (
+        <View className="flex-row items-center justify-between">
           <Text variant="bodyMedium">{label}</Text>
-          {file ? (
-            <Text variant="caption" tone="muted" numberOfLines={1}>
-              {file.name}
+          <Text variant="caption" tone="muted">
+            {files.length} file{files.length === 1 ? '' : 's'}
+          </Text>
+        </View>
+      ) : null}
+      {files.map((file, index) => (
+        <FileRow key={`${file.uri}-${index}`} file={file} onRemove={() => onRemove(index)} />
+      ))}
+      {canAdd ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={files.length > 0 ? `Add another file to ${label}` : `Add ${label}`}
+          onPress={() => setOpen(true)}
+          className={cn(
+            'flex-row items-center gap-3.5 rounded-xl border border-dashed border-input bg-card p-3',
+            error && 'border-destructive',
+          )}
+        >
+          <View className="size-11 items-center justify-center rounded-lg bg-secondary">
+            <Plus size={20} color={colors.secondaryForeground} />
+          </View>
+          {files.length > 0 ? (
+            <Text variant="small" tone="muted" className="flex-1">
+              Add another file
             </Text>
           ) : (
-            <Badge
-              label={required ? 'Required' : 'Optional'}
-              tone={required ? 'brand' : 'neutral'}
-            />
+            <View className="flex-1 gap-1">
+              <Text variant="bodyMedium">{label}</Text>
+              <Badge
+                label={required ? 'Required' : 'Optional'}
+                tone={required ? 'brand' : 'neutral'}
+              />
+            </View>
           )}
-        </View>
-        {file ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={`Remove ${label}`}
-            hitSlop={10}
-            onPress={() => onChange(null)}
-            className="size-8 items-center justify-center rounded-full bg-muted"
-          >
-            <X size={16} color={colors.mutedForeground} />
-          </Pressable>
-        ) : null}
-      </Pressable>
+        </Pressable>
+      ) : null}
       {error ? (
         <Text variant="caption" tone="destructive">
           {error}
         </Text>
       ) : null}
-      <SourceSheet open={open} onClose={() => setOpen(false)} onPick={onChange} title={label} />
+      <SourceSheet open={open} onClose={() => setOpen(false)} onPick={onAdd} title={label} />
     </View>
   );
 };

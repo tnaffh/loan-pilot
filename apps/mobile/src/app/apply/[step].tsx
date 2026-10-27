@@ -101,7 +101,7 @@ const ApplyStep = () => {
     const errors: Partial<Record<DocumentKind, string>> = {};
 
     for (const slot of APPLICATION_DOCUMENT_SLOTS) {
-      if (isDocumentSlotRequired(slot, loanType) && !documents[slot.kind]) {
+      if (isDocumentSlotRequired(slot, loanType) && (documents[slot.kind] ?? []).length === 0) {
         errors[slot.kind] = 'This document is required';
       }
     }

@@ -583,9 +583,21 @@ export class LoansService {
     }
 
     // Carry the application's uploaded documents (incl. the captured signature)
-    // onto the borrower so they persist beyond the application.
+    // onto the borrower so they persist beyond the application. Files attached
+    // from the borrower's own profile are already there — skip them (same
+    // storage key) so the profile doesn't list them twice.
+    const onProfile = await tx.document.findMany({
+      where: { borrowerId: borrower.id },
+      select: { url: true },
+    });
+
     await tx.document.updateMany({
-      where: { applicationId: application.id },
+      where: {
+        applicationId: application.id,
+        ...(onProfile.length > 0
+          ? { url: { notIn: onProfile.map((document) => document.url) } }
+          : {}),
+      },
       data: { borrowerId: borrower.id },
     });
 

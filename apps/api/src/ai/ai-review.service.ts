@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
@@ -22,11 +23,14 @@ import {
   isOpenLoanStatus,
   isPlaceholderId,
   parseNamibianId,
+  type AiReviewDocumentOption,
   type Cents,
   type SessionUser,
+  type StartAiReviewInput,
 } from '@loan-pilot/domain';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../documents/storage.service';
+import { findApplicantBorrowerId } from '../common/applicant-borrower';
 import { AiSettingsService, type ActiveAiConfig } from './ai-settings.service';
 import { AiProviderError, type AiProviderLimits } from './providers/ai-provider';
 import { inspectDocument } from './document-forensics';
@@ -41,7 +45,13 @@ import {
 /** A review as the dashboard reads it. `report` is an AiReviewReport (cents). */
 export type AiReviewView = Omit<
   AiReview,
-  'tenantId' | 'applicationId' | 'borrowerId' | 'requestedById' | 'inputTokens' | 'outputTokens'
+  | 'tenantId'
+  | 'applicationId'
+  | 'borrowerId'
+  | 'requestedById'
+  | 'inputTokens'
+  | 'outputTokens'
+  | 'documentIds'
 >;
 
 const VIEW_SELECT = {
@@ -54,6 +64,7 @@ const VIEW_SELECT = {
   report: true,
   error: true,
   documentCount: true,
+  notes: true,
   costUsd: true,
   requestedByName: true,
   startedAt: true,
@@ -96,7 +107,31 @@ const BORROWER_PER_OTHER_KIND = 2;
 
 const MB = 1024 * 1024;
 
+/** File types any provider can read; others are listed but cannot be included. */
+const READABLE_TYPES = new Set([
+  'application/pdf',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+]);
+
 type Subject = { applicationId: string } | { borrowerId: string };
+
+/** A document a review may include: where it is held, and whether it is ticked by default. */
+interface Candidate {
+  document: Document;
+  source: 'application' | 'profile';
+  selected: boolean;
+}
+
+const unsupportedReason = (document: Document): string | null => {
+  if (/^https?:\/\//i.test(document.url)) return 'stored outside LoanPilot';
+
+  return READABLE_TYPES.has(document.mimeType ?? '')
+    ? null
+    : `the AI cannot read ${document.mimeType ?? 'this file type'}`;
+};
 
 interface PreparedReview {
   review: ReviewCase;
@@ -173,41 +208,154 @@ export class AiReviewService implements OnApplicationBootstrap {
     tenantId: string,
     user: SessionUser,
     applicationId: string,
+    options: StartAiReviewInput = {},
   ): Promise<AiReviewView> {
-    const exists = await this.prisma.loanApplication.findFirst({
-      where: { id: applicationId, tenantId },
-      select: { id: true },
-    });
-
-    if (!exists) {
-      throw new NotFoundException('Application not found');
-    }
-
-    return this.start(tenantId, user, { applicationId });
+    return this.start(tenantId, user, { applicationId }, options);
   }
 
   async startForBorrower(
     tenantId: string,
     user: SessionUser,
     borrowerId: string,
+    options: StartAiReviewInput = {},
   ): Promise<AiReviewView> {
-    const exists = await this.prisma.borrower.findFirst({
-      where: { id: borrowerId, tenantId },
-      select: { id: true },
+    return this.start(tenantId, user, { borrowerId }, options);
+  }
+
+  // ── Which documents a review may include ───────────────────────────────
+
+  async documentOptionsForApplication(
+    tenantId: string,
+    applicationId: string,
+  ): Promise<AiReviewDocumentOption[]> {
+    return this.toOptions(await this.candidates(tenantId, { applicationId }));
+  }
+
+  async documentOptionsForBorrower(
+    tenantId: string,
+    borrowerId: string,
+  ): Promise<AiReviewDocumentOption[]> {
+    return this.toOptions(await this.candidates(tenantId, { borrowerId }));
+  }
+
+  private toOptions(candidates: Candidate[]): AiReviewDocumentOption[] {
+    return candidates.map(({ document, source, selected }) => {
+      const unsupported = unsupportedReason(document);
+
+      return {
+        id: document.id,
+        kind: document.kind,
+        fileName: document.fileName,
+        mimeType: document.mimeType,
+        sizeBytes: document.sizeBytes,
+        uploadedAt: document.uploadedAt.toISOString(),
+        source,
+        selected: selected && !unsupported,
+        unsupported,
+      };
+    });
+  }
+
+  /**
+   * The documents a review may include. An application review offers its own
+   * files (ticked) plus files on the applicant's borrower profile (unticked —
+   * e.g. a statement sent later), skipping profile files already attached. A
+   * borrower review offers the profile, ticking the newest few of each kind.
+   * Generated files (signatures, agreements) are never offered.
+   */
+  private async candidates(tenantId: string, subject: Subject): Promise<Candidate[]> {
+    const reviewable = (document: Document) => !NOT_REVIEWED.has(document.kind);
+
+    if ('applicationId' in subject) {
+      const application = await this.prisma.loanApplication.findFirst({
+        where: { id: subject.applicationId, tenantId },
+        include: { documents: { orderBy: { uploadedAt: 'desc' } } },
+      });
+
+      if (!application) {
+        throw new NotFoundException('Application not found');
+      }
+
+      const borrowerId = await findApplicantBorrowerId(this.prisma, tenantId, application.idNumber);
+      const profile = borrowerId
+        ? await this.prisma.document.findMany({
+            where: { borrowerId },
+            orderBy: { uploadedAt: 'desc' },
+          })
+        : [];
+      const onApplication = new Set(application.documents.map((document) => document.url));
+
+      return [
+        ...application.documents
+          .filter(reviewable)
+          .map((document) => ({ document, source: 'application' as const, selected: true })),
+        ...profile
+          .filter((document) => reviewable(document) && !onApplication.has(document.url))
+          .map((document) => ({ document, source: 'profile' as const, selected: false })),
+      ];
+    }
+
+    const borrower = await this.prisma.borrower.findFirst({
+      where: { id: subject.borrowerId, tenantId },
+      include: { documents: { orderBy: { uploadedAt: 'desc' } } },
     });
 
-    if (!exists) {
+    if (!borrower) {
       throw new NotFoundException('Borrower not found');
     }
 
-    return this.start(tenantId, user, { borrowerId });
+    const counts = new Map<string, number>();
+
+    return borrower.documents.filter(reviewable).map((document) => {
+      const seen = counts.get(document.kind) ?? 0;
+
+      counts.set(document.kind, seen + 1);
+
+      return {
+        document,
+        source: 'profile' as const,
+        selected: seen < (BORROWER_PER_KIND[document.kind] ?? BORROWER_PER_OTHER_KIND),
+      };
+    });
+  }
+
+  /** The candidates a review uses: the officer's choice, or the default selection. */
+  private async chosenDocuments(
+    tenantId: string,
+    subject: Subject,
+    documentIds: string[],
+  ): Promise<Document[]> {
+    const candidates = await this.candidates(tenantId, subject);
+
+    if (documentIds.length === 0) {
+      return candidates.filter((candidate) => candidate.selected).map(({ document }) => document);
+    }
+
+    const wanted = new Set(documentIds);
+
+    return candidates
+      .filter(({ document }) => wanted.has(document.id))
+      .map(({ document }) => document);
   }
 
   private async start(
     tenantId: string,
     user: SessionUser,
     subject: Subject,
+    options: StartAiReviewInput,
   ): Promise<AiReviewView> {
+    const documentIds = [...new Set(options.documentIds ?? [])];
+
+    // Also confirms the application/borrower exists in this tenant.
+    const candidates = await this.candidates(tenantId, subject);
+    const known = new Set(candidates.map(({ document }) => document.id));
+
+    if (documentIds.some((id) => !known.has(id))) {
+      throw new BadRequestException(
+        'Some of the chosen documents are not available for this review.',
+      );
+    }
+
     // Fails with a 400 telling an admin what to set up before anything is billed.
     const config = await this.aiSettings.resolveActive(tenantId);
 
@@ -227,6 +375,8 @@ export class AiReviewService implements OnApplicationBootstrap {
         ...subject,
         provider: config.provider,
         model: config.model,
+        documentIds,
+        notes: options.notes || null,
         requestedById: user.id,
         requestedByName: user.name,
       },
@@ -234,7 +384,10 @@ export class AiReviewService implements OnApplicationBootstrap {
     });
 
     // Reviews take a minute or two: run in the background and let the client poll.
-    void this.execute(review.id, tenantId, subject, config);
+    void this.execute(review.id, tenantId, subject, config, {
+      documentIds,
+      notes: options.notes || null,
+    });
 
     return review;
   }
@@ -245,12 +398,21 @@ export class AiReviewService implements OnApplicationBootstrap {
     tenantId: string,
     subject: Subject,
     config: ActiveAiConfig,
+    choice: { documentIds: string[]; notes: string | null } = { documentIds: [], notes: null },
   ): Promise<void> {
     try {
+      const chosen = await this.chosenDocuments(tenantId, subject, choice.documentIds);
       const prepared =
         'applicationId' in subject
-          ? await this.prepareApplication(tenantId, subject.applicationId, config.client.limits)
-          : await this.prepareBorrower(tenantId, subject.borrowerId, config.client.limits);
+          ? await this.prepareApplication(
+              tenantId,
+              subject.applicationId,
+              chosen,
+              config.client.limits,
+            )
+          : await this.prepareBorrower(tenantId, subject.borrowerId, chosen, config.client.limits);
+
+      prepared.review.officerNotes = choice.notes;
 
       const result = await config.client.review({
         apiKey: config.apiKey,
@@ -349,11 +511,11 @@ export class AiReviewService implements OnApplicationBootstrap {
   private async prepareApplication(
     tenantId: string,
     applicationId: string,
+    chosen: Document[],
     limits: AiProviderLimits,
   ): Promise<PreparedReview> {
     const application = await this.prisma.loanApplication.findFirst({
       where: { id: applicationId, tenantId },
-      include: { documents: { orderBy: { uploadedAt: 'desc' } } },
     });
 
     if (!application) {
@@ -369,10 +531,12 @@ export class AiReviewService implements OnApplicationBootstrap {
         : null;
     const internalObligationsCents = this.openInstalments(returning?.loans ?? []);
 
-    const { documents, skipped } = await this.loadDocuments(application.documents, limits);
+    const { documents, skipped } = await this.loadDocuments(chosen, limits, applicationId);
 
+    // "Missing" is judged on what this review includes, so a statement taken
+    // from the profile counts, and one the officer left out does not.
     const findings: string[] = [];
-    const present = new Set(application.documents.map((document) => document.kind));
+    const present = new Set(chosen.map((document) => document.kind));
     const loanType = Object.values(LoanType).find((type) => type === application.type);
 
     for (const slot of APPLICATION_DOCUMENT_SLOTS) {
@@ -466,6 +630,7 @@ export class AiReviewService implements OnApplicationBootstrap {
         systemFindings: findings,
         documents,
         skipped,
+        officerNotes: null,
       },
       instalmentCents: application.quotedInstalment,
       declaredIncomeCents: application.declaredIncome,
@@ -476,6 +641,7 @@ export class AiReviewService implements OnApplicationBootstrap {
   private async prepareBorrower(
     tenantId: string,
     borrowerId: string,
+    chosen: Document[],
     limits: AiProviderLimits,
   ): Promise<PreparedReview> {
     const borrower = await this.prisma.borrower.findFirst({
@@ -505,17 +671,7 @@ export class AiReviewService implements OnApplicationBootstrap {
           })
         : null;
 
-    // Newest few documents of each kind.
-    const counts = new Map<string, number>();
-    const candidates = borrower.documents.filter((document) => {
-      const seen = counts.get(document.kind) ?? 0;
-      const cap = BORROWER_PER_KIND[document.kind] ?? BORROWER_PER_OTHER_KIND;
-
-      counts.set(document.kind, seen + 1);
-
-      return seen < cap;
-    });
-    const { documents, skipped } = await this.loadDocuments(candidates, limits);
+    const { documents, skipped } = await this.loadDocuments(chosen, limits, null);
 
     const findings: string[] = [];
     const present = new Set(borrower.documents.map((document) => document.kind));
@@ -599,6 +755,7 @@ export class AiReviewService implements OnApplicationBootstrap {
         systemFindings: findings,
         documents,
         skipped,
+        officerNotes: null,
       },
       instalmentCents: pending?.quotedInstalment ?? null,
       declaredIncomeCents: borrower.monthlyIncome > 0 ? borrower.monthlyIncome : null,
@@ -613,6 +770,8 @@ export class AiReviewService implements OnApplicationBootstrap {
   private async loadDocuments(
     rows: Document[],
     limits: AiProviderLimits,
+    /** The application under review, to tell its own files from profile files. */
+    applicationId: string | null,
   ): Promise<{ documents: ReviewDocument[]; skipped: { fileName: string; reason: string }[] }> {
     const ordered = rows
       .filter((row) => !NOT_REVIEWED.has(row.kind))
@@ -650,6 +809,8 @@ export class AiReviewService implements OnApplicationBootstrap {
           documents.push({
             id: row.id,
             kind: row.kind,
+            source:
+              applicationId && row.applicationId === applicationId ? 'application' : 'profile',
             fileName: row.fileName,
             uploadedAt: row.uploadedAt,
             mimeType,

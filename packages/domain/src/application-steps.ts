@@ -73,6 +73,41 @@ export const APPLICATION_DOCUMENT_SLOTS: readonly ApplicationDocumentSlot[] = [
   { kind: DocumentKind.ProofOfResidence, label: 'Proof of residence' },
 ];
 
+/** Short display names for every document kind. */
+export const DOCUMENT_KIND_LABELS: Record<DocumentKind, string> = {
+  [DocumentKind.IdDocument]: 'ID document',
+  [DocumentKind.Payslip]: 'Payslip',
+  [DocumentKind.BankStatement]: 'Bank statement',
+  [DocumentKind.ProofOfResidence]: 'Proof of residence',
+  [DocumentKind.Signature]: 'Signature',
+  [DocumentKind.Initials]: 'Initials',
+  [DocumentKind.LoanAgreement]: 'Loan agreement',
+  [DocumentKind.CollateralPhoto]: 'Collateral photo',
+  [DocumentKind.CollateralAgreement]: 'Collateral agreement',
+};
+
+/** The label for a stored kind string, falling back to a readable form of it. */
+export const documentKindLabel = (kind: string): string =>
+  Object.entries(DOCUMENT_KIND_LABELS).find(([key]) => key === kind)?.[1] ??
+  kind.replace(/_/g, ' ');
+
+/**
+ * Files an applicant may add per slot — a statement often comes as one PDF per
+ * month, an ID as front and back photos. Each file stays a separate document
+ * (never merged) so its own metadata still reaches the AI review's checks.
+ */
+export const MAX_FILES_PER_DOCUMENT_SLOT = 6;
+
+/** The supporting-document kinds an applicant or officer uploads (not generated ones). */
+export const SUPPORTING_DOCUMENT_KINDS: readonly DocumentKind[] = APPLICATION_DOCUMENT_SLOTS.map(
+  (slot) => slot.kind,
+);
+
+const SUPPORTING_KIND_SET: ReadonlySet<string> = new Set(SUPPORTING_DOCUMENT_KINDS);
+
+export const isSupportingDocumentKind = (kind: string): kind is DocumentKind =>
+  SUPPORTING_KIND_SET.has(kind);
+
 /**
  * Whether a document slot is required for the loan type. Collateral loans make
  * the payslip and bank statement optional: the pledged asset secures the loan.

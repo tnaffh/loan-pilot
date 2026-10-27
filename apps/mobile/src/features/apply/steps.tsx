@@ -448,7 +448,7 @@ export const ReferencesStep = ({
   const { control, formState } = useFormContext<CreateApplicationInput>();
   const { fields, append, remove } = useFieldArray({ control, name: 'references' });
   const loanType = useWatch({ control, name: 'loanType' });
-  const { documents, setDocument } = useApply();
+  const { documents, addDocument, removeDocument } = useApply();
   const isCollateral = loanType === LoanType.Collateral;
   const listError = formState.errors.references?.message;
 
@@ -502,16 +502,17 @@ export const ReferencesStep = ({
           isCollateral
             ? 'For collateral loans, payslip and bank statement are optional.'
             : 'Your ID, latest payslip and 3-month bank statement are required.'
-        }`}
+        } Add more than one file if a document comes in parts.`}
       >
         {APPLICATION_DOCUMENT_SLOTS.map((slot) => (
           <DocumentSlot
             key={slot.kind}
             label={slot.label}
             required={isDocumentSlotRequired(slot, loanType)}
-            file={documents[slot.kind]}
+            files={documents[slot.kind] ?? []}
             error={documentErrors[slot.kind]}
-            onChange={(file) => setDocument(slot.kind, file)}
+            onAdd={(file) => addDocument(slot.kind, file)}
+            onRemove={(index) => removeDocument(slot.kind, index)}
           />
         ))}
       </Section>

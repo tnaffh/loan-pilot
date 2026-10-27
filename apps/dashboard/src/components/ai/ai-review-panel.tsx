@@ -5,16 +5,6 @@ import { toast } from 'sonner';
 import { AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { AI_PROVIDERS, AiReviewStatus, can } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { selectClass } from '@/components/form-field';
@@ -24,6 +14,7 @@ import { useApi } from '@/lib/use-api';
 import { formatDate } from '@/lib/format';
 import type { AiReviewView } from '@/lib/types';
 import { AiReviewReportView } from './ai-review-report';
+import { StartReviewDialog } from './start-review-dialog';
 
 const POLL_MS = 4000;
 
@@ -80,11 +71,15 @@ export const AiReviewPanel = ({ basePath, subjectLabel, variant = 'inset' }: Pro
     return () => clearInterval(timer);
   }, [running, refresh]);
 
-  const start = async () => {
+  const start = async ({ documentIds, notes }: { documentIds: string[]; notes: string }) => {
     setStarting(true);
 
     try {
-      await apiFetch<AiReviewView>(`${basePath}/ai-reviews`, { method: 'POST', token });
+      await apiFetch<AiReviewView>(`${basePath}/ai-reviews`, {
+        method: 'POST',
+        body: { documentIds, ...(notes ? { notes } : {}) },
+        token,
+      });
       setSelectedId(null);
       refresh();
     } catch (error) {
@@ -174,6 +169,11 @@ export const AiReviewPanel = ({ basePath, subjectLabel, variant = 'inset' }: Pro
               {selected.documentCount === 1 ? '' : 's'}
               {selected.costUsd != null ? ` · ≈ US$${selected.costUsd.toFixed(2)}` : ''}
             </p>
+            {selected.notes ? (
+              <p className="rounded-md bg-muted/50 px-2.5 py-1.5 text-xs">
+                <span className="font-medium">Notes given to the AI:</span> {selected.notes}
+              </p>
+            ) : null}
             <AiReviewReportView report={selected.report} />
           </div>
         ) : selected?.status === AiReviewStatus.Failed ? (
@@ -186,24 +186,16 @@ export const AiReviewPanel = ({ basePath, subjectLabel, variant = 'inset' }: Pro
           </div>
         ) : null}
 
-        <AlertDialog open={confirming} onOpenChange={setConfirming}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Run an AI review?</AlertDialogTitle>
-              <AlertDialogDescription>
-                The documents on {subjectLabel} are sent to the AI provider set under Settings → AI
-                review, and the review is billed to that account. It takes a minute or two.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={starting}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={start} disabled={starting}>
-                {starting ? <Loader2 className="animate-spin" /> : <Sparkles />}
-                Run review
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        {canRun ? (
+          <StartReviewDialog
+            basePath={basePath}
+            subjectLabel={subjectLabel}
+            open={confirming}
+            starting={starting}
+            onOpenChange={setConfirming}
+            onStart={(choice) => void start(choice)}
+          />
+        ) : null}
       </div>
     </Frame>
   );

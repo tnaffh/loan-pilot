@@ -163,6 +163,43 @@ export const saveAiCredentialSchema = z.object({
 });
 export type SaveAiCredentialInput = z.infer<typeof saveAiCredentialSchema>;
 
+/** Longest note an officer can give the AI with a review. */
+export const AI_REVIEW_MAX_NOTES = 2000;
+/** Most documents one review may include (keeps a request within provider limits). */
+export const AI_REVIEW_MAX_DOCUMENTS = 20;
+
+/**
+ * Options for starting a review. `documentIds` replaces the default selection
+ * (the application's own files, or a borrower's newest per kind) — e.g. to use
+ * statements on the profile instead of a wrong one on the application. `notes`
+ * is context from the officer, passed to the AI as trusted information.
+ */
+export const startAiReviewSchema = z.object({
+  documentIds: z
+    .array(z.string().min(1))
+    .min(1, 'Choose at least one document')
+    .max(AI_REVIEW_MAX_DOCUMENTS)
+    .optional(),
+  notes: z.string().trim().max(AI_REVIEW_MAX_NOTES).optional(),
+});
+export type StartAiReviewInput = z.infer<typeof startAiReviewSchema>;
+
+/** A document a review may include, as the review dialog lists it. */
+export interface AiReviewDocumentOption {
+  readonly id: string;
+  readonly kind: string;
+  readonly fileName: string;
+  readonly mimeType: string | null;
+  readonly sizeBytes: number | null;
+  readonly uploadedAt: string;
+  /** Where the file is held: on the application, or on the borrower's profile. */
+  readonly source: 'application' | 'profile';
+  /** Ticked by default. */
+  readonly selected: boolean;
+  /** Why the AI cannot read it (unsupported type), or null. */
+  readonly unsupported: string | null;
+}
+
 /** Switch the active provider; null turns AI review off for the lender. */
 export const aiSettingsSchema = z.object({
   activeProvider: aiProviderSchema.nullable(),

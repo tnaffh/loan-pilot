@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { ArrowUpRight, FileText, Loader2, UserCheck } from 'lucide-react';
+import { ArrowUpRight, Loader2, UserCheck } from 'lucide-react';
 import { ApplicationStatus, formatNad } from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import {
@@ -20,6 +20,7 @@ import { TypeChip } from '@/components/type-chip';
 import { Kv } from '@/components/kv';
 import { ActivityTimeline } from '@/components/activity-timeline';
 import { AiReviewPanel } from '@/components/ai/ai-review-panel';
+import { ApplicationDocuments } from '@/components/applications/application-documents';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
 import { useApi } from '@/lib/use-api';
@@ -38,7 +39,7 @@ interface Props {
 
 export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Props) => {
   const { token } = useAuth();
-  const { data } = useApi<ApplicationDetail>(
+  const { data, refresh } = useApi<ApplicationDetail>(
     open && applicationId ? `/applications/${applicationId}` : null,
   );
   const [reason, setReason] = useState('');
@@ -221,41 +222,12 @@ export const ApplicationReviewSheet = ({ open, onOpenChange, applicationId }: Pr
                 </div>
               ) : null}
 
-              <div>
-                <div className="mb-1 text-xs font-medium text-muted-foreground">Documents</div>
-                {data.documents.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No documents uploaded.</p>
-                ) : (
-                  <ul className="space-y-1 text-sm">
-                    {data.documents.map((doc) => (
-                      <li key={doc.id} className="flex items-center justify-between gap-3">
-                        <span className="capitalize text-muted-foreground">
-                          {doc.kind.replace(/_/g, ' ')}
-                        </span>
-                        {doc.url ? (
-                          <a
-                            href={doc.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-1 truncate font-medium hover:underline"
-                          >
-                            <FileText className="size-3.5 shrink-0" />
-                            {doc.fileName}
-                          </a>
-                        ) : (
-                          <span
-                            className="flex items-center gap-1 truncate text-muted-foreground"
-                            title="This file is temporarily unavailable"
-                          >
-                            <FileText className="size-3.5 shrink-0" />
-                            {doc.fileName}
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
+              <ApplicationDocuments
+                applicationId={data.id}
+                documents={data.documents}
+                hasProfile={Boolean(data.existingBorrower)}
+                onChanged={refresh}
+              />
 
               <AiReviewPanel
                 basePath={`/applications/${data.id}`}

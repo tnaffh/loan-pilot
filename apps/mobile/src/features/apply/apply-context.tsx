@@ -7,6 +7,7 @@ import { FormProvider, useForm, type DefaultValues } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   APPLICATION_DOCUMENT_SLOTS,
+  MAX_FILES_PER_DOCUMENT_SLOT,
   DocumentKind,
   EmploymentType,
   LoanType,
@@ -72,8 +73,10 @@ export interface SubmissionOutcome extends ApplicationResult {
 }
 
 interface ApplyContextValue {
-  documents: Partial<Record<DocumentKind, UploadFile>>;
-  setDocument: (kind: DocumentKind, file: UploadFile | null) => void;
+  /** Several files per kind: a statement often comes as one PDF per month. */
+  documents: Partial<Record<DocumentKind, UploadFile[]>>;
+  addDocument: (kind: DocumentKind, file: UploadFile) => void;
+  removeDocument: (kind: DocumentKind, index: number) => void;
   collateralPhotos: UploadFile[];
   setCollateralPhotos: (files: UploadFile[]) => void;
   /** 0–1 while submitting (application, then each file); null when idle. */
@@ -116,7 +119,7 @@ export const ApplyProvider = ({ seed, children }: { seed: QuoteSeed; children: R
     defaultValues: initialValues,
   });
 
-  const [documents, setDocuments] = useState<Partial<Record<DocumentKind, UploadFile>>>({});
+  const [documents, setDocuments] = useState<Partial<Record<DocumentKind, UploadFile[]>>>({});
   const [collateralPhotos, setCollateralPhotos] = useState<UploadFile[]>([]);
   const [progress, setProgress] = useState<number | null>(null);
   const [outcome, setOutcome] = useState<SubmissionOutcome | null>(null);
@@ -146,11 +149,9 @@ export const ApplyProvider = ({ seed, children }: { seed: QuoteSeed; children: R
         body: values,
       });
       const files: { kind: DocumentKind; file: UploadFile }[] = [
-        ...APPLICATION_DOCUMENT_SLOTS.flatMap(({ kind }) => {
-          const file = documents[kind];
-
-          return file ? [{ kind, file }] : [];
-        }),
+        ...APPLICATION_DOCUMENT_SLOTS.flatMap(({ kind }) =>
+          (documents[kind] ?? []).map((file) => ({ kind, file })),
+        ),
         ...collateralPhotos.map((file) => ({ kind: DocumentKind.CollateralPhoto, file })),
       ];
       const share = 0.95 / Math.max(files.length, 1);
@@ -187,8 +188,16 @@ export const ApplyProvider = ({ seed, children }: { seed: QuoteSeed; children: R
       <ApplyContext.Provider
         value={{
           documents,
-          setDocument: (kind, file) =>
-            setDocuments((current) => ({ ...current, [kind]: file ?? undefined })),
+          addDocument: (kind, file) =>
+            setDocuments((current) => ({
+              ...current,
+              [kind]: [...(current[kind] ?? []), file].slice(0, MAX_FILES_PER_DOCUMENT_SLOT),
+            })),
+          removeDocument: (kind, index) =>
+            setDocuments((current) => ({
+              ...current,
+              [kind]: (current[kind] ?? []).filter((_file, other) => other !== index),
+            })),
           collateralPhotos,
           setCollateralPhotos,
           progress,

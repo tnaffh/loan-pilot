@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Loader2, Plus, Trash2 } from 'lucide-react';
 import {
   DocumentKind,
+  MAX_FILES_PER_DOCUMENT_SLOT,
   EmploymentType,
   GENDER_OPTIONS,
   LOAN_PURPOSE_LABELS,
@@ -121,7 +122,8 @@ interface Props {
 
 export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
   const { token, user } = useAuth();
-  const [docs, setDocs] = useState<Record<string, File>>({});
+  // Several files per kind: a statement often arrives as one PDF per month.
+  const [docs, setDocs] = useState<Record<string, File[]>>({});
   const [collateralPhotos, setCollateralPhotos] = useState<File[]>([]);
   const {
     register,
@@ -168,11 +170,13 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
         // Upload any attached documents + collateral photos to the new
         // application. The endpoint resolves the tenant from the x-tenant header.
         const uploads = [
-          ...Object.entries(docs).map(([kind, file]) =>
-            uploadDocument(
-              `/applications/${created.id}/documents`,
-              { kind, file },
-              { tenant: user?.tenantSlug },
+          ...Object.entries(docs).flatMap(([kind, files]) =>
+            files.map((file) =>
+              uploadDocument(
+                `/applications/${created.id}/documents`,
+                { kind, file },
+                { tenant: user?.tenantSlug },
+              ),
             ),
           ),
           ...collateralPhotos.map((file) =>
@@ -729,8 +733,9 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
           <div className="space-y-4">
             <SectionTitle>Documents</SectionTitle>
             <p className="text-xs text-muted-foreground">
-              Optional. PDF, JPG or PNG. They attach to the application and follow the borrower on
-              approval.
+              Optional. PDF, JPG or PNG — choose several files at once if a document comes in parts
+              (up to {MAX_FILES_PER_DOCUMENT_SLOT}). They attach to the application and follow the
+              borrower on approval.
             </p>
             <div className="grid gap-3 sm:grid-cols-2">
               {Object.keys(DOC_LABELS).map((kind) => (
@@ -738,14 +743,24 @@ export const NewApplicationSheet = ({ open, onOpenChange }: Props) => {
                   <Input
                     id={`doc-${kind}`}
                     type="file"
+                    multiple
                     accept="application/pdf,image/jpeg,image/png"
                     onChange={(e) => {
-                      const file = e.target.files?.[0];
+                      const files = Array.from(e.target.files ?? []);
+
+                      if (files.length > MAX_FILES_PER_DOCUMENT_SLOT) {
+                        toast.error(
+                          `Choose at most ${MAX_FILES_PER_DOCUMENT_SLOT} files per document.`,
+                        );
+                        e.target.value = '';
+
+                        return;
+                      }
 
                       setDocs((current) => {
                         const next = { ...current };
 
-                        if (file) next[kind] = file;
+                        if (files.length > 0) next[kind] = files;
                         else delete next[kind];
 
                         return next;

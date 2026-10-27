@@ -34,6 +34,8 @@ describe('ApplicationsService', () => {
   const applicationFindFirst = jest.fn();
   const applicationUpdate = jest.fn();
   const documentCreate = jest.fn();
+  const documentUpdateMany = jest.fn();
+  const documentFindMany = jest.fn().mockResolvedValue([]);
   const borrowerUpsert = jest.fn();
   const loanCreate = jest.fn();
   const generateForLoan = jest.fn();
@@ -48,7 +50,11 @@ describe('ApplicationsService', () => {
     borrowerBankAccount: { updateMany: jest.fn(), create: jest.fn() },
     applicationReference: { findMany: jest.fn().mockResolvedValue([]) },
     borrowerReference: { deleteMany: jest.fn(), createMany: jest.fn() },
-    document: { updateMany: jest.fn(), create: documentCreate },
+    document: {
+      updateMany: documentUpdateMany,
+      findMany: documentFindMany,
+      create: documentCreate,
+    },
     loan: { create: loanCreate },
     user: { findFirst: userFindFirst, update: userUpdate },
   };
@@ -247,6 +253,18 @@ describe('ApplicationsService', () => {
       }),
     );
     expect(result.loanId).toBe('loan_new');
+  });
+
+  it('approving moves documents to the borrower but skips files already on the profile', async () => {
+    applicationFindFirst.mockResolvedValue(pendingApplication);
+    documentFindMany.mockResolvedValueOnce([{ url: 'documents/statement.pdf' }]);
+
+    await service.updateStatus('tenant_1', 'app_1', { status: ApplicationStatus.Approved });
+
+    expect(documentUpdateMany).toHaveBeenCalledWith({
+      where: { applicationId: 'app_1', url: { notIn: ['documents/statement.pdf'] } },
+      data: { borrowerId: 'bor_new' },
+    });
   });
 
   it('approving links an app login made from the applicant phone to the new borrower', async () => {

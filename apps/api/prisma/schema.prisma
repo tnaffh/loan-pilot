@@ -828,6 +828,10 @@ model AiReview {
   report          Json?
   error           String?
   documentCount   Int               @default(0)
+  // What the officer chose when starting it: the documents to include (empty =
+  // the default selection) and notes passed to the AI as trusted context.
+  documentIds     String[]          @default([])
+  notes           String?
   inputTokens     Int?
   outputTokens    Int?
   // Estimated from token usage and the model's list price; null when unknown.

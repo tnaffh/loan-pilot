@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   ApplicationStatus,
   CollexiaStatus,
+  DocumentKind,
   EmploymentType,
   ExpenseKind,
   LoanPurpose,
@@ -13,6 +14,7 @@ import {
   UserStatus,
 } from './enums';
 import { isManualFieldKey } from './reports';
+import { isSupportingDocumentKind } from './application-steps';
 import {
   ageOnDate,
   isAdult,
@@ -737,3 +739,17 @@ export const quarterKeySchema = z
 export const monthKeySchema = z
   .string()
   .regex(/^\d{4}-(0[1-9]|1[0-2])$/, 'Expected a month like 2026-02');
+
+/** Re-label an application's supporting document (e.g. a payslip uploaded as a statement). */
+export const updateDocumentKindSchema = z.object({
+  kind: z
+    .nativeEnum(DocumentKind)
+    .refine(isSupportingDocumentKind, 'Choose ID, payslip, bank statement or proof of residence'),
+});
+export type UpdateDocumentKindInput = z.infer<typeof updateDocumentKindSchema>;
+
+/** Attach documents already on the borrower's profile to their application. */
+export const attachProfileDocumentsSchema = z.object({
+  documentIds: z.array(z.string().min(1)).min(1, 'Choose at least one document').max(20),
+});
+export type AttachProfileDocumentsInput = z.infer<typeof attachProfileDocumentsSchema>;

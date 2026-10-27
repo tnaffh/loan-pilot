@@ -36,6 +36,7 @@ describe('review prompt', () => {
       documents: [
         {
           id: 'doc-1',
+          source: 'application',
           kind: 'bank_statement',
           fileName: 'statement.pdf',
           uploadedAt: new Date('2026-10-10T00:00:00Z'),
@@ -45,6 +46,7 @@ describe('review prompt', () => {
         },
         {
           id: 'doc-2',
+          source: 'profile',
           kind: 'id_document',
           fileName: 'id.jpg',
           uploadedAt: new Date('2026-10-10T00:00:00Z'),
@@ -54,6 +56,7 @@ describe('review prompt', () => {
         },
       ],
       skipped: [{ fileName: 'scan.heic', reason: 'file type image/heic is not supported' }],
+      officerNotes: 'Use the statement on the profile; the one on the application is a payslip.',
     });
 
     expect(parts.map((part) => part.type)).toEqual(['text', 'pdf', 'text', 'image', 'text']);
@@ -68,5 +71,12 @@ describe('review prompt', () => {
     expect(text).not.toContain('Employer');
     expect(text).toContain('Required document not uploaded');
     expect(text).toContain('scan.heic');
+    expect(text).toContain('Notes from the loan officer');
+    expect(text).toContain('Use the statement on the profile');
+    const profileHeader = parts[2];
+
+    expect(profileHeader?.type === 'text' && profileHeader.text).toContain(
+      "held on: the borrower's profile",
+    );
   });
 });

@@ -94,6 +94,16 @@ export interface ApplicationDocument {
   uploadedAt: string;
 }
 
+/** GET /applications/:id/documents/profile — files on the applicant's borrower profile. */
+export interface ProfileDocumentOption {
+  id: string;
+  kind: string;
+  fileName: string;
+  mimeType: string | null;
+  uploadedAt: string;
+  attached: boolean;
+}
+
 export interface ApplicationDetail extends ApplicationRow {
   idNumber: string;
   dateOfBirth: string;
@@ -379,6 +389,8 @@ export interface AiReviewView {
   report: AiReviewReport | null;
   error: string | null;
   documentCount: number;
+  /** What the officer told the AI when starting the review. */
+  notes: string | null;
   costUsd: number | null;
   requestedByName: string;
   startedAt: string;

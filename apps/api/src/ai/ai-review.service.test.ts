@@ -159,7 +159,31 @@ describe('AiReviewService', () => {
     },
     loanApplication: { findFirst: jest.fn().mockResolvedValue(application) },
     borrower: { findFirst: jest.fn().mockResolvedValue(null) },
+    document: { findMany: jest.fn().mockResolvedValue([]) },
   };
+
+  /** The applicant has a borrower profile holding a statement sent in later. */
+  const withProfileStatement = () => {
+    prismaMock.borrower.findFirst.mockResolvedValue({ id: 'bor1', loans: [] });
+    prismaMock.document.findMany.mockResolvedValue([
+      {
+        id: 'doc-profile',
+        kind: 'bank_statement',
+        url: 'documents/later.pdf',
+        fileName: 'statement-later.pdf',
+        mimeType: 'application/pdf',
+        sizeBytes: 10,
+        applicationId: null,
+        borrowerId: 'bor1',
+        uploadedAt: new Date('2026-10-20T00:00:00Z'),
+      },
+    ]);
+  };
+
+  afterEach(() => {
+    prismaMock.borrower.findFirst.mockResolvedValue(null);
+    prismaMock.document.findMany.mockResolvedValue([]);
+  });
   const storageMock = { tryRead: jest.fn().mockResolvedValue(Buffer.from('%PDF-1.7\n%%EOF')) };
   const settingsMock = { resolveActive: jest.fn().mockResolvedValue(config) };
   let service: AiReviewService;
@@ -215,7 +239,76 @@ describe('AiReviewService', () => {
         }),
       }),
     );
-    expect(execute).toHaveBeenCalledWith('rev1', 't1', { applicationId: 'app1' }, config);
+    expect(execute).toHaveBeenCalledWith('rev1', 't1', { applicationId: 'app1' }, config, {
+      documentIds: [],
+      notes: null,
+    });
+  });
+
+  it('offers the application files ticked and profile files unticked, never signatures', async () => {
+    withProfileStatement();
+
+    const options = await service.documentOptionsForApplication('t1', 'app1');
+
+    expect(options.map((option) => [option.id, option.source, option.selected])).toEqual([
+      ['doc-1', 'application', true],
+      ['doc-heic', 'application', false],
+      ['doc-profile', 'profile', false],
+    ]);
+    expect(options[1]?.unsupported).toContain('image/heic');
+  });
+
+  it('stores the chosen documents and notes, and rejects documents not on offer', async () => {
+    const execute = jest.spyOn(service, 'execute').mockResolvedValue();
+
+    withProfileStatement();
+    await expect(
+      service.startForApplication('t1', user, 'app1', { documentIds: ['someone-elses-doc'] }),
+    ).rejects.toThrow('not available for this review');
+
+    await service.startForApplication('t1', user, 'app1', {
+      documentIds: ['doc-profile'],
+      notes: 'Statement came later via WhatsApp.',
+    });
+
+    expect(prismaMock.aiReview.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          documentIds: ['doc-profile'],
+          notes: 'Statement came later via WhatsApp.',
+        }),
+      }),
+    );
+    expect(execute).toHaveBeenCalledWith('rev1', 't1', { applicationId: 'app1' }, config, {
+      documentIds: ['doc-profile'],
+      notes: 'Statement came later via WhatsApp.',
+    });
+  });
+
+  it('reviews only the chosen files, counts a profile statement as present, and passes notes', async () => {
+    withProfileStatement();
+    review.mockResolvedValue({
+      output,
+      model: 'claude-opus-5-5',
+      usage: { inputTokens: 1000, outputTokens: 500, cacheReadTokens: 0, cacheWriteTokens: 0 },
+    });
+
+    await service.execute('rev1', 't1', { applicationId: 'app1' }, config, {
+      documentIds: ['doc-profile'],
+      notes: 'Ignore the file labelled bank statement on the application — it is a payslip.',
+    });
+
+    const content: { type: string; text?: string }[] = review.mock.calls[0][0].content;
+    const texts = content.flatMap((part) => (part.text ? [part.text] : []));
+
+    expect(content.filter((part) => part.type === 'pdf')).toHaveLength(1);
+    expect(texts[0]).toContain('id: doc-profile');
+    expect(texts[0]).toContain("held on: the borrower's profile");
+    const closing = texts[texts.length - 1] ?? '';
+
+    expect(closing).toContain('it is a payslip');
+    expect(closing).not.toContain('Required document not uploaded: 3-month bank statement');
+    expect(closing).toContain('Required document not uploaded: Latest payslip');
   });
 
   it('sends only reviewable documents, with system findings, and stores the capped report', async () => {

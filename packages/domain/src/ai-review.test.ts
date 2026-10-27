@@ -12,10 +12,12 @@ import {
   AiRiskLevel,
   aiReviewOutputSchema,
   buildAiReviewReport,
+  startAiReviewSchema,
   estimateAiCostUsd,
   type AiReviewOutput,
 } from './ai-review';
-import { AffordabilityResult, AiRecommendation } from './enums';
+import { AffordabilityResult, AiRecommendation, DocumentKind } from './enums';
+import { updateDocumentKindSchema } from './schemas';
 import { toCents } from './money';
 
 const output = (over: Partial<AiReviewOutput> = {}): AiReviewOutput => ({
@@ -218,5 +220,23 @@ describe('estimateAiCostUsd', () => {
         cacheWriteTokens: 0,
       }),
     ).toBeNull();
+  });
+});
+
+describe('review and document request schemas', () => {
+  it('accepts an empty start body, rejects an empty document choice and over-long notes', () => {
+    expect(startAiReviewSchema.safeParse({}).success).toBe(true);
+    expect(startAiReviewSchema.safeParse({ documentIds: [] }).success).toBe(false);
+    expect(startAiReviewSchema.safeParse({ notes: 'x'.repeat(2001) }).success).toBe(false);
+    expect(startAiReviewSchema.parse({ notes: '  use the profile statement  ' }).notes).toBe(
+      'use the profile statement',
+    );
+  });
+
+  it('only re-labels to a supporting document kind', () => {
+    expect(updateDocumentKindSchema.safeParse({ kind: DocumentKind.Payslip }).success).toBe(true);
+    expect(updateDocumentKindSchema.safeParse({ kind: DocumentKind.Signature }).success).toBe(
+      false,
+    );
   });
 });

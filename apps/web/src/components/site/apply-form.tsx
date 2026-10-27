@@ -38,6 +38,7 @@ import {
   createApplicationSchema,
   formatNad,
   isDocumentSlotRequired,
+  MAX_FILES_PER_DOCUMENT_SLOT,
   toCents,
   type CreateApplicationInput,
 } from '@loan-pilot/domain';
@@ -76,7 +77,8 @@ const DOCUMENT_SLOTS = APPLICATION_DOCUMENT_SLOTS;
 export const ApplyForm = () => {
   const [step, setStep] = useState(0);
   const [result, setResult] = useState<ApplicationResult | null>(null);
-  const [docs, setDocs] = useState<Partial<Record<DocumentKind, File>>>({});
+  // Several files per slot: a statement often comes as one PDF per month.
+  const [docs, setDocs] = useState<Partial<Record<DocumentKind, File[]>>>({});
   const [docErrors, setDocErrors] = useState<Partial<Record<DocumentKind, string>>>({});
   const [collateralPhotos, setCollateralPhotos] = useState<File[]>([]);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -259,7 +261,7 @@ export const ApplyForm = () => {
     const errs: Partial<Record<DocumentKind, string>> = {};
 
     for (const slot of DOCUMENT_SLOTS) {
-      if (slotRequired(slot) && !docs[slot.kind]) {
+      if (slotRequired(slot) && (docs[slot.kind] ?? []).length === 0) {
         errs[slot.kind] = 'This document is required';
       }
     }
@@ -286,9 +288,11 @@ export const ApplyForm = () => {
 
       // Best-effort: upload any chosen documents + collateral photos against the
       // new application.
-      const chosen = Object.entries(docs).filter(([, file]) => file) as [DocumentKind, File][];
+      const chosen = DOCUMENT_SLOTS.flatMap((slot) =>
+        (docs[slot.kind] ?? []).map((file) => ({ kind: slot.kind, file })),
+      );
       const uploads = [
-        ...chosen.map(([kind, file]) => uploadApplicationDocument(response.id, kind, file)),
+        ...chosen.map(({ kind, file }) => uploadApplicationDocument(response.id, kind, file)),
         ...collateralPhotos.map((file) =>
           uploadApplicationDocument(response.id, DocumentKind.CollateralPhoto, file),
         ),
@@ -1055,7 +1059,9 @@ export const ApplyForm = () => {
                   <div className="space-y-1">
                     <h3 className="font-heading text-lg font-medium">Supporting documents</h3>
                     <p className="text-sm text-muted-foreground">
-                      PDF, JPG or PNG. Your ID document is required.{' '}
+                      PDF, JPG or PNG — add several files if a document comes in parts (e.g. one
+                      statement per month, or the front and back of your ID). Your ID document is
+                      required.{' '}
                       {isCollateral
                         ? 'For collateral loans, payslip and bank statement are optional.'
                         : 'A latest payslip and 3-month bank statement are also required.'}
@@ -1070,9 +1076,10 @@ export const ApplyForm = () => {
                         error={docErrors[slot.kind]}
                       >
                         <FileUpload
-                          value={docs[slot.kind] ?? null}
-                          onChange={(file) => {
-                            setDocs((current) => ({ ...current, [slot.kind]: file ?? undefined }));
+                          value={docs[slot.kind] ?? []}
+                          max={MAX_FILES_PER_DOCUMENT_SLOT}
+                          onChange={(files) => {
+                            setDocs((current) => ({ ...current, [slot.kind]: files }));
                             setDocErrors((current) => ({ ...current, [slot.kind]: undefined }));
                           }}
                         />
