@@ -1,7 +1,7 @@
 'use client';
 
 import { Receipt } from 'lucide-react';
-import { fromCents } from '@loan-pilot/domain';
+import { InterestMethod, fromCents } from '@loan-pilot/domain';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { LoanDetail } from '@/lib/types';
 
@@ -59,11 +59,19 @@ export const LoanPriceBreakdown = ({ loan }: { readonly loan: LoanDetail }) => {
   // reconciles to the loan exactly as priced — no re-quoting at render time.
   const insurance = loan.insurance ?? 0;
   const amountFinanced = loan.principal + loan.namfisaLevy + loan.stampDuty + insurance;
+  const termLoan = loan.interestMethod === InterestMethod.TermLoan;
+  const renewing = loan.interestMethod === InterestMethod.MonthlyRenewal;
+  const renewalCharges = loan.renewalCharges ?? 0;
+  // A term loan's charge is interest on the reducing balance, not a month-1 rate.
+  const termInterest = loan.total - loan.bankCharges - amountFinanced;
   const monthOneCharge = Math.round(amountFinanced * loan.interestRate);
-  // Whatever the finance charge is beyond month 1 is the multi-month compounding.
-  const termGrowth = loan.total - loan.bankCharges - amountFinanced - monthOneCharge;
+  // Whatever the finance charge is beyond month 1 (and beyond any monthly
+  // renewals) is the multi-month compounding.
+  const termGrowth =
+    loan.total - loan.bankCharges - amountFinanced - monthOneCharge - renewalCharges;
   const paidToDate = loan.total - loan.balance;
   const ratePercent = Math.round(loan.interestRate * 1000) / 10;
+  const yearlyPercent = Math.round((loan.annualRate ?? 0) * 10000) / 100;
 
   return (
     <Card>
@@ -79,15 +87,36 @@ export const LoanPriceBreakdown = ({ loan }: { readonly loan: LoanDetail }) => {
         {insurance > 0 ? <Row label="Insurance" value={insurance} /> : null}
         <Row label="Amount financed" value={amountFinanced} emphasis divider />
 
-        <Row label="Finance charge" hint={`${ratePercent}% in month 1`} value={monthOneCharge} />
-        {termGrowth > 0 ? (
-          <Row label="Growth" hint={`months 2–${loan.termMonths}`} value={termGrowth} />
-        ) : null}
+        {termLoan ? (
+          <Row
+            label="Interest"
+            hint={`${yearlyPercent}% a year on the reducing balance`}
+            value={termInterest}
+          />
+        ) : (
+          <>
+            <Row
+              label="Finance charge"
+              hint={`${ratePercent}% in month 1`}
+              value={monthOneCharge}
+            />
+            {!renewing && termGrowth > 0 ? (
+              <Row label="Growth" hint={`months 2–${loan.termMonths}`} value={termGrowth} />
+            ) : null}
+            {renewing && renewalCharges > 0 ? (
+              <Row
+                label="Renewal charges"
+                hint={`${loan.renewals.length} renewal${loan.renewals.length === 1 ? '' : 's'} at ${ratePercent}%`}
+                value={renewalCharges}
+              />
+            ) : null}
+          </>
+        )}
         {loan.bankCharges > 0 ? <Row label="Bank charges" value={loan.bankCharges} /> : null}
         <Row
           label="Total repayable"
           value={loan.total}
-          hint={`${loan.instalmentsTotal} × ${exact(loan.instalment)}`}
+          hint={renewing ? 'to date' : `${loan.instalmentsTotal} × ${exact(loan.instalment)}`}
           emphasis
           divider
         />
@@ -100,9 +129,19 @@ export const LoanPriceBreakdown = ({ loan }: { readonly loan: LoanDetail }) => {
         />
         <Row label="Balance" value={loan.balance} emphasis divider />
 
-        {loan.defaultInterest > 0 ? (
+        {loan.defaultInterest > 0 || loan.unearnedInterest > 0 ? (
           <>
-            <Row label="Default interest on overdue instalments" value={loan.defaultInterest} />
+            {loan.defaultInterest > 0 ? (
+              <Row label="Default interest on overdue instalments" value={loan.defaultInterest} />
+            ) : null}
+            {loan.unearnedInterest > 0 ? (
+              <Row
+                label="Interest not yet earned"
+                hint="comes off if settled today"
+                value={loan.unearnedInterest}
+                negative
+              />
+            ) : null}
             <Row label="Payoff today" value={loan.payoff} emphasis divider />
           </>
         ) : null}

@@ -84,7 +84,7 @@ export const renderAgreementPdf = (data: AgreementData): Promise<Buffer> =>
       { label: 'Instalment', value: data.loan.instalment },
     ]);
     fieldGrid([
-      ['Finance charge rate', `${data.loan.interestRatePct} fixed (NAMFISA max 30%)`],
+      [data.loan.rateLabel, data.loan.rateText],
       ['Repayment frequency', 'Monthly'],
       ['Number of instalments', String(data.loan.instalmentsTotal)],
       ['Loan period', `${data.loan.termMonths} month${data.loan.termMonths === 1 ? '' : 's'}`],
@@ -137,8 +137,10 @@ export const renderAgreementPdf = (data: AgreementData): Promise<Buffer> =>
       .fontSize(8.5)
       .fillColor(COLORS.muted)
       .text(
-        `Penalty interest is charged at ${data.loan.penaltyRatePct} per month on any overdue ` +
-          'amount (may not exceed 5% per month, nor be charged for more than three (3) months).',
+        data.loan.chargesPenaltyInterest
+          ? `Penalty interest is charged at ${data.loan.penaltyRatePct} per month on any overdue ` +
+              'amount (may not exceed 5% per month, nor be charged for more than three (3) months).'
+          : (data.loan.methodNote ?? ''),
         M,
         doc.y,
         { width: W },

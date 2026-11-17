@@ -77,7 +77,11 @@ const LoanScreen = () => {
               <Row label="Total to repay" value={formatNad(loan.total)} />
               <Row
                 label="Instalment"
-                value={`${formatNad(loan.instalment)} × ${loan.instalmentsTotal}`}
+                value={
+                  loan.instalmentsTotal === 1
+                    ? formatNad(loan.instalment)
+                    : `${formatNad(loan.instalment)} × ${loan.instalmentsTotal}`
+                }
               />
               <Row label="Paid out" value={formatDate(loan.disbursedAt)} />
               <Row label="Reference" value={loan.id.slice(0, 10).toUpperCase()} />

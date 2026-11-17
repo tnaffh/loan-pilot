@@ -3,6 +3,7 @@ export * from './dates';
 export * from './identity';
 export * from './money';
 export * from './loan-math';
+export * from './interest-methods';
 export * from './affordability';
 export * from './schemas';
 export * from './terms';

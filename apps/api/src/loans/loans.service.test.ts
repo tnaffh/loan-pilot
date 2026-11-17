@@ -1,9 +1,11 @@
 import { Test } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import {
+  InterestMethod,
   LoanStatus,
   LoanType,
   PaymentMethod,
+  RenewalBasis,
   RepaymentStatus,
   UserRole,
   type SessionUser,
@@ -14,6 +16,7 @@ import { AuditService } from '../audit/audit.service';
 import { SettingsService } from '../settings/settings.service';
 import { DocumentsService } from '../documents/documents.service';
 import { AgreementsService } from '../agreements/agreements.service';
+import { LoanCalculationService } from './loan-calculation.service';
 
 const auditMock = {
   record: jest.fn(),
@@ -37,6 +40,14 @@ const settingsMock = {
     monthlyRate: 0,
   }),
   resolveProduct: jest.fn().mockResolvedValue(null),
+  resolveMethodSettings: jest
+    .fn()
+    .mockResolvedValue({ bonRate: 0.1, maxLongTermMonths: 60, renewalGraceDays: 3 }),
+};
+
+const calculationMock = {
+  refresh: jest.fn().mockResolvedValue(undefined),
+  writeRenewalState: jest.fn(),
 };
 
 describe('LoansService', () => {
@@ -71,7 +82,8 @@ describe('LoansService', () => {
       updateMany: scheduleItemUpdateMany,
       deleteMany: scheduleItemDeleteMany,
     },
-    payment: { create: paymentCreate },
+    payment: { create: paymentCreate, findMany: jest.fn().mockResolvedValue([]) },
+    loanRenewal: { deleteMany: jest.fn() },
   };
 
   const prismaMock = {
@@ -80,6 +92,7 @@ describe('LoansService', () => {
       findFirst: loanFindFirst,
       update: loanUpdate,
       findMany: jest.fn(),
+      findFirstOrThrow: jest.fn().mockResolvedValue({ id: 'loan_1' }),
     },
     borrower: { findFirst: borrowerFindFirst, upsert: borrowerUpsert },
     repaymentScheduleItem: { update: scheduleItemUpdate },
@@ -112,6 +125,7 @@ describe('LoansService', () => {
           },
         },
         { provide: AgreementsService, useValue: agreementsMock },
+        { provide: LoanCalculationService, useValue: calculationMock },
       ],
     }).compile();
 
@@ -607,5 +621,291 @@ describe('LoansService', () => {
 
     expect(amount).toBeGreaterThan(130000); // balance + default interest
     expect(loanUpdate.mock.calls[0][0].data.balance).toBe(0);
+  });
+
+  describe('calculation methods', () => {
+    const monthsAgo = (months: number, extraDays = 0): Date => {
+      const date = new Date();
+
+      date.setMonth(date.getMonth() - months);
+      date.setDate(date.getDate() - extraDays);
+
+      return date;
+    };
+
+    // N$100,000 at 30%, 1 month: N$130,000 due one month after disbursement.
+    const tenderLoan = (over: Record<string, unknown> = {}) =>
+      loanRow({
+        principal: 10000000,
+        financeCharge: 3000000,
+        total: 13000000,
+        instalment: 13000000,
+        balance: 13000000,
+        insurance: 0,
+        waived: 0,
+        renewalCharges: 0,
+        renewalBasis: null,
+        annualRate: null,
+        bonRate: null,
+        marginRate: null,
+        productId: null,
+        interestMethod: InterestMethod.Payday,
+        payments: [],
+        schedule: [],
+        ...over,
+      });
+
+    it('prices a term loan on the BoN rate plus the margin, with an interest split per instalment', async () => {
+      borrowerFindFirst.mockResolvedValue({ id: 'bor_1', tenantId: 'tenant_1' });
+
+      await service.create('tenant_1', {
+        borrowerId: 'bor_1',
+        loanType: LoanType.Business,
+        amount: 100000,
+        termMonths: 12,
+        method: InterestMethod.TermLoan,
+        marginRate: 0.055,
+      });
+
+      const data = loanCreate.mock.calls[0][0].data;
+
+      expect(data.interestMethod).toBe(InterestMethod.TermLoan);
+      expect(data.bonRate).toBe(0.1);
+      expect(data.annualRate).toBeCloseTo(0.155);
+      expect(data.instalment).toBe(904944); // PMT for 100,000 over 12 months at 15.5% p.a.
+      expect(data.instalmentsTotal).toBe(12);
+      expect(data.schedule.create[0].interest).toBe(129167);
+      // The monthly finance rate is not overwritten with the yearly rate.
+      expect(data.interestRate).toBeUndefined();
+    });
+
+    it('rejects a payday loan longer than 5 months and a term loan beyond the lender maximum', async () => {
+      borrowerFindFirst.mockResolvedValue({ id: 'bor_1', tenantId: 'tenant_1' });
+      const base = { borrowerId: 'bor_1', loanType: LoanType.Payday, amount: 5000 };
+
+      await expect(service.create('tenant_1', { ...base, termMonths: 6 })).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(
+        service.create('tenant_1', { ...base, termMonths: 61, method: InterestMethod.TermLoan }),
+      ).rejects.toThrow(BadRequestException);
+      expect(loanCreate).not.toHaveBeenCalled();
+    });
+
+    it('creates a monthly renewal loan as a 1-month loan with its charge basis', async () => {
+      borrowerFindFirst.mockResolvedValue({ id: 'bor_1', tenantId: 'tenant_1' });
+
+      await service.create('tenant_1', {
+        borrowerId: 'bor_1',
+        loanType: LoanType.Business,
+        amount: 100000,
+        termMonths: 1,
+        method: InterestMethod.MonthlyRenewal,
+        renewalBasis: RenewalBasis.Balance,
+      });
+
+      const data = loanCreate.mock.calls[0][0].data;
+
+      expect(data.interestMethod).toBe(InterestMethod.MonthlyRenewal);
+      expect(data.renewalBasis).toBe(RenewalBasis.Balance);
+      expect(data.total).toBe(13000000);
+    });
+
+    it('refuses to capture a fixed instalment on a monthly renewal loan', async () => {
+      loanFindFirst.mockResolvedValue(
+        tenderLoan({ interestMethod: InterestMethod.MonthlyRenewal }),
+      );
+
+      await expect(service.recordRepayment('tenant_1', 'loan_1', {})).rejects.toThrow(
+        BadRequestException,
+      );
+    });
+
+    it('previews payday → monthly renewal: one renewal per month the loan has gone unpaid', async () => {
+      // Disbursed 2 months and 10 days ago: the due dates 1 month + 10 days ago
+      // and 10 days ago have both passed their grace days → 130,000 → 160,000 → 190,000.
+      loanFindFirst.mockResolvedValue(tenderLoan({ disbursedAt: monthsAgo(2, 10) }));
+
+      const preview = await service.previewMethodChange('tenant_1', 'loan_1', {
+        method: InterestMethod.MonthlyRenewal,
+      });
+
+      expect(preview.renewals).toBe(2);
+      expect(preview.total).toBe(19000000);
+      expect(preview.balance).toBe(19000000);
+      expect(preview.defaultInterest).toBe(0);
+      expect(preview.current.total).toBe(13000000);
+    });
+
+    it('previews monthly renewal → payday: renewals go, 5% default interest applies to the months late', async () => {
+      settingsMock.resolveFeeSettings.mockResolvedValue(feeSettings(0.05));
+      // Three months after disbursement = two complete months late.
+      loanFindFirst.mockResolvedValue(
+        tenderLoan({
+          interestMethod: InterestMethod.MonthlyRenewal,
+          renewalBasis: RenewalBasis.Principal,
+          disbursedAt: monthsAgo(3, 10),
+          financeCharge: 9000000,
+          renewalCharges: 6000000,
+          total: 19000000,
+          balance: 19000000,
+        }),
+      );
+
+      const preview = await service
+        .previewMethodChange('tenant_1', 'loan_1', { method: InterestMethod.Payday })
+        .finally(() => settingsMock.resolveFeeSettings.mockResolvedValue(feeSettings(0)));
+
+      expect(preview.total).toBe(13000000);
+      expect(preview.renewals).toBe(0);
+      // 130,000 × (1.05² − 1) = 13,325.
+      expect(preview.defaultInterest).toBe(1332500);
+      expect(preview.payoff).toBe(14332500);
+    });
+
+    it('counts payments already made when previewing a method change', async () => {
+      const disbursedAt = monthsAgo(1, 10);
+      const firstDue = new Date(disbursedAt);
+
+      firstDue.setMonth(firstDue.getMonth() + 1);
+      // The first month's 30,000 charge was paid on the due date, so the renewal
+      // is charged on the 100,000 borrowed: 160,000 − 30,000 = 130,000 owed.
+      loanFindFirst.mockResolvedValue(
+        tenderLoan({ disbursedAt, payments: [{ amount: 3000000, paidAt: firstDue }] }),
+      );
+
+      const preview = await service.previewMethodChange('tenant_1', 'loan_1', {
+        method: InterestMethod.MonthlyRenewal,
+      });
+
+      expect(preview.renewals).toBe(1);
+      expect(preview.balance).toBe(13000000);
+    });
+
+    it('changes the method: reprices from the loan’s own figures, then recalculates and audits', async () => {
+      loanFindFirst.mockResolvedValue(tenderLoan({ disbursedAt: monthsAgo(3, 10) }));
+
+      await service.changeMethod('tenant_1', actor, 'loan_1', {
+        method: InterestMethod.MonthlyRenewal,
+        renewalBasis: RenewalBasis.Balance,
+      });
+
+      const data = loanUpdate.mock.calls[0][0].data;
+
+      expect(data.interestMethod).toBe(InterestMethod.MonthlyRenewal);
+      expect(data.renewalBasis).toBe(RenewalBasis.Balance);
+      expect(data.total).toBe(13000000); // origination total; renewals follow in refresh
+      expect(data.schedule.create).toHaveLength(1);
+      expect(scheduleItemDeleteMany).toHaveBeenCalled();
+      expect(auditMock.record).toHaveBeenCalledWith(
+        'tenant_1',
+        actor,
+        expect.objectContaining({ action: 'method_changed' }),
+        expect.anything(),
+      );
+      expect(calculationMock.refresh).toHaveBeenCalledWith('loan_1');
+      expect(agreementsMock.refreshForLoan).toHaveBeenCalledWith('tenant_1', 'loan_1');
+    });
+
+    it('moves a loan onto a term loan at today’s BoN rate plus the chosen margin', async () => {
+      loanFindFirst.mockResolvedValue(tenderLoan({ disbursedAt: monthsAgo(0, 5) }));
+
+      await service.changeMethod('tenant_1', actor, 'loan_1', {
+        method: InterestMethod.TermLoan,
+        termMonths: 24,
+        marginRate: 0.04,
+      });
+
+      const data = loanUpdate.mock.calls[0][0].data;
+
+      expect(data.interestMethod).toBe(InterestMethod.TermLoan);
+      expect(data.annualRate).toBeCloseTo(0.14);
+      expect(data.termMonths).toBe(24);
+      expect(data.schedule.create).toHaveLength(24);
+      expect(data.interestRate).toBe(0.3); // monthly rate kept for a later switch back
+    });
+
+    it('refuses to change the method of a closed loan or one with a waived amount', async () => {
+      loanFindFirst.mockResolvedValue(tenderLoan({ status: LoanStatus.Settled }));
+      await expect(
+        service.changeMethod('tenant_1', actor, 'loan_1', { method: InterestMethod.TermLoan }),
+      ).rejects.toThrow(BadRequestException);
+
+      loanFindFirst.mockResolvedValue(tenderLoan({ waived: 500 }));
+      await expect(
+        service.changeMethod('tenant_1', actor, 'loan_1', { method: InterestMethod.TermLoan }),
+      ).rejects.toThrow(BadRequestException);
+      expect(loanUpdate).not.toHaveBeenCalled();
+    });
+
+    it('rebates unearned interest when a term loan is settled early', async () => {
+      const disbursedAt = new Date('2026-01-10T00:00:00.000Z');
+      const due = (n: number): Date => {
+        const date = new Date(disbursedAt);
+
+        date.setMonth(date.getMonth() + n);
+
+        return date;
+      };
+
+      loanFindFirst.mockResolvedValue(
+        tenderLoan({
+          interestMethod: InterestMethod.TermLoan,
+          total: 10600000,
+          financeCharge: 600000,
+          balance: 10600000,
+          instalmentsTotal: 3,
+          schedule: [1, 2, 3].map((n) => ({
+            amount: n === 3 ? 3533334 : 3533333,
+            dueAt: due(n),
+            status: RepaymentStatus.Due,
+            interest: 400000 - n * 100000,
+          })),
+        }),
+      );
+
+      // Settled in month 1: months 2 and 3 have not started → 200,000 + 100,000 rebated.
+      await service.settle('tenant_1', 'loan_1', {
+        method: PaymentMethod.Eft,
+        paidAt: '2026-01-20',
+      });
+
+      expect(paymentCreate.mock.calls[0][0].data.amount).toBe(10300000);
+      const data = loanUpdate.mock.calls[0][0].data;
+
+      expect(data.total).toBe(10300000);
+      expect(data.financeCharge).toBe(300000);
+      expect(data.balance).toBe(0);
+    });
+
+    it('settles a monthly renewal loan for what is owed on the payment date', async () => {
+      const disbursedAt = new Date('2026-01-10T00:00:00.000Z');
+      const found = tenderLoan({
+        interestMethod: InterestMethod.MonthlyRenewal,
+        renewalBasis: RenewalBasis.Principal,
+        disbursedAt,
+      });
+
+      loanFindFirst.mockResolvedValue(found);
+      calculationMock.writeRenewalState.mockImplementation(
+        (
+          _tx: unknown,
+          loan: Record<string, unknown>,
+          state: { position: { totalCents: number } },
+        ) => Promise.resolve({ ...loan, total: state.position.totalCents }),
+      );
+
+      // Due 10 Feb; paid 20 Feb, after the 3 grace days → one renewal: 160,000.
+      await service.settle('tenant_1', 'loan_1', {
+        method: PaymentMethod.Eft,
+        paidAt: '2026-02-20',
+      });
+
+      const state = calculationMock.writeRenewalState.mock.calls[0][2];
+
+      expect(state.position.renewals).toHaveLength(1);
+      expect(paymentCreate.mock.calls[0][0].data.amount).toBe(16000000);
+      expect(loanUpdate.mock.calls[0][0].data.status).toBe(LoanStatus.Settled);
+    });
   });
 });

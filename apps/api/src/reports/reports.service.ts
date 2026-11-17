@@ -9,6 +9,7 @@ import {
   LoanStatus,
   LoanType,
   NAMFISA_MANUAL_FIELDS,
+  InterestMethod,
   RepaymentStatus,
   TERM_BANDS,
   ageingBucketFor,
@@ -66,6 +67,8 @@ import {
   bookValueAt,
   creditsInPeriod,
   outstandingAt,
+  renewalChargesAfter,
+  renewalChargesInPeriod,
   writeOffsInPeriod,
   type LoanLedger,
 } from './reports.reconstruction';
@@ -83,6 +86,12 @@ const REPORT_LOAN_SELECT = {
   instalmentsTotal: true,
   instalment: true,
   interestRate: true,
+  // Calculation method: a term loan's rate is yearly, and a monthly-renewal
+  // loan's total grows by a renewal charge each month it stays unpaid.
+  interestMethod: true,
+  annualRate: true,
+  renewalCharges: true,
+  renewals: { select: { renewedAt: true, charge: true, newDueAt: true } },
   namfisaLevy: true,
   stampDuty: true,
   insurance: true,
@@ -105,6 +114,10 @@ const REPORT_LOAN_SELECT = {
   },
 } as const;
 
+/** A loan's finance charge as originated, before any monthly-renewal charges. */
+const originationCharge = (loan: { financeCharge: number; renewalCharges?: number }): number =>
+  loan.financeCharge - (loan.renewalCharges ?? 0);
+
 interface ReportLoan {
   id: string;
   borrowerId: string;
@@ -117,6 +130,10 @@ interface ReportLoan {
   instalmentsTotal: number;
   instalment: number;
   interestRate: number;
+  interestMethod?: string;
+  annualRate?: number | null;
+  renewalCharges?: number;
+  renewals?: { renewedAt: Date; charge: number; newDueAt: Date }[];
   namfisaLevy: number;
   stampDuty: number;
   insurance: number;
@@ -387,7 +404,7 @@ export class ReportsService {
    *     roll-forward would not add up.
    */
   private async loadLedgers(tenantId: string) {
-    const [loans, payments, scheduleItems] = await Promise.all([
+    const [loans, payments, scheduleItems, termSchedules] = await Promise.all([
       this.prisma.loan.findMany({
         where: { tenantId },
         select: REPORT_LOAN_SELECT,
@@ -404,9 +421,14 @@ export class ReportsService {
         },
         select: { loanId: true, amount: true, paidAt: true, status: true },
       }),
+      // Term loans are aged against their stored schedule (not an equal split).
+      this.prisma.repaymentScheduleItem.findMany({
+        where: { loan: { tenantId, interestMethod: InterestMethod.TermLoan } },
+        select: { loanId: true, number: true, dueAt: true, amount: true },
+      }),
     ]);
 
-    return buildLedgers<ReportLoan>({ loans, payments, scheduleItems });
+    return buildLedgers<ReportLoan>({ loans, payments, scheduleItems, termSchedules });
   }
 
   private async lender(tenantId: string): Promise<ReportLender> {
@@ -572,7 +594,11 @@ export class ReportsService {
         _sum: { amount: true },
       }),
     ]);
-    const interestOnLoans = sumBy(disbursed, ({ loan }) => loan.financeCharge);
+    // Interest booked in the quarter: the origination charge of loans disbursed
+    // in it, plus every renewal charge that fell in it (whenever the loan began).
+    const interestOnLoans =
+      sumBy(disbursed, ({ loan }) => originationCharge(loan)) +
+      renewalChargesInPeriod(ledgers, range.start, range.end);
     const badDebtsRecovered = figure(manual, 'badDebtsRecovered');
     const otherIncome =
       (otherIncomeRows._sum.amount ?? 0) + figure(manual, 'otherIncomeAdjustment');
@@ -610,7 +636,11 @@ export class ReportsService {
           otherFees,
           total: namfisaLevies + stampDuties + insurance + otherFees,
         },
-        interestOnOutstanding: sumBy(closing, (entry) => entry.ledger.loan.financeCharge),
+        interestOnOutstanding: sumBy(
+          closing,
+          (entry) =>
+            entry.ledger.loan.financeCharge - renewalChargesAfter(entry.ledger.loan, range.end),
+        ),
         repayments: {
           payroll: repayments.payroll,
           debitOrder: repayments.debit_order,
@@ -789,13 +819,17 @@ export class ReportsService {
         gender: normaliseGender(loan.borrower.gender),
         monthlyIncome: loan.borrower.monthlyIncome,
         principal: loan.principal,
-        financeCharge: loan.financeCharge,
-        interestRate: loan.interestRate,
+        // As originated: renewal charges are booked in the month they fall in.
+        financeCharge: originationCharge(loan),
+        interestRate:
+          loan.interestMethod === InterestMethod.TermLoan
+            ? (loan.annualRate ?? loan.interestRate)
+            : loan.interestRate,
         bankCharges: loan.bankCharges,
         namfisaLevy: loan.namfisaLevy,
         stampDuty: loan.stampDuty,
         insurance: loan.insurance,
-        total: loan.total,
+        total: loan.total - (loan.renewalCharges ?? 0),
         instalment: loan.instalment,
         termMonths: loan.termMonths,
         balance: outstandingAt(ledger, range.end),
@@ -824,8 +858,12 @@ export class ReportsService {
         closingBookValue,
         loansDisbursed: disbursed.length,
         disbursedValue,
-        interestBooked: sumBy(disbursed, ({ loan }) => loan.financeCharge),
-        expectedRepayable: sumBy(disbursed, ({ loan }) => loan.total),
+        interestBooked:
+          sumBy(disbursed, ({ loan }) => originationCharge(loan)) +
+          renewalChargesInPeriod(ledgers, range.start, range.end),
+        expectedRepayable:
+          sumBy(disbursed, ({ loan }) => loan.total - (loan.renewalCharges ?? 0)) +
+          renewalChargesInPeriod(ledgers, range.start, range.end),
         collected,
         collectionsByMethod: (['payroll', 'debit_order', 'cash', 'other'] as const).map(
           (method) => ({

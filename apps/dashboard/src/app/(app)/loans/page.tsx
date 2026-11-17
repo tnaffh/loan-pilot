@@ -5,7 +5,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Activity, AlertTriangle, Eye, Plus, Wallet } from 'lucide-react';
 import type { ColumnDef } from '@tanstack/react-table';
-import { LoanStatus, formatNad, isLoanOverdue, isOpenLoanStatus } from '@loan-pilot/domain';
+import {
+  InterestMethod,
+  LoanStatus,
+  formatNad,
+  isLoanOverdue,
+  isOpenLoanStatus,
+} from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/page-header';
@@ -76,7 +82,9 @@ const baseColumns: ColumnDef<LoanRow>[] = [
     accessorKey: 'termMonths',
     cell: ({ row }) => (
       <div className="text-right tabular-nums">
-        {row.original.termMonths} {row.original.termMonths === 1 ? 'mo' : 'mos'}
+        {row.original.interestMethod === InterestMethod.MonthlyRenewal
+          ? 'Renews monthly'
+          : `${row.original.termMonths} ${row.original.termMonths === 1 ? 'mo' : 'mos'}`}
       </div>
     ),
   },

@@ -1,6 +1,8 @@
 import {
+  InterestMethod,
   LoanStatus,
   RepaymentStatus,
+  addMonths,
   ageAt,
   creditsUpTo,
   effectiveClosedAt,
@@ -39,6 +41,27 @@ export interface ReportLoanRow {
   readonly closedAt: Date | null;
   /** Remainder waived when the loan was settled (0 when none). */
   readonly waived: Cents;
+  /** How the loan is calculated; absent = payday. */
+  readonly interestMethod?: string;
+  /**
+   * Monthly-renewal loans: each renewal charge and the date it was added.
+   * `total` includes them all, so a past balance backs the later ones out.
+   */
+  readonly renewals?: readonly ReportRenewalRow[];
+}
+
+export interface ReportRenewalRow {
+  readonly renewedAt: Date;
+  readonly charge: Cents;
+  readonly newDueAt: Date;
+}
+
+/** A stored instalment of a term loan (its schedule is not an equal split). */
+export interface ReportTermScheduleRow {
+  readonly loanId: string;
+  readonly number: number;
+  readonly dueAt: Date;
+  readonly amount: Cents;
 }
 
 export interface ReportPaymentRow {
@@ -74,11 +97,26 @@ export const buildLedgers = <TLoan extends ReportLoanRow>({
   loans,
   payments,
   scheduleItems,
+  termSchedules = [],
 }: {
   readonly loans: readonly TLoan[];
   readonly payments: readonly ReportPaymentRow[];
   readonly scheduleItems: readonly ReportScheduleRow[];
+  /** Stored schedules of term loans; every other loan's schedule is implied. */
+  readonly termSchedules?: readonly ReportTermScheduleRow[];
 }): Map<string, LoanLedger<TLoan>> => {
+  const termRowsByLoan = new Map<string, ReportTermScheduleRow[]>();
+
+  for (const row of termSchedules) {
+    const bucket = termRowsByLoan.get(row.loanId);
+
+    if (bucket) {
+      bucket.push(row);
+    } else {
+      termRowsByLoan.set(row.loanId, [row]);
+    }
+  }
+
   const paymentsByLoan = new Map<string, ReportPaymentRow[]>();
 
   for (const payment of payments) {
@@ -122,26 +160,100 @@ export const buildLedgers = <TLoan extends ReportLoanRow>({
       })),
     });
 
+    // A term loan's instalments are not an equal split of its total, so its
+    // stored schedule is used. Payday loans keep the implied schedule (imported
+    // loans have no rows at all); monthly-renewal loans are aged by `scheduleAt`.
+    const termRows =
+      loan.interestMethod === InterestMethod.TermLoan ? (termRowsByLoan.get(loan.id) ?? []) : [];
+    const implied = loan.disbursedAt
+      ? impliedSchedule({
+          disbursedAt: loan.disbursedAt,
+          instalmentsTotal: loan.instalmentsTotal,
+          totalCents: loan.total,
+        })
+      : [];
+
     ledgers.set(loan.id, {
       loan,
       credits,
       closedAt: effectiveClosedAt(loan, credits),
-      schedule: loan.disbursedAt
-        ? impliedSchedule({
-            disbursedAt: loan.disbursedAt,
-            instalmentsTotal: loan.instalmentsTotal,
-            totalCents: loan.total,
-          })
-        : [],
+      schedule:
+        termRows.length > 0
+          ? [...termRows]
+              .sort((a, b) => a.number - b.number)
+              .map((row) => ({ number: row.number, dueAt: row.dueAt, amountCents: row.amount }))
+          : implied,
     });
   }
 
   return ledgers;
 };
 
+/** Renewal charges added to a monthly-renewal loan on or after `asOf` (0 for other loans). */
+export const renewalChargesAfter = (loan: ReportLoanRow, asOf: Date): Cents =>
+  (loan.renewals ?? []).reduce(
+    (sum, renewal) => (renewal.renewedAt.getTime() >= asOf.getTime() ? sum + renewal.charge : sum),
+    0,
+  );
+
+/** Renewal charges added within `[start, end)`, across every loan. */
+export const renewalChargesInPeriod = (
+  ledgers: Iterable<LoanLedger>,
+  start: Date,
+  end: Date,
+): Cents => {
+  const state = { total: 0 };
+
+  for (const { loan } of ledgers) {
+    for (const renewal of loan.renewals ?? []) {
+      const at = renewal.renewedAt.getTime();
+
+      if (at >= start.getTime() && at < end.getTime()) {
+        state.total += renewal.charge;
+      }
+    }
+  }
+
+  return state.total;
+};
+
+/** A loan's total repayable as it stood at `asOf` (later renewals backed out). */
+export const totalAt = (loan: ReportLoanRow, asOf: Date): Cents =>
+  loan.total - renewalChargesAfter(loan, asOf);
+
+/**
+ * The schedule a loan was on at `asOf`. A monthly-renewal loan has one
+ * instalment — everything owed — due on the due date in force at that time.
+ */
+const scheduleAt = (ledger: LoanLedger, asOf: Date): readonly ScheduledInstalment[] => {
+  const { loan } = ledger;
+
+  if (loan.interestMethod !== InterestMethod.MonthlyRenewal || !loan.disbursedAt) {
+    return ledger.schedule;
+  }
+
+  const lastRenewal = (loan.renewals ?? [])
+    .filter((renewal) => renewal.renewedAt.getTime() < asOf.getTime())
+    .reduce<ReportRenewalRow | null>(
+      (latest, renewal) =>
+        latest === null || renewal.renewedAt.getTime() > latest.renewedAt.getTime()
+          ? renewal
+          : latest,
+      null,
+    );
+
+  return [
+    {
+      number: 1,
+      dueAt: lastRenewal ? lastRenewal.newDueAt : addMonths(loan.disbursedAt, 1),
+      amountCents: totalAt(loan, asOf),
+    },
+  ];
+};
+
 /** What is still owed on a loan at `asOf`, floored at zero. */
 export const outstandingAt = (ledger: LoanLedger, asOf: Date): Cents =>
-  Math.max(0, ledger.loan.total - creditsUpTo(ledger.credits, asOf));
+  Math.max(0, totalAt(ledger.loan, asOf) - creditsUpTo(ledger.credits, asOf));
 
 /**
  * Whether a loan counts towards the book at `asOf`.
@@ -204,7 +316,7 @@ export const bookAt = <TLoan extends ReportLoanRow>(
       ledger,
       outstandingCents: outstandingAt(ledger, asOf),
       ageing: ageAt({
-        schedule: ledger.schedule,
+        schedule: scheduleAt(ledger, asOf),
         amountRepaidCents: creditsUpTo(ledger.credits, asOf),
         asOf,
       }),

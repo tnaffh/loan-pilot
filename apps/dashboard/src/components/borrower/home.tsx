@@ -2,7 +2,13 @@
 
 import Link from 'next/link';
 import { ArrowDownLeft, Check, Download, Wallet } from 'lucide-react';
-import { LoanStatus, RepaymentStatus, formatNad, isInstalmentSettled } from '@loan-pilot/domain';
+import {
+  InterestMethod,
+  LoanStatus,
+  RepaymentStatus,
+  formatNad,
+  isInstalmentSettled,
+} from '@loan-pilot/domain';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -172,7 +178,14 @@ export const BorrowerHome = () => {
                   <Kv label="Next payment" value={formatDate(activeLoan.nextDueAt)} />
                   <Kv label="Principal" value={formatNad(activeLoan.principal)} />
                   <Kv label="Total repayable" value={formatNad(total)} />
-                  <Kv label="Term" value={`${activeLoan.termMonths} months`} />
+                  <Kv
+                    label="Term"
+                    value={
+                      activeLoan.interestMethod === InterestMethod.MonthlyRenewal
+                        ? 'Renews monthly until settled'
+                        : `${activeLoan.termMonths} ${activeLoan.termMonths === 1 ? 'month' : 'months'}`
+                    }
+                  />
                   <Kv label="Disbursed" value={formatDate(activeLoan.disbursedAt)} />
                 </dl>
               </CardContent>

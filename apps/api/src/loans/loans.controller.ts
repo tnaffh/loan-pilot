@@ -12,6 +12,7 @@ import {
 import {
   UserRole,
   cancelLoanSchema,
+  changeLoanMethodSchema,
   createLoanSchema,
   isBorrower,
   loanQuoteSchema,
@@ -23,6 +24,7 @@ import {
   waiveLoanSchema,
   writeOffLoanSchema,
   type CancelLoanInput,
+  type ChangeLoanMethodInput,
   type CreateLoanInput,
   type LoanQuote,
   type LoanQuoteInput,
@@ -49,6 +51,7 @@ import {
   type LoanStatement,
   type LoanWithBorrower,
   type LoanWithDetails,
+  type MethodChangePreview,
 } from './loans.service';
 
 // Two guards compose here: RolesGuard still gates the borrower-shared GET
@@ -107,6 +110,29 @@ export class LoansController {
     @Body(new ZodValidationPipe(updateLoanSchema)) body: UpdateLoanInput,
   ): Promise<Loan> {
     return this.loans.update(requireTenantId(user), user, id, body);
+  }
+
+  /** What the loan would owe under another calculation method (nothing is saved). */
+  @Post(':id/method/preview')
+  @HttpCode(HttpStatus.OK)
+  @RequirePermissions('loans:manage')
+  previewMethod(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(changeLoanMethodSchema)) body: ChangeLoanMethodInput,
+  ): Promise<MethodChangePreview> {
+    return this.loans.previewMethodChange(requireTenantId(user), id, body);
+  }
+
+  /** Change how the loan is calculated; it is re-derived from its start. */
+  @Patch(':id/method')
+  @RequirePermissions('loans:manage')
+  changeMethod(
+    @CurrentUser() user: SessionUser,
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(changeLoanMethodSchema)) body: ChangeLoanMethodInput,
+  ): Promise<Loan> {
+    return this.loans.changeMethod(requireTenantId(user), user, id, body);
   }
 
   @Post(':id/cancel')

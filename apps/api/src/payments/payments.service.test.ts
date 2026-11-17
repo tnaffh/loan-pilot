@@ -8,6 +8,8 @@ import {
 } from '@loan-pilot/domain';
 import { PaymentsService } from './payments.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { SettingsService } from '../settings/settings.service';
+import { LoanCalculationService } from '../loans/loan-calculation.service';
 
 describe('PaymentsService', () => {
   const loanFindFirst = jest.fn();
@@ -44,7 +46,12 @@ describe('PaymentsService', () => {
     scheduleFindMany.mockResolvedValue([]);
 
     const moduleRef = await Test.createTestingModule({
-      providers: [PaymentsService, { provide: PrismaService, useValue: prismaMock }],
+      providers: [
+        PaymentsService,
+        LoanCalculationService,
+        { provide: PrismaService, useValue: prismaMock },
+        { provide: SettingsService, useValue: { resolveMethodSettings: jest.fn() } },
+      ],
     }).compile();
 
     service = moduleRef.get(PaymentsService);

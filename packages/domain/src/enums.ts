@@ -11,6 +11,28 @@ export enum LoanType {
 }
 
 /**
+ * How a loan's charges are calculated. Set per loan and changeable by an admin;
+ * changing it re-derives the loan from its origination inputs.
+ * - `payday`: origination rate in month 1, then the monthly rate (the original method).
+ * - `monthly_renewal`: a 1-month loan that renews at the origination rate for
+ *   every month it stays unpaid (tender / bridging loans).
+ * - `term_loan`: bank-style reducing balance at a yearly rate (BoN rate + margin).
+ */
+export enum InterestMethod {
+  Payday = 'payday',
+  MonthlyRenewal = 'monthly_renewal',
+  TermLoan = 'term_loan',
+}
+
+/** What a monthly renewal charges its rate on. */
+export enum RenewalBasis {
+  /** The amount borrowed (principal debt) that is still unpaid. */
+  Principal = 'principal',
+  /** Everything still owed, earlier charges included. */
+  Balance = 'balance',
+}
+
+/**
  * What the borrower took the loan for. The six values are fixed by the NAMFISA
  * quarterly return (Part 7.3, "number of loans by purpose"); they are not free
  * text so the return can be produced without reclassifying by hand.

@@ -3,22 +3,30 @@ import type { $Enums, Loan, LoanApplication, Prisma } from '@prisma/client';
 import {
   CollexiaStatus,
   DocumentKind,
+  INTEREST_METHOD_LABEL,
+  InterestMethod,
   LoanStatus,
   LoanType,
+  MAX_TERM_MONTHS,
+  RENEWAL_TERM_MONTHS,
+  RenewalBasis,
   RepaymentStatus,
   UserRole,
   addMonths,
+  amortisedUnearnedInterest,
   assessArrears,
   buildLoanActivity,
   computeFees,
   daysBetween,
   fromCents,
+  isInstalmentSettled,
   phoneKey,
-  quote,
+  priceLoan,
   toCents,
   type ActivityEvent,
   type ArrearsAssessment,
   type CancelLoanInput,
+  type ChangeLoanMethodInput,
   type CreateLoanInput,
   type LoanFees,
   type LoanPurposeValue,
@@ -38,6 +46,8 @@ import { AuditService, type AuditEntry } from '../audit/audit.service';
 import { SettingsService } from '../settings/settings.service';
 import { DocumentsService, type DocumentView } from '../documents/documents.service';
 import { AgreementsService } from '../agreements/agreements.service';
+import { deriveScheduleProgress } from '../payments/schedule-progress';
+import { LoanCalculationService, isOpenLoan, renewalStateFor } from './loan-calculation.service';
 
 export type LoanWithBorrower = Prisma.LoanGetPayload<{
   include: { borrower: { select: { id: true; firstName: true; lastName: true } } };
@@ -50,6 +60,7 @@ export type LoanWithDetails = Prisma.LoanGetPayload<{
     };
     schedule: true;
     payments: true;
+    renewals: true;
   };
 }> & {
   activity: ActivityEvent[];
@@ -59,6 +70,9 @@ export type LoanWithDetails = Prisma.LoanGetPayload<{
   defaultInterest: number;
   overdueAmount: number;
   payoff: number;
+  // Term loans: interest not yet earned, rebated if the loan is settled today
+  // (already taken off `payoff`). 0 for other methods.
+  unearnedInterest: number;
   // The borrower's documents, resolved to openable URLs — shown read-only on the
   // staff loan page (empty for the borrower's own portal view).
   borrowerDocuments: DocumentView[];
@@ -101,6 +115,51 @@ const LOAN_TYPE_FROM_DB: Record<$Enums.LoanType, LoanType> = {
   collateral: LoanType.Collateral,
 };
 
+const METHOD_FROM_DB: Record<$Enums.InterestMethod, InterestMethod> = {
+  payday: InterestMethod.Payday,
+  monthly_renewal: InterestMethod.MonthlyRenewal,
+  term_loan: InterestMethod.TermLoan,
+};
+
+const BASIS_FROM_DB: Record<$Enums.RenewalBasis, RenewalBasis> = {
+  principal: RenewalBasis.Principal,
+  balance: RenewalBasis.Balance,
+};
+
+/** Everything needed to price a loan under its calculation method. */
+interface ResolvedPricing {
+  /** Monthly finance rate (payday / monthly renewal); undefined = the type's standard rate. */
+  interestRate: number | undefined;
+  monthlyRate: number;
+  productId: string | null;
+  fees: LoanFees;
+  method: InterestMethod;
+  /** Monthly renewal only. */
+  renewalBasis: RenewalBasis | null;
+  /** Term loans only: the yearly rate and its two parts, and the lender's max term. */
+  annualRate: number | null;
+  bonRate: number | null;
+  marginRate: number | null;
+  maxTermMonths: number | null;
+}
+
+/** What a loan would look like under another calculation method. */
+export interface MethodChangePreview {
+  method: InterestMethod;
+  termMonths: number;
+  instalment: number;
+  total: number;
+  balance: number;
+  nextDueAt: string | null;
+  /** Monthly renewal: how many renewals have already fallen due, and their sum. */
+  renewals: number;
+  renewalCharges: number;
+  /** Payday / term loan: default interest on instalments already overdue. */
+  defaultInterest: number;
+  payoff: number;
+  current: { total: number; balance: number; defaultInterest: number; payoff: number };
+}
+
 /** Loan fields shown in the audit trail, in display form (money major, dates ISO). */
 const loanAuditMap = (loan: Loan): Record<string, unknown> => ({
   principal: fromCents(loan.principal),
@@ -108,6 +167,9 @@ const loanAuditMap = (loan: Loan): Record<string, unknown> => ({
   total: fromCents(loan.total),
   termMonths: loan.termMonths,
   interestRate: loan.interestRate,
+  calculationMethod: loan.interestMethod ? INTEREST_METHOD_LABEL[loan.interestMethod] : null,
+  renewalBasis: loan.renewalBasis ?? null,
+  annualRate: loan.annualRate ?? null,
   instalment: fromCents(loan.instalment),
   balance: fromCents(loan.balance),
   status: loan.status,
@@ -133,6 +195,8 @@ const AGREEMENT_FIELDS = [
   'total',
   'termMonths',
   'interestRate',
+  'calculationMethod',
+  'annualRate',
   'instalment',
   'bankCharges',
   'namfisaLevy',
@@ -168,13 +232,15 @@ export class LoansService {
     private readonly settings: SettingsService,
     private readonly documents: DocumentsService,
     private readonly agreements: AgreementsService,
+    private readonly calculation: LoanCalculationService,
   ) {}
 
   /**
-   * Resolve the rate plan and fee amounts for a new loan from the tenant's
-   * settings. A per-loan `interestRateOverride` (incl. 0 for a promo) wins over
-   * the product rate; with neither, pricing falls back to the loan type's
-   * standard rate. Returns everything {@link quote} needs.
+   * Resolve the rate plan, calculation method and fee amounts for a new loan from
+   * the tenant's settings. A per-loan `interestRateOverride` (incl. 0 for a
+   * promo) wins over the product rate; with neither, pricing falls back to the
+   * loan type's standard rate. The method is the one asked for, else the rate
+   * plan's, else payday. Returns everything {@link priceLoan} needs.
    */
   private async resolvePricing(
     tenantId: string,
@@ -184,70 +250,126 @@ export class LoansService {
       productId?: string;
       interestRateOverride?: number;
       bankChargesCents?: number;
+      method?: InterestMethod;
+      renewalBasis?: RenewalBasis;
+      marginRate?: number;
     },
-  ): Promise<{
-    interestRate: number | undefined;
-    monthlyRate: number;
-    productId: string | null;
-    fees: LoanFees;
-  }> {
+  ): Promise<ResolvedPricing> {
     const [feeSettings, product] = await Promise.all([
       this.settings.resolveFeeSettings(tenantId),
       this.settings.resolveProduct(tenantId, params.productId || undefined, params.type),
     ]);
-    const interestRate = params.interestRateOverride ?? product?.interestRate;
+    const productMethod = product?.method ? METHOD_FROM_DB[product.method] : InterestMethod.Payday;
+    const method = params.method ?? productMethod;
+    // A term-loan plan's `interestRate` is unused (its rate is BoN + margin), so
+    // it must not leak into a monthly finance rate.
+    const productRate =
+      productMethod === InterestMethod.TermLoan ? undefined : product?.interestRate;
     const fees = computeFees(params.principalCents, feeSettings, params.bankChargesCents ?? 0);
-
-    return {
-      interestRate,
+    const base = {
+      interestRate: params.interestRateOverride ?? productRate,
       monthlyRate: feeSettings.monthlyRate,
       productId: product?.id ?? null,
       fees,
+      method,
     };
+
+    if (method === InterestMethod.TermLoan) {
+      const { bonRate, maxLongTermMonths } = await this.settings.resolveMethodSettings(tenantId);
+      const marginRate = params.marginRate ?? product?.marginRate ?? 0;
+
+      return {
+        ...base,
+        renewalBasis: null,
+        annualRate: bonRate + marginRate,
+        bonRate,
+        marginRate,
+        maxTermMonths: maxLongTermMonths,
+      };
+    }
+
+    const productBasis = product?.renewalBasis ? BASIS_FROM_DB[product.renewalBasis] : null;
+
+    return {
+      ...base,
+      renewalBasis:
+        method === InterestMethod.MonthlyRenewal
+          ? (params.renewalBasis ?? productBasis ?? RenewalBasis.Principal)
+          : null,
+      annualRate: null,
+      bonRate: null,
+      marginRate: null,
+      maxTermMonths: null,
+    };
+  }
+
+  /**
+   * Price a loan under its resolved method. The domain rejects an impossible
+   * term (e.g. a payday loan over 5 months) with a RangeError; that is the
+   * caller's input, so it is reported as a bad request.
+   */
+  private price(
+    pricing: ResolvedPricing,
+    params: { principalCents: number; termMonths: number; type: LoanType },
+  ): LoanQuote {
+    try {
+      return priceLoan({
+        method: pricing.method,
+        principalCents: params.principalCents,
+        termMonths: params.termMonths,
+        type: params.type,
+        interestRate: pricing.interestRate,
+        monthlyRate: pricing.monthlyRate,
+        fees: pricing.fees,
+        annualRate: pricing.annualRate ?? undefined,
+        maxTermMonths: pricing.maxTermMonths ?? undefined,
+      });
+    } catch (error) {
+      if (error instanceof RangeError) {
+        throw new BadRequestException(error.message);
+      }
+
+      throw error;
+    }
   }
 
   /**
    * Price a loan for a tenant using its default product and fee settings. Used
    * for the indicative application quote so it matches what is charged on
-   * approval.
+   * approval. Applications are always payday loans; other methods are set by
+   * staff on the loan itself.
    */
   async priceQuote(
     tenantId: string,
     params: { principalCents: number; termMonths: number; type: LoanType },
   ): Promise<LoanQuote> {
-    const { interestRate, monthlyRate, fees } = await this.resolvePricing(tenantId, {
+    const pricing = await this.resolvePricing(tenantId, {
       principalCents: params.principalCents,
       type: params.type,
+      method: InterestMethod.Payday,
     });
 
-    return quote({
-      principalCents: params.principalCents,
-      termMonths: params.termMonths,
-      type: params.type,
-      interestRate,
-      monthlyRate,
-      fees,
-    });
+    return this.price(pricing, params);
   }
 
   /** Pure pricing preview — no persistence. Grosses the loan up by the tenant's fees. */
   async quotePreview(tenantId: string, input: LoanQuoteInput): Promise<LoanQuote> {
     const principalCents = toCents(input.amount);
-    const { interestRate, monthlyRate, fees } = await this.resolvePricing(tenantId, {
+    const pricing = await this.resolvePricing(tenantId, {
       principalCents,
       type: input.loanType,
       productId: input.productId || undefined,
       interestRateOverride: input.interestRate,
       bankChargesCents: input.bankCharges !== undefined ? toCents(input.bankCharges) : 0,
+      method: input.method,
+      renewalBasis: input.renewalBasis,
+      marginRate: input.marginRate,
     });
 
-    return quote({
+    return this.price(pricing, {
       principalCents,
       termMonths: input.termMonths,
       type: input.loanType,
-      interestRate,
-      monthlyRate,
-      fees,
     });
   }
 
@@ -288,6 +410,7 @@ export class LoansService {
     status: $Enums.LoanStatus,
     schedule: readonly { amount: number; dueAt: Date; status: $Enums.RepaymentStatus }[],
     asOf: Date = new Date(),
+    method?: $Enums.InterestMethod,
   ): Promise<ArrearsAssessment> {
     const open =
       status === LoanStatus.Active ||
@@ -300,7 +423,7 @@ export class LoansService {
 
     const { monthlyRate } = await this.settings.resolveFeeSettings(tenantId);
 
-    return assessArrears(
+    const arrears = assessArrears(
       schedule.map((item) => ({
         amountCents: item.amount,
         dueAt: item.dueAt,
@@ -309,9 +432,56 @@ export class LoansService {
       asOf,
       monthlyRate,
     );
+
+    // A monthly-renewal loan renews instead of accruing default interest.
+    return method === InterestMethod.MonthlyRenewal
+      ? { ...arrears, defaultInterestCents: 0 }
+      : arrears;
+  }
+
+  /**
+   * Interest a term loan would be rebated if settled on `asOf`: the interest of
+   * instalments whose month has not started. 0 for every other method.
+   */
+  private unearnedInterest(
+    loan: Pick<Loan, 'interestMethod' | 'status' | 'balance'>,
+    schedule: readonly { dueAt: Date; interest: number | null; status: $Enums.RepaymentStatus }[],
+    asOf: Date = new Date(),
+  ): number {
+    if (loan.interestMethod !== InterestMethod.TermLoan || !isOpenLoan(loan.status)) {
+      return 0;
+    }
+
+    const unearned = amortisedUnearnedInterest(
+      schedule.map((item) => ({
+        dueAt: item.dueAt,
+        interestCents: item.interest ?? 0,
+        settled: isInstalmentSettled(item.status),
+      })),
+      asOf,
+    );
+
+    return Math.min(unearned, loan.balance);
+  }
+
+  /**
+   * Bring a monthly-renewal loan up to date before it is read, so the renewals,
+   * total and due date shown are today's. Other methods need no refresh.
+   */
+  private async refreshIfRenewing(where: Prisma.LoanWhereInput): Promise<void> {
+    const loan = await this.prisma.loan.findFirst({
+      where,
+      select: { id: true, interestMethod: true, status: true },
+    });
+
+    if (loan?.interestMethod === InterestMethod.MonthlyRenewal && isOpenLoan(loan.status)) {
+      await this.calculation.refresh(loan.id);
+    }
   }
 
   async findOne(tenantId: string, id: string): Promise<LoanWithDetails> {
+    await this.refreshIfRenewing({ id, tenantId });
+
     const loan = await this.prisma.loan.findFirst({
       where: { id, tenantId },
       include: {
@@ -326,6 +496,7 @@ export class LoansService {
         },
         schedule: { orderBy: { number: 'asc' } },
         payments: { orderBy: { paidAt: 'desc' } },
+        renewals: { orderBy: { number: 'asc' } },
       },
     });
 
@@ -333,7 +504,14 @@ export class LoansService {
       throw new NotFoundException('Loan not found');
     }
 
-    const arrears = await this.deriveArrears(tenantId, loan.status, loan.schedule);
+    const arrears = await this.deriveArrears(
+      tenantId,
+      loan.status,
+      loan.schedule,
+      new Date(),
+      loan.interestMethod,
+    );
+    const unearnedInterest = this.unearnedInterest(loan, loan.schedule);
 
     return {
       ...loan,
@@ -342,7 +520,8 @@ export class LoansService {
       audit: await this.audit.listFor(tenantId, 'loan', id),
       defaultInterest: arrears.defaultInterestCents,
       overdueAmount: arrears.overdueCents,
-      payoff: loan.balance + arrears.defaultInterestCents,
+      payoff: loan.balance - unearnedInterest + arrears.defaultInterestCents,
+      unearnedInterest,
       borrowerDocuments: await this.documents.listForBorrower(tenantId, loan.borrowerId),
       collateralPhotos: await this.documents.listForLoan(
         tenantId,
@@ -354,6 +533,9 @@ export class LoansService {
 
   async findOneForBorrowerUser(userId: string, id: string): Promise<LoanWithDetails> {
     const borrowerId = await this.resolveBorrowerId(userId);
+
+    await this.refreshIfRenewing({ id, borrowerId });
+
     const loan = await this.prisma.loan.findFirst({
       where: { id, borrowerId },
       include: {
@@ -368,6 +550,7 @@ export class LoansService {
         },
         schedule: { orderBy: { number: 'asc' } },
         payments: { orderBy: { paidAt: 'desc' } },
+        renewals: { orderBy: { number: 'asc' } },
       },
     });
 
@@ -375,7 +558,14 @@ export class LoansService {
       throw new NotFoundException('Loan not found');
     }
 
-    const arrears = await this.deriveArrears(loan.tenantId, loan.status, loan.schedule);
+    const arrears = await this.deriveArrears(
+      loan.tenantId,
+      loan.status,
+      loan.schedule,
+      new Date(),
+      loan.interestMethod,
+    );
+    const unearnedInterest = this.unearnedInterest(loan, loan.schedule);
 
     // Borrowers don't see the staff audit trail; documents are only surfaced on
     // the staff loan page.
@@ -386,7 +576,8 @@ export class LoansService {
       audit: [],
       defaultInterest: arrears.defaultInterestCents,
       overdueAmount: arrears.overdueCents,
-      payoff: loan.balance + arrears.defaultInterestCents,
+      payoff: loan.balance - unearnedInterest + arrears.defaultInterestCents,
+      unearnedInterest,
       borrowerDocuments: [],
       collateralPhotos: [],
     };
@@ -403,20 +594,20 @@ export class LoansService {
     }
 
     const principalCents = toCents(input.amount);
-    const { interestRate, monthlyRate, productId, fees } = await this.resolvePricing(tenantId, {
+    const pricing = await this.resolvePricing(tenantId, {
       principalCents,
       type: input.loanType,
       productId: input.productId || undefined,
       interestRateOverride: input.interestRate,
       bankChargesCents: input.bankCharges !== undefined ? toCents(input.bankCharges) : 0,
+      method: input.method,
+      renewalBasis: input.renewalBasis,
+      marginRate: input.marginRate,
     });
-    const loanQuote = quote({
+    const loanQuote = this.price(pricing, {
       principalCents,
       termMonths: input.termMonths,
       type: input.loanType,
-      interestRate,
-      monthlyRate,
-      fees,
     });
 
     return this.prisma.loan.create({
@@ -425,7 +616,7 @@ export class LoansService {
         borrowerId: borrower.id,
         loanQuote,
         type: input.loanType,
-        productId,
+        pricing,
         collateral: input.collateral || null,
         purpose: input.purpose ?? null,
         disbursedAt: new Date(),
@@ -602,17 +793,16 @@ export class LoansService {
     });
 
     const type = LOAN_TYPE_FROM_DB[application.type];
-    const { interestRate, monthlyRate, productId, fees } = await this.resolvePricing(
-      application.tenantId,
-      { principalCents: application.amount, type },
-    );
-    const loanQuote = quote({
+    // Applications are always payday loans; staff set another method on the loan.
+    const pricing = await this.resolvePricing(application.tenantId, {
       principalCents: application.amount,
-      monthlyRate,
+      type,
+      method: InterestMethod.Payday,
+    });
+    const loanQuote = this.price(pricing, {
+      principalCents: application.amount,
       termMonths: application.termMonths,
       type,
-      interestRate,
-      fees,
     });
 
     // Structured collateral (collateral loans) + a legacy free-text summary so
@@ -636,7 +826,7 @@ export class LoansService {
         borrowerId: borrower.id,
         loanQuote,
         type,
-        productId,
+        pricing,
         collateral: collateralSummary,
         collateralDetail,
         purpose: application.purposeCategory,
@@ -673,6 +863,12 @@ export class LoansService {
 
       if (!loan) {
         throw new NotFoundException('Loan not found');
+      }
+
+      if (loan.interestMethod === InterestMethod.MonthlyRenewal) {
+        throw new BadRequestException(
+          'A monthly renewal loan has no fixed instalments — record a payment or settle it instead',
+        );
       }
 
       if (loan.status !== LoanStatus.Active && loan.status !== LoanStatus.Arrears) {
@@ -720,38 +916,80 @@ export class LoansService {
   }
 
   /**
-   * Settle a loan early: clear the full outstanding balance in one payment, mark
-   * every remaining instalment paid, and close the loan as settled.
+   * Settle a loan early: clear what is owed in one payment, mark every remaining
+   * instalment paid, and close the loan as settled. What is owed depends on the
+   * method:
+   * - payday: the balance plus default interest on overdue instalments;
+   * - monthly renewal: the balance including every renewal up to the payment date;
+   * - term loan: the balance less interest not yet earned, plus default interest.
    */
   settle(tenantId: string, loanId: string, input: SettleLoanInput): Promise<Loan> {
     return this.prisma.$transaction(async (tx) => {
-      const loan = await tx.loan.findFirst({
+      const found = await tx.loan.findFirst({
         where: { id: loanId, tenantId },
         include: { schedule: true },
       });
 
-      if (!loan) {
+      if (!found) {
         throw new NotFoundException('Loan not found');
       }
 
-      if (loan.status === LoanStatus.Settled || loan.status === LoanStatus.Closed) {
+      if (found.status === LoanStatus.Settled || found.status === LoanStatus.Closed) {
         throw new BadRequestException('This loan is already settled');
       }
 
-      if (loan.status === LoanStatus.WrittenOff) {
+      if (found.status === LoanStatus.WrittenOff) {
         throw new BadRequestException('This loan has been written off');
       }
+
+      const paidAt = new Date(input.paidAt);
+      const renewing = found.interestMethod === InterestMethod.MonthlyRenewal;
+      // A monthly-renewal loan is first brought up to the payment date, so the
+      // payoff includes exactly the renewals that had fallen due by then.
+      const payments = renewing
+        ? await tx.payment.findMany({
+            where: { loanId: found.id },
+            select: { amount: true, paidAt: true },
+          })
+        : [];
+      const renewalState = renewing
+        ? renewalStateFor(
+            found,
+            payments,
+            (await this.settings.resolveMethodSettings(tenantId)).renewalGraceDays,
+            paidAt,
+          )
+        : null;
+      const loan = renewalState
+        ? {
+            ...(await this.calculation.writeRenewalState(tx, found, renewalState)),
+            balance: renewalState.position.owedCents,
+          }
+        : found;
 
       if (loan.balance <= 0) {
         throw new BadRequestException('This loan has no outstanding balance');
       }
 
-      const paidAt = new Date(input.paidAt);
-      // Payoff = outstanding balance + any default interest accrued (as of the
-      // settlement date) on overdue instalments. Default interest is realised
-      // through the payment amount; stored totals are not rewritten.
-      const arrears = await this.deriveArrears(tenantId, loan.status, loan.schedule, paidAt);
-      const payoff = loan.balance + arrears.defaultInterestCents;
+      // Default interest (as of the settlement date) on overdue instalments is
+      // realised through the payment amount; stored totals are not rewritten for
+      // it. A term loan's unearned interest is rebated: it comes off the payoff
+      // and off the loan's total and finance charge.
+      const arrears = await this.deriveArrears(
+        tenantId,
+        loan.status,
+        found.schedule,
+        paidAt,
+        loan.interestMethod,
+      );
+      const rebate = this.unearnedInterest(loan, found.schedule, paidAt);
+      const payoff = loan.balance - rebate + arrears.defaultInterestCents;
+      const defaultNote =
+        rebate > 0
+          ? 'Early settlement (unearned interest rebated)'
+          : arrears.defaultInterestCents > 0
+            ? 'Early settlement (incl. default interest)'
+            : 'Early settlement';
 
       await tx.payment.create({
         data: {
@@ -760,11 +998,7 @@ export class LoansService {
           paidAt,
           amount: payoff,
           method: input.method,
-          note:
-            input.note ||
-            (arrears.defaultInterestCents > 0
-              ? 'Early settlement (incl. default interest)'
-              : 'Early settlement'),
+          note: input.note || defaultNote,
         },
       });
       await tx.repaymentScheduleItem.updateMany({
@@ -781,6 +1015,9 @@ export class LoansService {
           daysLate: 0,
           nextDueAt: null,
           closedAt: paidAt,
+          ...(rebate > 0
+            ? { total: loan.total - rebate, financeCharge: loan.financeCharge - rebate }
+            : {}),
         },
       });
     });
@@ -981,15 +1218,28 @@ export class LoansService {
           bankChargesCents:
             input.bankCharges !== undefined ? toCents(input.bankCharges) : loan.bankCharges,
         };
-        const { monthlyRate } = feeSettings;
-        const q = quote({
-          principalCents: newPrincipal,
-          termMonths: newTerm,
-          type: LOAN_TYPE_FROM_DB[loan.type],
-          interestRate: newRate,
-          monthlyRate,
-          fees: effectiveFees,
-        });
+        const method = METHOD_FROM_DB[loan.interestMethod ?? InterestMethod.Payday];
+        const maxTermMonths =
+          method === InterestMethod.TermLoan
+            ? (await this.settings.resolveMethodSettings(tenantId)).maxLongTermMonths
+            : null;
+        // Re-price under the loan's own method. A term loan keeps the yearly
+        // rate it was priced at; `newRate` is its (unused) monthly finance rate.
+        const q = this.price(
+          {
+            interestRate: newRate,
+            monthlyRate: feeSettings.monthlyRate,
+            productId: loan.productId,
+            fees: effectiveFees,
+            method,
+            renewalBasis: null,
+            annualRate: loan.annualRate ?? 0,
+            bonRate: loan.bonRate,
+            marginRate: loan.marginRate,
+            maxTermMonths,
+          },
+          { principalCents: newPrincipal, termMonths: newTerm, type: LOAN_TYPE_FROM_DB[loan.type] },
+        );
         const disbursedAt = input.disbursedAt
           ? new Date(input.disbursedAt)
           : (loan.disbursedAt ?? loan.createdAt);
@@ -999,9 +1249,12 @@ export class LoansService {
         data.total = q.totalCents;
         data.termMonths = q.termMonths;
         data.instalment = q.instalmentCents;
-        data.instalmentsTotal = q.termMonths;
+        data.instalmentsTotal = q.schedule.length;
         data.balance = q.totalCents;
         data.interestRate = newRate;
+        // Renewals are re-derived from the new figures after the commit.
+        data.renewalCharges = 0;
+        await tx.loanRenewal.deleteMany({ where: { loanId: id } });
         // Persist the fee amounts the re-price used so the stored columns track
         // the new principal (e.g. the NAMFISA levy, which scales with the amount).
         data.namfisaLevy = effectiveFees.namfisaLevyCents;
@@ -1015,6 +1268,8 @@ export class LoansService {
             amount: item.amountCents,
             dueAt: addMonths(disbursedAt, item.number),
             status: RepaymentStatus.Due,
+            interest: item.interestCents ?? null,
+            principalPortion: item.principalCents ?? null,
           })),
         };
       }
@@ -1038,6 +1293,12 @@ export class LoansService {
       return { updated, agreementStale: agreementFieldsChanged(before, after) };
     });
 
+    // A monthly-renewal loan's renewals follow from its dates and figures, so
+    // re-derive them after any edit.
+    if (updated.interestMethod === InterestMethod.MonthlyRenewal) {
+      await this.calculation.refresh(id);
+    }
+
     // After the commit, so a PDF/storage failure can never roll the edit back
     // (refreshForLoan logs rather than throws).
     if (agreementStale) {
@@ -1045,6 +1306,297 @@ export class LoansService {
     }
 
     return updated;
+  }
+
+  /**
+   * Work out what a loan becomes under a calculation method. The loan is priced
+   * afresh from its origination inputs — its principal, its stored fee amounts
+   * and its disbursement date — and its payments are then laid against the new
+   * figures. Nothing is written; {@link changeMethod} stores the result and
+   * {@link previewMethodChange} shows it.
+   */
+  private async planMethodChange(
+    tenantId: string,
+    loan: Prisma.LoanGetPayload<{ include: { schedule: true; payments: true } }>,
+    input: ChangeLoanMethodInput,
+    now: Date,
+  ): Promise<{
+    quote: LoanQuote;
+    method: InterestMethod;
+    renewalBasis: RenewalBasis | null;
+    interestRate: number;
+    annualRate: number | null;
+    bonRate: number | null;
+    marginRate: number | null;
+    disbursedAt: Date;
+    preview: MethodChangePreview;
+  }> {
+    if (!isOpenLoan(loan.status)) {
+      throw new BadRequestException('The method of a closed loan can no longer be changed');
+    }
+
+    if (loan.waived > 0) {
+      throw new BadRequestException('The method of a loan with a waived amount cannot be changed');
+    }
+
+    const current = METHOD_FROM_DB[loan.interestMethod];
+    const { method } = input;
+    const [feeSettings, methodSettings] = await Promise.all([
+      this.settings.resolveFeeSettings(tenantId),
+      this.settings.resolveMethodSettings(tenantId),
+    ]);
+    const interestRate = input.interestRate ?? loan.interestRate;
+    const termLoan = method === InterestMethod.TermLoan;
+    // A loan already on a term loan keeps the BoN rate it was priced at; one
+    // moving onto it takes today's.
+    const bonRate = termLoan
+      ? current === InterestMethod.TermLoan && loan.bonRate !== null
+        ? loan.bonRate
+        : methodSettings.bonRate
+      : null;
+    const marginRate = termLoan ? (input.marginRate ?? loan.marginRate ?? 0) : null;
+    const annualRate = bonRate !== null && marginRate !== null ? bonRate + marginRate : null;
+    const renewalBasis =
+      method === InterestMethod.MonthlyRenewal
+        ? (input.renewalBasis ??
+          (loan.renewalBasis ? BASIS_FROM_DB[loan.renewalBasis] : RenewalBasis.Principal))
+        : null;
+
+    if (
+      method === InterestMethod.Payday &&
+      input.termMonths === undefined &&
+      loan.termMonths > MAX_TERM_MONTHS
+    ) {
+      throw new BadRequestException(`Choose a term of 1 to ${MAX_TERM_MONTHS} months`);
+    }
+
+    const termMonths =
+      method === InterestMethod.MonthlyRenewal
+        ? RENEWAL_TERM_MONTHS
+        : (input.termMonths ?? loan.termMonths);
+    const quote = this.price(
+      {
+        interestRate,
+        monthlyRate: feeSettings.monthlyRate,
+        productId: loan.productId,
+        fees: {
+          namfisaLevyCents: loan.namfisaLevy,
+          stampDutyCents: loan.stampDuty,
+          insuranceCents: loan.insurance,
+          bankChargesCents: loan.bankCharges,
+        },
+        method,
+        renewalBasis,
+        annualRate,
+        bonRate,
+        marginRate,
+        maxTermMonths: termLoan ? methodSettings.maxLongTermMonths : null,
+      },
+      { principalCents: loan.principal, termMonths, type: LOAN_TYPE_FROM_DB[loan.type] },
+    );
+    const disbursedAt = loan.disbursedAt ?? loan.createdAt;
+    const payments = [...loan.payments].sort((a, b) => a.paidAt.getTime() - b.paidAt.getTime());
+    const collected = payments.reduce((sum, payment) => sum + payment.amount, 0);
+
+    // Lay the payments against the new schedule to see what is overdue.
+    const rows = quote.schedule.map((item) => ({
+      id: String(item.number),
+      amount: item.amountCents,
+      dueAt: addMonths(disbursedAt, item.number),
+      status: RepaymentStatus.Due,
+      paidAt: null,
+      interest: item.interestCents ?? null,
+    }));
+    const progress = deriveScheduleProgress(rows, payments, now);
+    const renewal =
+      method === InterestMethod.MonthlyRenewal
+        ? renewalStateFor(
+            {
+              ...loan,
+              total: quote.totalCents,
+              financeCharge: quote.financeChargeCents,
+              renewalCharges: 0,
+              interestRate: quote.interestRate,
+              renewalBasis,
+            },
+            payments,
+            methodSettings.renewalGraceDays,
+            now,
+          )
+        : null;
+    const total = renewal ? renewal.position.totalCents : quote.totalCents;
+    const balance = Math.max(0, total - collected);
+    const defaultInterest = renewal
+      ? 0
+      : assessArrears(
+          rows.map((row, index) => ({
+            amountCents: row.amount,
+            dueAt: row.dueAt,
+            paid: index < progress.instalmentsPaid,
+          })),
+          now,
+          feeSettings.monthlyRate,
+        ).defaultInterestCents;
+    const unearned = termLoan
+      ? Math.min(
+          balance,
+          amortisedUnearnedInterest(
+            rows.map((row, index) => ({
+              dueAt: row.dueAt,
+              interestCents: row.interest ?? 0,
+              settled: index < progress.instalmentsPaid,
+            })),
+            now,
+          ),
+        )
+      : 0;
+    const nextDueAt = renewal ? renewal.position.nextDueAt : progress.nextDueAt;
+    const currentArrears = await this.deriveArrears(
+      tenantId,
+      loan.status,
+      loan.schedule,
+      now,
+      loan.interestMethod,
+    );
+    const currentUnearned = this.unearnedInterest(loan, loan.schedule, now);
+
+    return {
+      quote,
+      method,
+      renewalBasis,
+      interestRate,
+      annualRate,
+      bonRate,
+      marginRate,
+      disbursedAt,
+      preview: {
+        method,
+        termMonths: quote.termMonths,
+        instalment: renewal ? total : quote.instalmentCents,
+        total,
+        balance,
+        nextDueAt: balance > 0 && nextDueAt ? nextDueAt.toISOString() : null,
+        renewals: renewal ? renewal.position.renewals.length : 0,
+        renewalCharges: renewal ? renewal.position.chargesCents : 0,
+        defaultInterest,
+        payoff: balance - unearned + defaultInterest,
+        current: {
+          total: loan.total,
+          balance: loan.balance,
+          defaultInterest: currentArrears.defaultInterestCents,
+          payoff: loan.balance - currentUnearned + currentArrears.defaultInterestCents,
+        },
+      },
+    };
+  }
+
+  private async loadForMethodChange(
+    tenantId: string,
+    id: string,
+  ): Promise<Prisma.LoanGetPayload<{ include: { schedule: true; payments: true } }>> {
+    await this.refreshIfRenewing({ id, tenantId });
+
+    const loan = await this.prisma.loan.findFirst({
+      where: { id, tenantId },
+      include: { schedule: { orderBy: { number: 'asc' } }, payments: true },
+    });
+
+    if (!loan) {
+      throw new NotFoundException('Loan not found');
+    }
+
+    return loan;
+  }
+
+  /** What the loan would owe under another method, next to what it owes now. */
+  async previewMethodChange(
+    tenantId: string,
+    id: string,
+    input: ChangeLoanMethodInput,
+  ): Promise<MethodChangePreview> {
+    const loan = await this.loadForMethodChange(tenantId, id);
+
+    return (await this.planMethodChange(tenantId, loan, input, new Date())).preview;
+  }
+
+  /**
+   * Change how a loan is calculated (or the settings of its current method). The
+   * loan is re-derived from its start under the new method, so the change works
+   * in either direction: moving a late payday loan to monthly renewal adds a
+   * renewal for each month it has been unpaid, and moving it back removes them
+   * and lets default interest apply to the overdue instalment instead. Audited;
+   * the agreement is regenerated afterwards.
+   */
+  async changeMethod(
+    tenantId: string,
+    actor: SessionUser,
+    id: string,
+    input: ChangeLoanMethodInput,
+  ): Promise<Loan> {
+    const loan = await this.loadForMethodChange(tenantId, id);
+    const plan = await this.planMethodChange(tenantId, loan, input, new Date());
+    const { quote } = plan;
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.loanRenewal.deleteMany({ where: { loanId: id } });
+      await tx.repaymentScheduleItem.deleteMany({ where: { loanId: id } });
+
+      const updated = await tx.loan.update({
+        where: { id },
+        data: {
+          interestMethod: plan.method,
+          renewalBasis: plan.renewalBasis,
+          interestRate: plan.interestRate,
+          annualRate: plan.annualRate,
+          bonRate: plan.bonRate,
+          marginRate: plan.marginRate,
+          renewalCharges: 0,
+          financeCharge: quote.financeChargeCents,
+          total: quote.totalCents,
+          termMonths: quote.termMonths,
+          instalment: quote.instalmentCents,
+          instalmentsTotal: quote.schedule.length,
+          schedule: {
+            create: quote.schedule.map((item) => ({
+              number: item.number,
+              amount: item.amountCents,
+              dueAt: addMonths(plan.disbursedAt, item.number),
+              status: RepaymentStatus.Due,
+              interest: item.interestCents ?? null,
+              principalPortion: item.principalCents ?? null,
+            })),
+          },
+        },
+      });
+      const before = loanAuditMap(loan);
+      // The audit shows where the loan lands once renewals are derived, not the
+      // intermediate origination figures.
+      const after = {
+        ...loanAuditMap(updated),
+        total: fromCents(plan.preview.total),
+        balance: fromCents(plan.preview.balance),
+        instalment: fromCents(plan.preview.instalment),
+      };
+
+      await this.audit.record(
+        tenantId,
+        actor,
+        {
+          entity: 'loan',
+          entityId: id,
+          action: 'method_changed',
+          changes: this.audit.diff(before, after, Object.keys(before)),
+        },
+        tx,
+      );
+    });
+
+    // Derive renewals (monthly renewal) and lay the payments against the new
+    // schedule: balance, status, instalment progress and next due date.
+    await this.calculation.refresh(id);
+    await this.agreements.refreshForLoan(tenantId, id);
+
+    return this.prisma.loan.findFirstOrThrow({ where: { id, tenantId } });
   }
 
   /** Cancel a payment-free loan (created in error / fell through). Audited. */
@@ -1187,12 +1739,16 @@ export class LoansService {
 
   /** NAMFISA-compliant statement: every charge and payment with a running balance. */
   async statement(tenantId: string, loanId: string): Promise<LoanStatement> {
+    await this.refreshIfRenewing({ id: loanId, tenantId });
+
     const loan = await this.prisma.loan.findFirst({
       where: { id: loanId, tenantId },
       include: {
         borrower: { include: { addresses: { where: { isActive: true }, take: 1 } } },
         tenant: { select: { name: true, town: true } },
         schedule: { orderBy: { number: 'asc' } },
+        payments: { orderBy: { paidAt: 'asc' } },
+        renewals: { orderBy: { number: 'asc' } },
       },
     });
 
@@ -1207,12 +1763,17 @@ export class LoansService {
 
   async statementForBorrowerUser(userId: string, loanId: string): Promise<LoanStatement> {
     const borrowerId = await this.resolveBorrowerId(userId);
+
+    await this.refreshIfRenewing({ id: loanId, borrowerId });
+
     const loan = await this.prisma.loan.findFirst({
       where: { id: loanId, borrowerId },
       include: {
         borrower: { include: { addresses: { where: { isActive: true }, take: 1 } } },
         tenant: { select: { name: true, town: true } },
         schedule: { orderBy: { number: 'asc' } },
+        payments: { orderBy: { paidAt: 'asc' } },
+        renewals: { orderBy: { number: 'asc' } },
       },
     });
 
@@ -1231,10 +1792,15 @@ export class LoansService {
         borrower: { include: { addresses: true } };
         tenant: { select: { name: true; town: true } };
         schedule: true;
+        payments: true;
+        renewals: true;
       };
     }>,
     monthlyRate: number,
   ): LoanStatement {
+    const renewing = loan.interestMethod === InterestMethod.MonthlyRenewal;
+    const termLoan = loan.interestMethod === InterestMethod.TermLoan;
+    const pct = (rate: number): string => `${Math.round(rate * 10000) / 100}%`;
     const openedAt = loan.disbursedAt ?? loan.createdAt;
     const lines: StatementLine[] = [];
 
@@ -1247,8 +1813,11 @@ export class LoansService {
       { amount: loan.insurance, description: 'Insurance' },
       { amount: loan.namfisaLevy, description: 'NAMFISA levy' },
       {
-        amount: loan.financeCharge,
-        description: 'Finance charge (NAMFISA ≤30% of principal debt)',
+        // Renewal charges are listed on their own dates below.
+        amount: loan.financeCharge - loan.renewalCharges,
+        description: termLoan
+          ? `Interest (${pct(loan.annualRate ?? 0)} a year, reducing balance)`
+          : 'Finance charge (NAMFISA ≤30% of principal debt)',
       },
       { amount: loan.bankCharges, description: 'Bank charges' },
     ].filter((charge) => charge.amount > 0);
@@ -1270,24 +1839,47 @@ export class LoansService {
     const paidItems = loan.schedule.filter(
       (item) => item.status === RepaymentStatus.Paid && item.paidAt,
     );
-    const runningBalance = paidItems.reduce((balance, item) => {
-      const next = balance - item.amount;
+    // A monthly-renewal loan has no fixed instalments: its statement is each
+    // renewal charge and each payment actually received, in date order.
+    const movements = renewing
+      ? [
+          ...loan.renewals.map((renewal) => ({
+            date: renewal.renewedAt,
+            description: `Renewal ${renewal.number} (${pct(renewal.rate)} of ${fromCents(renewal.base).toFixed(2)})`,
+            debit: renewal.charge,
+            credit: 0,
+          })),
+          ...loan.payments.map((payment) => ({
+            date: payment.paidAt,
+            description: 'Payment received',
+            debit: 0,
+            credit: payment.amount,
+          })),
+        ].sort((a, b) => a.date.getTime() - b.date.getTime())
+      : paidItems.map((item) => ({
+          date: item.paidAt ?? openedAt,
+          description: `Instalment ${item.number} received`,
+          debit: 0,
+          credit: item.amount,
+        }));
+    const runningBalance = movements.reduce((balance, movement) => {
+      const next = balance + movement.debit - movement.credit;
 
       lines.push({
-        date: (item.paidAt ?? openedAt).toISOString(),
-        description: `Instalment ${item.number} received`,
-        debit: 0,
-        credit: item.amount,
+        date: movement.date.toISOString(),
+        description: movement.description,
+        debit: movement.debit,
+        credit: movement.credit,
         balance: next,
       });
 
       return next;
-    }, loan.total);
+    }, loan.total - loan.renewalCharges);
 
     // Default interest accrued on overdue, unpaid instalments (5%/month
     // compounding, uncapped) as of today. Derived, never persisted.
     const now = new Date();
-    const arrears = assessArrears(
+    const assessed = assessArrears(
       loan.schedule.map((item) => ({
         amountCents: item.amount,
         dueAt: item.dueAt,
@@ -1296,6 +1888,8 @@ export class LoansService {
       now,
       monthlyRate,
     );
+    // A monthly-renewal loan renews instead of accruing default interest.
+    const arrears = renewing ? { ...assessed, defaultInterestCents: 0 } : assessed;
 
     if (arrears.defaultInterestCents > 0) {
       lines.push({
@@ -1337,7 +1931,7 @@ export class LoansService {
     borrowerId,
     loanQuote,
     type,
-    productId,
+    pricing,
     collateral,
     collateralDetail,
     purpose,
@@ -1348,7 +1942,8 @@ export class LoansService {
     borrowerId: string;
     loanQuote: LoanQuote;
     type: LoanType;
-    productId: string | null;
+    /** The resolved rate plan and calculation method the quote was priced with. */
+    pricing: ResolvedPricing;
     collateral: string | null;
     /** NAMFISA purpose category (Part 7.3); null on loans captured without one. */
     purpose?: LoanPurposeValue | null;
@@ -1370,10 +1965,17 @@ export class LoansService {
       initialsDocumentId: string | null;
     };
   }): Prisma.LoanCreateInput {
+    const termLoan = pricing.method === InterestMethod.TermLoan;
+
     return {
       tenant: { connect: { id: tenantId } },
       borrower: { connect: { id: borrowerId } },
-      ...(productId ? { product: { connect: { id: productId } } } : {}),
+      ...(pricing.productId ? { product: { connect: { id: pricing.productId } } } : {}),
+      interestMethod: pricing.method,
+      renewalBasis: pricing.renewalBasis,
+      annualRate: pricing.annualRate,
+      bonRate: pricing.bonRate,
+      marginRate: pricing.marginRate,
       tcVersion: agreement?.tcVersion ?? null,
       tcAcceptedAt: agreement?.tcAcceptedAt ?? null,
       signatureDocumentId: agreement?.signatureDocumentId ?? null,
@@ -1381,7 +1983,14 @@ export class LoansService {
       type,
       principal: loanQuote.principalCents,
       financeCharge: loanQuote.financeChargeCents,
-      interestRate: loanQuote.interestRate,
+      // `interestRate` is always the monthly finance rate. A term loan is priced
+      // on its yearly rate instead (`annualRate`), so it keeps the plan's monthly
+      // rate (or the column default) in case it is later moved to another method.
+      ...(termLoan
+        ? pricing.interestRate !== undefined
+          ? { interestRate: pricing.interestRate }
+          : {}
+        : { interestRate: loanQuote.interestRate }),
       namfisaLevy: loanQuote.namfisaLevyCents,
       stampDuty: loanQuote.stampDutyCents,
       insurance: loanQuote.insuranceCents,
@@ -1390,7 +1999,7 @@ export class LoansService {
       termMonths: loanQuote.termMonths,
       instalment: loanQuote.instalmentCents,
       instalmentsPaid: 0,
-      instalmentsTotal: loanQuote.termMonths,
+      instalmentsTotal: loanQuote.schedule.length,
       balance: loanQuote.totalCents,
       status: LoanStatus.Active,
       purpose: purpose ?? null,
@@ -1408,6 +2017,8 @@ export class LoansService {
           amount: item.amountCents,
           dueAt: addMonths(disbursedAt, item.number),
           status: RepaymentStatus.Due,
+          interest: item.interestCents ?? null,
+          principalPortion: item.principalCents ?? null,
         })),
       },
     };

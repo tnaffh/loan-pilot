@@ -9,6 +9,7 @@ import {
 } from '@loan-pilot/domain';
 import { ApplicationsService } from './applications.service';
 import { LoansService } from '../loans/loans.service';
+import { LoanCalculationService } from '../loans/loan-calculation.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../documents/storage.service';
 import { DocumentsService } from '../documents/documents.service';
@@ -108,6 +109,7 @@ describe('ApplicationsService', () => {
         },
         { provide: SettingsService, useValue: settingsMock },
         { provide: AgreementsService, useValue: { generateForLoan, emailToBorrower } },
+        { provide: LoanCalculationService, useValue: { refresh: jest.fn() } },
       ],
     }).compile();
 

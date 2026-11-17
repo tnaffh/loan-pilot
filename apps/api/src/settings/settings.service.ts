@@ -1,7 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import type { LoanProduct, Prisma, TenantSettings } from '@prisma/client';
 import {
+  InterestMethod,
+  MAX_AMORTISED_TERM_MONTHS,
+  MAX_ANNUAL_RATE,
   MAX_MONTHLY_RATE,
+  MAX_RENEWAL_GRACE_DAYS,
   toCents,
   type FeeSettings,
   type FeeSettingsInput,
@@ -56,6 +60,19 @@ export type SigningImageField =
 /** pdfkit can only embed these, so the stamp upload is limited to them. */
 const EMBEDDABLE_IMAGE_TYPES = new Set(['image/png', 'image/jpeg']);
 
+/** Tenant settings behind the monthly-renewal and term-loan methods. */
+export interface MethodSettings {
+  /** Bank of Namibia yearly rate (fraction) term loans are priced from. */
+  bonRate: number;
+  /** Longest term (months) a term loan may run. */
+  maxLongTermMonths: number;
+  /** Days after a due date before an unpaid monthly-renewal loan renews. */
+  renewalGraceDays: number;
+}
+
+const clamp = (value: number, min: number, max: number): number =>
+  Math.min(Math.max(value, min), max);
+
 /** A single calendar year's NAMFISA levy liability, for the annual remittance. */
 export interface LevyYear {
   year: number;
@@ -97,6 +114,17 @@ export class SettingsService {
     };
   }
 
+  /** The settings the monthly-renewal and term-loan methods are calculated from. */
+  async resolveMethodSettings(tenantId: string): Promise<MethodSettings> {
+    const s = await this.getFeeSettings(tenantId);
+
+    return {
+      bonRate: s.bonRate,
+      maxLongTermMonths: s.maxLongTermMonths,
+      renewalGraceDays: s.renewalGraceDays,
+    };
+  }
+
   /** Update the tenant's fee settings. `stampDuty`/`insuranceFlat` arrive in major N$. */
   updateFeeSettings(tenantId: string, input: FeeSettingsInput): Promise<TenantSettings> {
     const data = {
@@ -106,6 +134,13 @@ export class SettingsService {
       insuranceFlat: toCents(input.insuranceFlat),
       ...(input.monthlyRate !== undefined
         ? { monthlyRate: Math.min(Math.max(input.monthlyRate, 0), MAX_MONTHLY_RATE) }
+        : {}),
+      ...(input.bonRate !== undefined ? { bonRate: clamp(input.bonRate, 0, MAX_ANNUAL_RATE) } : {}),
+      ...(input.maxLongTermMonths !== undefined
+        ? { maxLongTermMonths: clamp(input.maxLongTermMonths, 1, MAX_AMORTISED_TERM_MONTHS) }
+        : {}),
+      ...(input.renewalGraceDays !== undefined
+        ? { renewalGraceDays: clamp(input.renewalGraceDays, 0, MAX_RENEWAL_GRACE_DAYS) }
         : {}),
     };
 
@@ -339,6 +374,9 @@ export class SettingsService {
           name: input.name,
           loanType: input.loanType ?? null,
           interestRate: input.interestRate,
+          method: input.method ?? InterestMethod.Payday,
+          marginRate: input.marginRate ?? null,
+          renewalBasis: input.renewalBasis ?? null,
           active: input.active ?? true,
           isDefault: input.isDefault ?? false,
         },
@@ -372,6 +410,12 @@ export class SettingsService {
       if (input.loanType !== undefined) data.loanType = input.loanType ?? null;
 
       if (input.interestRate !== undefined) data.interestRate = input.interestRate;
+
+      if (input.method !== undefined) data.method = input.method;
+
+      if (input.marginRate !== undefined) data.marginRate = input.marginRate;
+
+      if (input.renewalBasis !== undefined) data.renewalBasis = input.renewalBasis;
 
       if (input.active !== undefined) data.active = input.active;
 

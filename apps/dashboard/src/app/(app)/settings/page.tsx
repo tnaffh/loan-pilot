@@ -3,7 +3,16 @@
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { ImageUp, Loader2, Plus, Power, Trash2 } from 'lucide-react';
-import { LoanType, formatNad, fromCents } from '@loan-pilot/domain';
+import {
+  INTEREST_METHOD_HINT,
+  INTEREST_METHOD_LABEL,
+  InterestMethod,
+  LoanType,
+  RENEWAL_BASIS_LABEL,
+  RenewalBasis,
+  formatNad,
+  fromCents,
+} from '@loan-pilot/domain';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -52,6 +61,9 @@ interface FeeSettings {
   insuranceRate: number; // fraction
   insuranceFlat: number; // cents
   monthlyRate: number; // fraction
+  bonRate: number; // fraction per year
+  maxLongTermMonths: number;
+  renewalGraceDays: number;
 }
 
 interface LoanProduct {
@@ -59,9 +71,18 @@ interface LoanProduct {
   name: string;
   loanType: LoanType | null;
   interestRate: number; // fraction
+  method: InterestMethod;
+  marginRate: number | null; // fraction per year (term loans)
+  renewalBasis: RenewalBasis | null;
   active: boolean;
   isDefault: boolean;
 }
+
+const isInterestMethod = (value: string): value is InterestMethod =>
+  Object.values<string>(InterestMethod).includes(value);
+
+const isRenewalBasis = (value: string): value is RenewalBasis =>
+  Object.values<string>(RenewalBasis).includes(value);
 
 const LOAN_TYPE_LABELS: Record<LoanType, string> = {
   [LoanType.Payday]: 'Payday',
@@ -81,6 +102,9 @@ const FeeSettingsCard = () => {
   const [insRate, setInsRate] = useState('');
   const [insFlat, setInsFlat] = useState('');
   const [monthly, setMonthly] = useState('');
+  const [bon, setBon] = useState('');
+  const [maxTerm, setMaxTerm] = useState('');
+  const [graceDays, setGraceDays] = useState('');
   const [busy, setBusy] = useState(false);
   const [seeded, setSeeded] = useState<FeeSettings | null>(null);
 
@@ -92,6 +116,9 @@ const FeeSettingsCard = () => {
     setInsRate((data.insuranceRate * 100).toString());
     setInsFlat(fromCents(data.insuranceFlat).toString());
     setMonthly((data.monthlyRate * 100).toString());
+    setBon((Math.round(data.bonRate * 1000000) / 10000).toString());
+    setMaxTerm(data.maxLongTermMonths.toString());
+    setGraceDays(data.renewalGraceDays.toString());
   }
 
   const save = async () => {
@@ -107,6 +134,9 @@ const FeeSettingsCard = () => {
           insuranceRate: Number(insRate) / 100,
           insuranceFlat: Number(insFlat),
           monthlyRate: Number(monthly) / 100,
+          bonRate: Number(bon) / 100,
+          maxLongTermMonths: Number(maxTerm),
+          renewalGraceDays: Number(graceDays),
         },
       });
       toast.success('Fee settings saved');
@@ -206,7 +236,7 @@ const FeeSettingsCard = () => {
           <FormField
             label="Monthly / default interest"
             htmlFor="monthly"
-            description="Term-loan growth after month 1, and default interest on overdue instalments. Max 5%."
+            description="Payday loans: growth after month 1, and default interest on overdue instalments. Max 5%."
           >
             <div className="relative">
               <Input
@@ -219,6 +249,65 @@ const FeeSettingsCard = () => {
               />
               <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
                 %
+              </span>
+            </div>
+          </FormField>
+          <FormField
+            label="BoN rate"
+            htmlFor="bon"
+            description="Bank of Namibia yearly rate. Term loans are priced at this rate plus a margin; loans already priced keep their rate."
+          >
+            <div className="relative">
+              <Input
+                id="bon"
+                type="number"
+                step="0.01"
+                min="0"
+                value={bon}
+                onChange={(e) => setBon(e.target.value)}
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                % a year
+              </span>
+            </div>
+          </FormField>
+          <FormField
+            label="Longest term loan"
+            htmlFor="maxTerm"
+            description="The most months a term loan may run (up to 120)."
+          >
+            <div className="relative">
+              <Input
+                id="maxTerm"
+                type="number"
+                step="1"
+                min="1"
+                max="120"
+                value={maxTerm}
+                onChange={(e) => setMaxTerm(e.target.value)}
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                months
+              </span>
+            </div>
+          </FormField>
+          <FormField
+            label="Renewal grace period"
+            htmlFor="graceDays"
+            description="Monthly renewal loans: days after the due date a borrower can still pay before the loan renews for another month."
+          >
+            <div className="relative">
+              <Input
+                id="graceDays"
+                type="number"
+                step="1"
+                min="0"
+                max="31"
+                value={graceDays}
+                onChange={(e) => setGraceDays(e.target.value)}
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                days
               </span>
             </div>
           </FormField>
@@ -249,6 +338,9 @@ const ProductSheet = ({
   const [name, setName] = useState('');
   const [loanType, setLoanType] = useState<string>('');
   const [rate, setRate] = useState('30');
+  const [method, setMethod] = useState<InterestMethod>(InterestMethod.Payday);
+  const [margin, setMargin] = useState('0');
+  const [basis, setBasis] = useState<RenewalBasis>(RenewalBasis.Principal);
   const [isDefault, setIsDefault] = useState(false);
   const [busy, setBusy] = useState(false);
   const [syncKey, setSyncKey] = useState<string | null>(null);
@@ -263,6 +355,11 @@ const ProductSheet = ({
       setName(target?.name ?? '');
       setLoanType(target?.loanType ?? '');
       setRate(target ? (target.interestRate * 100).toString() : '30');
+      setMethod(target?.method ?? InterestMethod.Payday);
+      setMargin(
+        target?.marginRate ? (Math.round(target.marginRate * 1000000) / 10000).toString() : '0',
+      );
+      setBasis(target?.renewalBasis ?? RenewalBasis.Principal);
       setIsDefault(target?.isDefault ?? false);
     }
   }
@@ -274,7 +371,11 @@ const ProductSheet = ({
       const body = {
         name,
         loanType: loanType || undefined,
-        interestRate: Number(rate) / 100,
+        // A term loan is priced on the BoN rate + margin; its monthly rate is unused.
+        interestRate: method === InterestMethod.TermLoan ? 0 : Number(rate) / 100,
+        method,
+        marginRate: method === InterestMethod.TermLoan ? Number(margin) / 100 : undefined,
+        renewalBasis: method === InterestMethod.MonthlyRenewal ? basis : undefined,
         isDefault,
       };
 
@@ -301,8 +402,8 @@ const ProductSheet = ({
         <SheetHeader>
           <SheetTitle>{target ? 'Edit product' : 'New rate plan'}</SheetTitle>
           <SheetDescription>
-            A named interest rate (e.g. a promotional 25%, or 0% for an interest-free loan), capped
-            at the NAMFISA 30% ceiling.
+            A named rate and calculation method staff can pick when disbursing a loan. Monthly rates
+            are capped at the NAMFISA 30% ceiling.
           </SheetDescription>
         </SheetHeader>
         <div className="space-y-4 px-4">
@@ -314,21 +415,93 @@ const ProductSheet = ({
               placeholder="e.g. Standard, Promo Q3"
             />
           </FormField>
-          <FormField label="Interest rate" htmlFor="p-rate" description="Maximum 30%.">
-            <div className="relative">
-              <Input
-                id="p-rate"
-                type="number"
-                step="0.01"
-                max="30"
-                value={rate}
-                onChange={(e) => setRate(e.target.value)}
-              />
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
-                %
-              </span>
-            </div>
+          <FormField
+            label="Calculation method"
+            htmlFor="p-method"
+            description={INTEREST_METHOD_HINT[method]}
+          >
+            <select
+              id="p-method"
+              className={selectClass}
+              value={method}
+              onChange={(e) => {
+                if (isInterestMethod(e.target.value)) setMethod(e.target.value);
+              }}
+            >
+              {Object.values(InterestMethod).map((value) => (
+                <option key={value} value={value}>
+                  {INTEREST_METHOD_LABEL[value]}
+                </option>
+              ))}
+            </select>
           </FormField>
+          {method === InterestMethod.TermLoan ? (
+            <FormField
+              label="Margin over the BoN rate"
+              htmlFor="p-margin"
+              description="Added to the BoN rate in Levies & fees to give the loan's yearly rate."
+            >
+              <div className="relative">
+                <Input
+                  id="p-margin"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={margin}
+                  onChange={(e) => setMargin(e.target.value)}
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                  % a year
+                </span>
+              </div>
+            </FormField>
+          ) : (
+            <FormField
+              label={method === InterestMethod.MonthlyRenewal ? 'Monthly rate' : 'Interest rate'}
+              htmlFor="p-rate"
+              description={
+                method === InterestMethod.MonthlyRenewal
+                  ? 'Charged for the first month and again at each renewal. Maximum 30%.'
+                  : 'Maximum 30%.'
+              }
+            >
+              <div className="relative">
+                <Input
+                  id="p-rate"
+                  type="number"
+                  step="0.01"
+                  max="30"
+                  value={rate}
+                  onChange={(e) => setRate(e.target.value)}
+                />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                  %
+                </span>
+              </div>
+            </FormField>
+          )}
+          {method === InterestMethod.MonthlyRenewal ? (
+            <FormField
+              label="Renewal charge"
+              htmlFor="p-basis"
+              description="What the monthly rate is charged on each time the loan renews."
+            >
+              <select
+                id="p-basis"
+                className={selectClass}
+                value={basis}
+                onChange={(e) => {
+                  if (isRenewalBasis(e.target.value)) setBasis(e.target.value);
+                }}
+              >
+                {Object.values(RenewalBasis).map((value) => (
+                  <option key={value} value={value}>
+                    {RENEWAL_BASIS_LABEL[value]}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          ) : null}
           <FormField
             label="Loan type"
             htmlFor="p-type"
@@ -449,6 +622,7 @@ const ProductsCard = () => {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Type</TableHead>
+                <TableHead>Method</TableHead>
                 <TableHead>Rate</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
@@ -472,7 +646,14 @@ const ProductsCard = () => {
                   <TableCell>
                     {product.loanType ? LOAN_TYPE_LABELS[product.loanType] : 'Any'}
                   </TableCell>
-                  <TableCell>{pct(product.interestRate)}</TableCell>
+                  <TableCell>{INTEREST_METHOD_LABEL[product.method]}</TableCell>
+                  <TableCell>
+                    {product.method === InterestMethod.TermLoan
+                      ? `BoN + ${pct(product.marginRate ?? 0)}`
+                      : product.method === InterestMethod.MonthlyRenewal
+                        ? `${pct(product.interestRate)} a month`
+                        : pct(product.interestRate)}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={product.active ? 'default' : 'outline'}>
                       {product.active ? 'Active' : 'Inactive'}

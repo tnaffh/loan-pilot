@@ -20,7 +20,8 @@ Shared by all apps. Built with `tsc`, tested with Jest (19 tests, all passing).
 |---|---|
 | `enums.ts` | String TypeScript `enum`s: `LoanType`, `LoanStatus`, `ApplicationStatus`, `AffordabilityResult`, `RepaymentStatus`, `InvoiceStatus`, `EmploymentType`, `PlanId`, `TenantStatus`, `UserRole` |
 | `money.ts` | `toCents`, `fromCents`, `formatNad`, `splitInstalments` — all monetary values are **integer N$ cents** |
-| `loan-math.ts` | `quote(principalCents, termMonths, type)` → `LoanQuote` (total, instalment, schedule); NAMFISA caps enforced (≤30% finance charge, ≤5-month term) |
+| `loan-math.ts` | `quote({ principalCents, termMonths, type, interestRate?, monthlyRate?, fees? })` → `LoanQuote` (total, instalment, schedule); NAMFISA caps enforced (≤30% finance charge, ≤5-month term). `assessArrears()` derives default interest |
+| `interest-methods.ts` | The other calculation methods: `renewalPosition()` (monthly renewal), `quoteAmortised()` + `amortisedUnearnedInterest()` (term loan), and `priceLoan()` which prices a loan under any method. See "Calculation methods" in `CONTEXT.md` |
 | `affordability.ts` | `assessAffordability({income, obligations, instalment})` → pass/review/fail using ≥50% take-home rule |
 | `schemas.ts` | Zod schemas: `createApplicationSchema`, `loginSchema` — used by both Next.js forms and NestJS pipes |
 | `auth.ts` | `SessionUser` interface, `isPlatform`, `isLender`, `isBorrower` helpers |
@@ -292,7 +293,8 @@ loan-pilot/
 ├── packages/domain/src/
 │   ├── enums.ts             — TypeScript string enums
 │   ├── money.ts             — toCents, fromCents, formatNad, splitInstalments
-│   ├── loan-math.ts         — quote(), penaltyInterest()
+│   ├── loan-math.ts         — quote(), assessArrears()
+│   ├── interest-methods.ts  — renewalPosition(), quoteAmortised(), priceLoan()
 │   ├── affordability.ts     — assessAffordability()
 │   ├── schemas.ts           — Zod: createApplicationSchema, loginSchema
 │   └── auth.ts              — SessionUser interface, role helpers

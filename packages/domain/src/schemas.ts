@@ -5,11 +5,13 @@ import {
   DocumentKind,
   EmploymentType,
   ExpenseKind,
+  InterestMethod,
   LoanPurpose,
   LoanStatus,
   LoanType,
   PaymentMethod,
   PlanId,
+  RenewalBasis,
   UserRole,
   UserStatus,
 } from './enums';
@@ -24,6 +26,11 @@ import {
   parseNamibianId,
 } from './identity';
 import { MAX_FINANCE_CHARGE_RATE, MAX_TERM_MONTHS } from './loan-math';
+import {
+  MAX_AMORTISED_TERM_MONTHS,
+  MAX_ANNUAL_RATE,
+  MAX_RENEWAL_GRACE_DAYS,
+} from './interest-methods';
 import { isPermission, type Permission } from './permissions';
 import { TERMS_VERSION } from './terms';
 
@@ -450,6 +457,12 @@ export const feeSettingsSchema = z.object({
   insuranceRate: z.coerce.number().min(0).max(1),
   insuranceFlat: z.coerce.number().min(0),
   monthlyRate: z.coerce.number().min(0).max(0.05).optional(),
+  // Bank of Namibia yearly rate that term loans are priced from (fraction).
+  bonRate: z.coerce.number().min(0).max(MAX_ANNUAL_RATE).optional(),
+  // Longest term a term loan may run, in months.
+  maxLongTermMonths: z.coerce.number().int().min(1).max(MAX_AMORTISED_TERM_MONTHS).optional(),
+  // Days after a due date before an unpaid monthly-renewal loan renews.
+  renewalGraceDays: z.coerce.number().int().min(0).max(MAX_RENEWAL_GRACE_DAYS).optional(),
 });
 export type FeeSettingsInput = z.infer<typeof feeSettingsSchema>;
 
@@ -462,6 +475,12 @@ export const loanProductSchema = z.object({
   name: z.string().min(1, 'A product name is required').max(80),
   loanType: z.nativeEnum(LoanType).optional(),
   interestRate: z.coerce.number().min(0).max(MAX_FINANCE_CHARGE_RATE),
+  // The calculation method loans on this plan start with (default payday).
+  method: z.nativeEnum(InterestMethod).optional(),
+  // Term loans: margin added to the BoN rate (fraction per year).
+  marginRate: z.coerce.number().min(0).max(MAX_ANNUAL_RATE).optional(),
+  // Monthly renewal: what each renewal charges the rate on.
+  renewalBasis: z.nativeEnum(RenewalBasis).optional(),
   active: z.coerce.boolean().optional(),
   isDefault: z.coerce.boolean().optional(),
 });
@@ -516,10 +535,17 @@ export type LenderIdentityInput = z.infer<typeof lenderIdentitySchema>;
 export const loanQuoteSchema = z.object({
   loanType: z.nativeEnum(LoanType),
   amount: z.coerce.number().int().min(500, 'Minimum amount is N$ 500').max(500000),
-  termMonths: z.coerce.number().int().min(1).max(MAX_TERM_MONTHS),
+  // The per-method term limit (payday 5, monthly renewal 1, term loan up to the
+  // lender's maximum) is enforced by the domain pricing functions.
+  termMonths: z.coerce.number().int().min(1).max(MAX_AMORTISED_TERM_MONTHS),
   productId: z.string().optional().or(z.literal('')),
   interestRate: z.coerce.number().min(0).max(MAX_FINANCE_CHARGE_RATE).optional(),
   bankCharges: z.coerce.number().min(0).optional(),
+  // Calculation method; omitted = the rate plan's method, else payday.
+  method: z.nativeEnum(InterestMethod).optional(),
+  renewalBasis: z.nativeEnum(RenewalBasis).optional(),
+  // Term loans: margin over the BoN rate (fraction per year).
+  marginRate: z.coerce.number().min(0).max(MAX_ANNUAL_RATE).optional(),
 });
 export type LoanQuoteInput = z.infer<typeof loanQuoteSchema>;
 
@@ -675,10 +701,26 @@ export const updateLoanSchema = z.object({
   stampDuty: z.coerce.number().min(0).optional(),
   insurance: z.coerce.number().min(0).optional(),
   amount: z.coerce.number().int().min(500).max(500000).optional(),
-  termMonths: z.coerce.number().int().min(1).max(MAX_TERM_MONTHS).optional(),
+  termMonths: z.coerce.number().int().min(1).max(MAX_AMORTISED_TERM_MONTHS).optional(),
   interestRate: z.coerce.number().min(0).max(MAX_FINANCE_CHARGE_RATE).optional(),
 });
 export type UpdateLoanInput = z.infer<typeof updateLoanSchema>;
+
+/**
+ * Change how a loan is calculated. The loan is re-derived from its origination
+ * inputs (principal, fees, disbursement date, payments) under the new method.
+ * `interestRate` is the monthly origination / renewal rate (payday and monthly
+ * renewal); `termMonths` and `marginRate` apply to term loans (and `termMonths`
+ * to payday). Omitted values keep what the loan already has.
+ */
+export const changeLoanMethodSchema = z.object({
+  method: z.nativeEnum(InterestMethod),
+  renewalBasis: z.nativeEnum(RenewalBasis).optional(),
+  interestRate: z.coerce.number().min(0).max(MAX_FINANCE_CHARGE_RATE).optional(),
+  termMonths: z.coerce.number().int().min(1).max(MAX_AMORTISED_TERM_MONTHS).optional(),
+  marginRate: z.coerce.number().min(0).max(MAX_ANNUAL_RATE).optional(),
+});
+export type ChangeLoanMethodInput = z.infer<typeof changeLoanMethodSchema>;
 
 /** Cancel a payment-free loan (created in error / fell through); reason required. */
 export const cancelLoanSchema = z.object({

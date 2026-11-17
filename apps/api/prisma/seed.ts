@@ -3,9 +3,11 @@ import { hashSync } from 'bcryptjs';
 import {
   ApplicationStatus,
   EmploymentType,
+  InterestMethod,
   LoanStatus,
   LoanType,
   PlanId,
+  RenewalBasis,
   RepaymentStatus,
   SYSTEM_ROLE_LABELS,
   SYSTEM_ROLE_PERMISSIONS,
@@ -13,6 +15,7 @@ import {
   UserRole,
   addMonths,
   assessAffordability,
+  priceLoan,
   quote,
   phoneKey,
   toCents,
@@ -32,6 +35,12 @@ interface LoanSeed {
   collateral?: string;
   daysLate?: number;
   disbursedAt: string;
+  // Calculation method (default payday). A term loan needs its yearly rate
+  // parts; a monthly-renewal loan its charge basis.
+  method?: InterestMethod;
+  bonRate?: number;
+  marginRate?: number;
+  renewalBasis?: RenewalBasis;
 }
 
 const seedLoanForBorrower = async (
@@ -39,10 +48,15 @@ const seedLoanForBorrower = async (
   borrowerId: string,
   loan: LoanSeed,
 ): Promise<void> => {
-  const loanQuote = quote({
+  const method = loan.method ?? InterestMethod.Payday;
+  const termLoan = method === InterestMethod.TermLoan;
+  const annualRate = termLoan ? (loan.bonRate ?? 0) + (loan.marginRate ?? 0) : null;
+  const loanQuote = priceLoan({
+    method,
     principalCents: toCents(loan.principal),
     termMonths: loan.termMonths,
     type: loan.type,
+    annualRate: annualRate ?? undefined,
   });
   const disbursedAt = new Date(loan.disbursedAt);
   const paidCents = loanQuote.schedule
@@ -54,6 +68,14 @@ const seedLoanForBorrower = async (
       tenant: { connect: { id: tenantId } },
       borrower: { connect: { id: borrowerId } },
       type: loan.type,
+      interestMethod: method,
+      renewalBasis:
+        method === InterestMethod.MonthlyRenewal
+          ? (loan.renewalBasis ?? RenewalBasis.Principal)
+          : null,
+      annualRate,
+      bonRate: termLoan ? (loan.bonRate ?? 0) : null,
+      marginRate: termLoan ? (loan.marginRate ?? 0) : null,
       principal: loanQuote.principalCents,
       financeCharge: loanQuote.financeChargeCents,
       total: loanQuote.totalCents,
@@ -81,6 +103,8 @@ const seedLoanForBorrower = async (
           dueAt: addMonths(disbursedAt, item.number),
           status: item.number <= loan.instalmentsPaid ? RepaymentStatus.Paid : RepaymentStatus.Due,
           paidAt: item.number <= loan.instalmentsPaid ? addMonths(disbursedAt, item.number) : null,
+          interest: item.interestCents ?? null,
+          principalPortion: item.principalCents ?? null,
         })),
       },
     },
@@ -121,6 +145,7 @@ const main = async (): Promise<void> => {
   await prisma.loanApplication.deleteMany();
   await prisma.phoneOtp.deleteMany();
   await prisma.payment.deleteMany();
+  await prisma.loanRenewal.deleteMany();
   await prisma.loan.deleteMany();
   await prisma.invoice.deleteMany();
   await prisma.expense.deleteMany();
@@ -363,6 +388,37 @@ const main = async (): Promise<void> => {
       return plan ? seedLoanForBorrower(rfs.id, borrower.id, plan) : Promise.resolve();
     }),
   );
+
+  // One loan on each of the other calculation methods, for the first borrower:
+  // a tender loan that renews monthly while unpaid (its renewals are derived the
+  // first time it is opened or by the daily job), and a 24-month term loan.
+  const demoBorrower = borrowers[0];
+
+  if (demoBorrower) {
+    const twoMonthsAgo = addMonths(new Date(), -2).toISOString().slice(0, 10);
+
+    await seedLoanForBorrower(rfs.id, demoBorrower.id, {
+      type: LoanType.Business,
+      principal: 100000,
+      termMonths: 1,
+      instalmentsPaid: 0,
+      status: LoanStatus.Active,
+      disbursedAt: twoMonthsAgo,
+      method: InterestMethod.MonthlyRenewal,
+      renewalBasis: RenewalBasis.Principal,
+    });
+    await seedLoanForBorrower(rfs.id, demoBorrower.id, {
+      type: LoanType.Business,
+      principal: 250000,
+      termMonths: 24,
+      instalmentsPaid: 0,
+      status: LoanStatus.Active,
+      disbursedAt: twoMonthsAgo.slice(0, 8) + '01',
+      method: InterestMethod.TermLoan,
+      bonRate: 0.1075,
+      marginRate: 0.04,
+    });
+  }
 
   const applicationSeeds = [
     {

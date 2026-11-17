@@ -32,14 +32,26 @@ These are hard product rules, encoded in `@loan-pilot/domain` — do not violate
 
 | Rule | Value | Where enforced |
 |---|---|---|
-| Max loan term (this product) | **5 months** | `loan-math.ts` `MAX_TERM_MONTHS`, Zod schema |
+| Max loan term (payday method) | **5 months** | `loan-math.ts` `MAX_TERM_MONTHS` (enforced by `quote()`; term loans have their own limit, see below) |
 | Max finance charge | **30% of principal** | `loan-math.ts` `MAX_FINANCE_CHARGE_RATE` (quote caps any higher rate) |
-| Max penalty interest | **5%/month, max 3 months** | `loan-math.ts` `penaltyInterest()` |
+| Default interest | **≤5%/month**, compounding per complete month on overdue instalments | `loan-math.ts` `assessArrears()` (derived live, never stored) |
 | Affordability | Borrower keeps **≥50% of income** after obligations | `affordability.ts` (pass ≤50%, review ≤60%, fail >60%) |
 | Cooling-off | Borrower may cancel within 3 business days | To be implemented (loan lifecycle, Phase 3) |
 | Early settlement | No penalties, pro-rata finance charges | To be implemented (repayments, Phase 3) |
 | Statements | Written/electronic statement of charges, payments, balance | To be implemented (`GET /api/loans/:id/statement`, Phase 3) |
 | Disclosure | Pre-contract schedule of principal, charges, total, instalments in N$ | Quote object already carries all components |
+
+### Calculation methods
+
+Each loan has a calculation method (`Loan.interestMethod`, domain `InterestMethod`). An admin can change it on the loan page at any time; the loan is then re-derived from its origination inputs (principal, stored fees, disbursement date, payments), so the change works in either direction.
+
+| Method | What it does | Where |
+|---|---|---|
+| **Payday** (default) | Origination rate (≤30%) in month 1, then the monthly rate (≤5%) for months 2..n; default interest on overdue instalments. Max 5 months. | `loan-math.ts` `quote()`, `assessArrears()` |
+| **Monthly renewal** | A 1-month loan that renews automatically while unpaid: once a due date plus the grace days (`TenantSettings.renewalGraceDays`) passes with money still owed, the rate is charged again and the due date moves a month on. The charge is on the amount borrowed still unpaid (`principal` basis) or on the whole balance (`balance` basis). No default interest. For tender/bridging loans. | `interest-methods.ts` `renewalPosition()` |
+| **Term loan** | Bank-style: yearly rate = BoN rate (`TenantSettings.bonRate`) + a per-loan margin, frozen on the loan; equal instalments on a reducing balance, up to `maxLongTermMonths`. Early settlement rebates interest not yet earned. | `interest-methods.ts` `quoteAmortised()`, `amortisedUnearnedInterest()` |
+
+Renewals are derived, not entered: `LoanCalculationService` (API) recalculates a monthly-renewal loan when it is opened, when a payment is recorded, and daily (`loans/renewals.cron.ts`), storing the result in `LoanRenewal` rows and in the loan's `total`. Applications from the public site and the app are always payday loans.
 
 Reference documents are in `design/uploads/`:
 - `Raccoons Financial Services CC - agreement.pdf` — the actual loan agreement (borrower fields, charges table, T&Cs, NAMFISA complaints procedure)

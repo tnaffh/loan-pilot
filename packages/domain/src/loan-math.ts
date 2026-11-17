@@ -84,6 +84,10 @@ export const computeFees = (
 export interface ScheduleItem {
   readonly number: number;
   readonly amountCents: Cents;
+  /** Interest portion of the instalment (term loans only). */
+  readonly interestCents?: Cents;
+  /** Principal-debt portion of the instalment (term loans only). */
+  readonly principalCents?: Cents;
 }
 
 export interface LoanQuote {

@@ -12,10 +12,22 @@ import {
   Loader2,
   Pencil,
   PieChart,
+  RefreshCw,
+  Repeat,
   ShieldCheck,
   Wallet,
 } from 'lucide-react';
-import { LoanStatus, can, formatNad, isInstalmentSettled, isLender } from '@loan-pilot/domain';
+import {
+  INTEREST_METHOD_LABEL,
+  InterestMethod,
+  LoanStatus,
+  RENEWAL_BASIS_LABEL,
+  RenewalBasis,
+  can,
+  formatNad,
+  isInstalmentSettled,
+  isLender,
+} from '@loan-pilot/domain';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
@@ -48,6 +60,7 @@ import { LoanAgreementCard } from '@/components/loans/loan-agreement-card';
 import { CollateralAgreementCard } from '@/components/loans/collateral-agreement-card';
 import { LoanOpsCard } from '@/components/loans/loan-ops';
 import { EditLoanSheet } from '@/components/loans/edit-loan-sheet';
+import { ChangeMethodDialog } from '@/components/loans/change-method-dialog';
 import { useCommand } from '@/components/command-provider';
 import { ApiError, apiFetch } from '@/lib/api';
 import { useAuth } from '@/lib/auth-context';
@@ -72,6 +85,7 @@ const LoanDetailPage = () => {
   const [confirming, setConfirming] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [changingMethod, setChangingMethod] = useState(false);
 
   if (loading || !data) {
     return (
@@ -105,7 +119,13 @@ const LoanDetailPage = () => {
     (open || data.status === LoanStatus.PartlyPaid || data.status === LoanStatus.WrittenOff);
   const payable = lender && (open || data.status === LoanStatus.PartlyPaid) && data.balance > 0;
   const nextInstalment = data.schedule.find((item) => !isInstalmentSettled(item.status));
-  const canCapture = lender && open && Boolean(nextInstalment);
+  const renewing = data.interestMethod === InterestMethod.MonthlyRenewal;
+  const termLoan = data.interestMethod === InterestMethod.TermLoan;
+  // A monthly renewal loan has no fixed instalments to capture.
+  const canCapture = lender && open && Boolean(nextInstalment) && !renewing;
+  // Changing the method recalculates the loan, so it needs nothing waived.
+  const canChangeMethod = canEditLoan && data.waived === 0;
+  const percent = (fraction: number): string => `${Math.round(fraction * 10000) / 100}%`;
   const loanLabel = `${data.borrower.firstName} ${data.borrower.lastName}'s loan`;
 
   const captureRepayment = async () => {
@@ -141,6 +161,11 @@ const LoanDetailPage = () => {
             {canEditLoan ? (
               <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
                 <Pencil className="size-4" /> Edit
+              </Button>
+            ) : null}
+            {canChangeMethod ? (
+              <Button size="sm" variant="outline" onClick={() => setChangingMethod(true)}>
+                <RefreshCw className="size-4" /> Change method
               </Button>
             ) : null}
             {payable ? (
@@ -222,11 +247,15 @@ const LoanDetailPage = () => {
           hint={`Principal ${formatNad(data.principal)}`}
         />
         <StatCard
-          label="Instalment"
-          value={formatNad(data.instalment)}
+          label={renewing ? 'Due this month' : 'Instalment'}
+          value={formatNad(renewing ? data.balance : data.instalment)}
           icon={CalendarClock}
           tone="amber"
-          hint={`Next due ${formatDate(data.nextDueAt)}`}
+          hint={
+            renewing
+              ? `Renews if unpaid after ${formatDate(data.nextDueAt)}`
+              : `Next due ${formatDate(data.nextDueAt)}`
+          }
         />
         <StatCard
           label="Days late"
@@ -242,6 +271,15 @@ const LoanDetailPage = () => {
             icon={Banknote}
             tone="red"
             hint={`Payoff today ${formatNad(data.payoff)}`}
+          />
+        ) : null}
+        {data.unearnedInterest > 0 ? (
+          <StatCard
+            label="Settle today"
+            value={formatNad(data.payoff)}
+            icon={Banknote}
+            tone="green"
+            hint={`${formatNad(data.unearnedInterest)} interest not yet earned comes off`}
           />
         ) : null}
       </div>
@@ -265,8 +303,26 @@ const LoanDetailPage = () => {
                   label="Term"
                   value={`${data.termMonths} ${data.termMonths === 1 ? 'month' : 'months'}`}
                 />
-                <Detail label="Finance rate" value={`${Math.round(data.interestRate * 100)}%`} />
-                <Detail label="Instalment" value={formatNad(data.instalment)} />
+                <Detail label="Method" value={INTEREST_METHOD_LABEL[data.interestMethod]} />
+                {termLoan ? (
+                  <Detail
+                    label="Interest rate"
+                    value={`${percent(data.annualRate ?? 0)} a year (BoN ${percent(data.bonRate ?? 0)} + ${percent(data.marginRate ?? 0)})`}
+                  />
+                ) : (
+                  <Detail
+                    label={renewing ? 'Monthly rate' : 'Finance rate'}
+                    value={percent(data.interestRate)}
+                  />
+                )}
+                {renewing ? (
+                  <Detail
+                    label="Renewal charge"
+                    value={RENEWAL_BASIS_LABEL[data.renewalBasis ?? RenewalBasis.Principal]}
+                  />
+                ) : (
+                  <Detail label="Instalment" value={formatNad(data.instalment)} />
+                )}
               </dl>
               {data.bankCharges > 0 || data.namfisaLevy > 0 || data.stampDuty > 0 ? (
                 <p className="mt-4 border-t pt-3 text-xs text-muted-foreground">
@@ -374,6 +430,51 @@ const LoanDetailPage = () => {
 
           <LoanPriceBreakdown loan={data} />
 
+          {renewing ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <Repeat className="size-4 text-muted-foreground" /> Renewals
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-2">
+                {data.renewals.length === 0 ? (
+                  <p className="px-4 py-3 text-sm text-muted-foreground">
+                    Not renewed yet. If the loan is still unpaid after its due date and grace days,
+                    it renews for another month and {percent(data.interestRate)} is added.
+                  </p>
+                ) : (
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>#</TableHead>
+                        <TableHead>Renewed on</TableHead>
+                        <TableHead className="text-right">Charged on</TableHead>
+                        <TableHead className="text-right">Charge</TableHead>
+                        <TableHead>New due date</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {data.renewals.map((renewal) => (
+                        <TableRow key={renewal.id}>
+                          <TableCell>{renewal.number}</TableCell>
+                          <TableCell>{formatDate(renewal.renewedAt)}</TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {formatNad(renewal.base)}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums">
+                            {formatNad(renewal.charge)}
+                          </TableCell>
+                          <TableCell>{formatDate(renewal.newDueAt)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                )}
+              </CardContent>
+            </Card>
+          ) : null}
+
           <Card>
             <CardHeader>
               <CardTitle className="text-base">Repayment schedule</CardTitle>
@@ -385,6 +486,12 @@ const LoanDetailPage = () => {
                     <TableHead>#</TableHead>
                     <TableHead>Due</TableHead>
                     <TableHead className="text-right">Amount</TableHead>
+                    {termLoan ? (
+                      <>
+                        <TableHead className="text-right">Interest</TableHead>
+                        <TableHead className="text-right">Principal</TableHead>
+                      </>
+                    ) : null}
                     <TableHead>Status</TableHead>
                     <TableHead>Paid</TableHead>
                   </TableRow>
@@ -397,6 +504,16 @@ const LoanDetailPage = () => {
                       <TableCell className="text-right tabular-nums">
                         {formatNad(item.amount)}
                       </TableCell>
+                      {termLoan ? (
+                        <>
+                          <TableCell className="text-right tabular-nums text-muted-foreground">
+                            {formatNad(item.interest ?? 0)}
+                          </TableCell>
+                          <TableCell className="text-right tabular-nums text-muted-foreground">
+                            {formatNad(item.principalPortion ?? 0)}
+                          </TableCell>
+                        </>
+                      ) : null}
                       <TableCell>
                         <StatusBadge value={item.status} />
                         {!isInstalmentSettled(item.status) && new Date(item.dueAt) < new Date() ? (
@@ -534,6 +651,9 @@ const LoanDetailPage = () => {
 
       {canEditLoan ? (
         <EditLoanSheet loan={data} open={editing} onOpenChange={setEditing} onSaved={refresh} />
+      ) : null}
+      {canChangeMethod ? (
+        <ChangeMethodDialog open={changingMethod} onOpenChange={setChangingMethod} loan={data} />
       ) : null}
     </div>
   );

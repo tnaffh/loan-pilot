@@ -10,9 +10,11 @@ import type {
   CollexiaStatus,
   EmploymentType,
   ExpenseKind,
+  InterestMethod,
   LoanStatus,
   LoanType,
   PaymentMethod,
+  RenewalBasis,
   RepaymentStatus,
   UserRole,
   UserStatus,
@@ -193,6 +195,20 @@ export interface ScheduleItem {
   amount: number;
   status: RepaymentStatus;
   paidAt: string | null;
+  /** Term loans: the instalment's interest / principal split (cents). */
+  interest: number | null;
+  principalPortion: number | null;
+}
+
+/** One automatic renewal of a monthly-renewal loan. */
+export interface LoanRenewalRow {
+  id: string;
+  number: number;
+  renewedAt: string;
+  base: number;
+  rate: number;
+  charge: number;
+  newDueAt: string;
 }
 
 export interface PaymentRow {
@@ -214,6 +230,15 @@ export interface LoanRow {
   stampDuty: number;
   insurance: number;
   interestRate: number;
+  /** How the loan is calculated; an admin can change it on the loan page. */
+  interestMethod: InterestMethod;
+  renewalBasis: RenewalBasis | null;
+  /** Monthly renewal: sum of renewal charges, included in `total`. */
+  renewalCharges: number;
+  /** Term loans: the yearly rate and its two parts. */
+  annualRate: number | null;
+  bonRate: number | null;
+  marginRate: number | null;
   total: number;
   termMonths: number;
   instalment: number;
@@ -260,12 +285,15 @@ export interface LoanDetail extends LoanRow {
   collateralValue: number | null;
   schedule: ScheduleItem[];
   payments: PaymentRow[];
+  renewals: LoanRenewalRow[];
   activity: ActivityEvent[];
   audit: AuditEntry[];
   // Live arrears derived server-side (cents). `payoff` = balance + defaultInterest.
   defaultInterest: number;
   overdueAmount: number;
   payoff: number;
+  /** Term loans: interest rebated if settled today (already off `payoff`). */
+  unearnedInterest: number;
   borrowerDocuments: DocumentRow[];
   collateralPhotos: DocumentRow[];
 }

@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { PrismaModule } from './prisma/prisma.module';
 import { HealthModule } from './health/health.module';
@@ -26,6 +27,8 @@ import { AiModule } from './ai/ai.module';
     ConfigModule.forRoot({ isGlobal: true }),
     // Limits are declared per route (@Throttle + ThrottlerGuard); nothing is global.
     ThrottlerModule.forRoot([{ name: 'default', ttl: 60_000, limit: 60 }]),
+    // Daily jobs (monthly-renewal loans): see loans/renewals.cron.ts.
+    ScheduleModule.forRoot(),
     PrismaModule,
     HealthModule,
     ApplicationsModule,

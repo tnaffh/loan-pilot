@@ -4,6 +4,8 @@ import {
   assessArrears,
   formatNad,
   getTerms,
+  InterestMethod,
+  RenewalBasis,
   RepaymentStatus,
   type Terms,
 } from '@loan-pilot/domain';
@@ -104,6 +106,13 @@ export interface AgreementData {
     lastDueDate: string | null;
     periodEndDate: string | null;
     disbursedAt: string | null;
+    /** The rate line of the loan terms, worded for the loan's calculation method. */
+    rateLabel: string;
+    rateText: string;
+    /** How the method works, where it needs saying (monthly renewal); else null. */
+    methodNote: string | null;
+    /** Whether default (penalty) interest applies — not on a monthly-renewal loan. */
+    chargesPenaltyInterest: boolean;
     /** Itemised charges that make up the total repayable (+ any accrued penalty). */
     breakdown: BreakdownLine[];
   };
@@ -121,6 +130,9 @@ const formatDate = (date: Date | null | undefined): string | null =>
 
 /** Render a whole-number percentage from a fraction (0.3 → "30%"). */
 const formatPct = (rate: number): string => `${Math.round(rate * 100)}%`;
+
+/** Render a percentage keeping up to two decimals (0.155 → "15.5%"). */
+const formatRate = (rate: number): string => `${Math.round(rate * 10000) / 100}%`;
 
 /** Join a structured address into a single line, dropping blank parts. */
 const formatAddressLine = (address?: {
@@ -159,7 +171,31 @@ export const toAgreementData = (
   const disbursedAt = loan.disbursedAt ?? null;
   const firstItem = loan.schedule[0] ?? null;
   const lastItem = loan.schedule[loan.schedule.length - 1] ?? null;
-  const periodEnd = disbursedAt ? addMonths(disbursedAt, loan.termMonths) : null;
+  const renewing = loan.interestMethod === InterestMethod.MonthlyRenewal;
+  const termLoan = loan.interestMethod === InterestMethod.TermLoan;
+  const renewalCharges = loan.renewalCharges ?? 0;
+  // A monthly-renewal loan's period ends on its current due date, which moves
+  // on a month each time it renews.
+  const periodEnd = renewing
+    ? (lastItem?.dueAt ?? null)
+    : disbursedAt
+      ? addMonths(disbursedAt, loan.termMonths)
+      : null;
+  const rateText = termLoan
+    ? `${formatRate(loan.annualRate ?? 0)} a year (Bank of Namibia rate ` +
+      `${formatRate(loan.bonRate ?? 0)} + ${formatRate(loan.marginRate ?? 0)}), on the reducing balance`
+    : renewing
+      ? `${formatPct(loan.interestRate)} a month, charged again each month the loan renews`
+      : `${formatPct(loan.interestRate)} fixed (NAMFISA max 30%)`;
+  const methodNote = renewing
+    ? 'This is a monthly renewal loan. If the amount due is not paid in full by its due date ' +
+      '(plus any grace days allowed by the Lender), the loan renews for a further month and a ' +
+      `renewal charge of ${formatPct(loan.interestRate)} of ` +
+      (loan.renewalBasis === RenewalBasis.Balance
+        ? 'the full outstanding balance'
+        : 'the amount borrowed that is still unpaid') +
+      ' is added. The figures shown are as at the date of this document.'
+    : null;
 
   // Itemised charges that build up to the total repayable. Zero fees are
   // omitted, so a loan without a given fee reads cleanly. The components sum
@@ -171,9 +207,12 @@ export const toAgreementData = (
       { label: 'Insurance', cents: loan.insurance },
       { label: 'NAMFISA levy', cents: loan.namfisaLevy },
       {
-        label: `Finance charge (${formatPct(loan.interestRate)} of principal debt)`,
-        cents: loan.financeCharge,
+        label: termLoan
+          ? `Interest over the term (${formatRate(loan.annualRate ?? 0)} a year)`
+          : `Finance charge (${formatPct(loan.interestRate)} of principal debt)`,
+        cents: loan.financeCharge - renewalCharges,
       },
+      { label: 'Renewal charges to date', cents: renewalCharges },
       { label: 'Bank charges', cents: loan.bankCharges },
     ] as const
   )
@@ -194,7 +233,8 @@ export const toAgreementData = (
     penaltyMonthlyRate,
   );
 
-  if (arrears.defaultInterestCents > 0) {
+  // A monthly-renewal loan renews instead of accruing default interest.
+  if (!renewing && arrears.defaultInterestCents > 0) {
     breakdown.push({
       label: 'Default interest accrued to date',
       amount: formatNad(arrears.defaultInterestCents),
@@ -258,9 +298,20 @@ export const toAgreementData = (
       lastDueDate: formatDate(lastItem?.dueAt),
       periodEndDate: formatDate(periodEnd),
       disbursedAt: formatDate(disbursedAt),
+      rateLabel: termLoan ? 'Interest rate' : 'Finance charge rate',
+      rateText,
+      methodNote,
+      chargesPenaltyInterest: !renewing,
       breakdown,
     },
-    terms: getTerms(loan.tcVersion ?? undefined),
+    // The standard preamble limits the agreement to loans of up to 5 months,
+    // which a term loan is not.
+    terms: termLoan
+      ? {
+          ...getTerms(loan.tcVersion ?? undefined),
+          preamble: `This loan agreement applies to a term loan repaid in ${loan.instalmentsTotal} monthly instalments.`,
+        }
+      : getTerms(loan.tcVersion ?? undefined),
     tcAcceptedAt: loan.tcAcceptedAt,
     images,
     generatedAt,
